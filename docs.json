@@ -14,14 +14,6 @@
         "tab": "Guides",
         "groups": [
           {
-            "group": "Introduction",
-            "pages": [
-              "introduction"
-            ]
-          }
-        ],
-        "groups": [
-          {
             "group": "How to",
             "pages": [
               "introduction",
