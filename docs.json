@@ -1,7 +1,7 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "châtaigne",
   "colors": {
     "primary": "#16A34A",
     "light": "#07C983",
@@ -9,42 +9,41 @@
   },
   "favicon": "/favicon.svg",
   "navigation": {
-    "tabs": [
+    "dropdowns": [
       {
-        "tab": "Guides",
-        "pages": [
-          "introduction"
-        ],
+        "dropdown": "Guides",
         "groups": [
           {
-            "group": "How to",
-            "pages": [
-              "introduction",
-              "quickstart",
-              "development"
-            ]
+            "group": "Introduction",
+            "pages": ["introduction"]
           },
           {
-            "group": "Essentials",
+            "group": "How to",
+            "pages": ["how-to/store-onboarding"]
+          },
+          {
+            "group": "Integrations",
+            "pages": ["integrations/general"]
+          },
+          {
+            "group": "Working with the server",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/settings",
-              "essentials/navigation",
-              "essentials/reusable-snippets"
+              "working-with-the-server/overview",
+              "working-with-the-server/code",
+              "working-with-the-server/images",
+              "working-with-the-server/settings",
+              "working-with-the-server/navigation",
+              "working-with-the-server/reusable-snippets"
             ]
           }
         ]
       },
       {
-        "tab": "API Reference",
+        "dropdown": "API Reference",
         "groups": [
           {
             "group": "API Documentation",
-            "pages": [
-              "api-reference/introduction"
-            ]
+            "pages": ["api-reference/introduction"]
           },
           {
             "group": "Endpoint Examples",
@@ -56,27 +55,19 @@
             ]
           }
         ]
+      },
+      {
+        "dropdown": "Changelog",
+        "icon": "clock",
+        "groups": [
+          {
+            "group": "API Documentation",
+            "pages": ["api-reference/introduction"]
+          }
+        ]
       }
     ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Community",
-          "href": "https://mintlify.com/community",
-          "icon": "slack"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
+    "global": {}
   },
   "logo": {
     "light": "/logo/light.svg",
@@ -94,6 +85,9 @@
       "label": "Dashboard",
       "href": "https://dashboard.mintlify.com"
     }
+  },
+  "contextual": {
+    "options": ["copy", "view", "chatgpt", "claude"]
   },
   "footer": {
     "socials": {
