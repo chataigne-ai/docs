@@ -12,9 +12,13 @@
     "tabs": [
       {
         "tab": "Guides",
-        "group" : "Introduction",
-        "pages": [
-          "introduction"
+        "groups": [
+          {
+            "group": "Introduction",
+            "pages": [
+              "introduction"
+            ]
+          }
         ],
         "groups": [
           {
