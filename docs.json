@@ -12,6 +12,10 @@
     "tabs": [
       {
         "tab": "Guides",
+        "groups" : "Introduction",
+        "pages": [
+          "introduction"
+        ],
         "groups": [
           {
             "group": "How to",
