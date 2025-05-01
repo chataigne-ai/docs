@@ -104,11 +104,31 @@
             "pages": ["api-reference/introduction"]
           },
           {
-            "group": "Endpoint Examples",
-            "openapi": {
-              "source": "api-reference/openapi.json",
-              "directory": "api-reference"
-            }
+            "group": "References",
+            "pages": [
+              {
+                "group": "Orders",
+                "pages": [
+                  "api-reference/orders/introduction",
+                  "api-reference/orders/create-a-new-order",
+                  "api-reference/orders/update-order-status",
+                  "api-reference/delivery/introduction",
+                  "api-reference/discount/introduction",
+                  "api-reference/payment/introduction",
+                  "api-reference/charge/introduction"
+                ]
+              },
+              {
+                "group": "Orders draft",
+                "pages": [
+                  "api-reference/order-drafts/introduction",
+                  "api-reference/order-drafts/create-order-draft",
+                  "api-reference/order-drafts/create-a-new-order-draft",
+                  "api-reference/order-drafts/update-order-draft",
+                  "api-reference/order-drafts/update-and-validate-an-order-draft"
+                ]
+              }
+            ]
           }
         ]
       },
@@ -126,8 +146,8 @@
     "global": {}
   },
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/logo/chataigne.svg",
+    "dark": "/logo/chataigne.svg"
   },
   "navbar": {
     "links": [

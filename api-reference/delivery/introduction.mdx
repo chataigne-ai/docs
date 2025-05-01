@@ -1,0 +1,141 @@
+---
+title: Delivery
+description: Introduction to the Delivery
+---
+
+Châtaigne allows its users to create and handle deliveries for orders that are going through our system. We integrate two third-party services available in Switzerland:
+
+- Uber Direct
+- Chaskis
+
+The delivery goes through multiple status from the assignment of a driver to the completed delivery as well as failure states.
+
+A delivery is created for every new order going through châtaigne.&#x20;
+
+For orders coming from a third party channel, the restaurant is free to assign this delivery to a driver or to a third party service. The delivery object is then filled with informations computed from the assigned driver or from the third party service.
+
+For orders coming from a châtaigne channel, we need to know the delivery service before hand in order to compute the estimate that is shown to the client. In this case the restaurant auto assign the order to a chosen delivery service in the parameters so that this service is used for all orders.
+
+---
+
+## The delivery object
+
+The delivery object contains all the fields related to a delivery. A delivery must always be attached to an order while an order does not necessarily have a delivery. Here are the properties of a delivery.
+
+```typescript
+export class Delivery {
+  /** Unique identifier for the delivery */
+  id: string;
+
+  /** When the delivery was created in the system */
+  createdAt?: Date;
+
+  /** Last time the delivery was updated */
+  updatedAt?: Date;
+
+  /** Order ID */
+  orderId: string;
+
+  /** Service provider handling the delivery ('store' | 'chaskis' | 'uberDirect') */
+  provider: DeliveryProvider;
+
+  /** ID of the order/delivery in the provider's system */
+  providerIdentifier?: string;
+
+  /** Current status in the delivery lifecycle */
+  status: DeliveryStatus;
+
+  /** Information about where to pick up the order */
+  pickUp: PickUp;
+
+  /** Information about where to deliver the order */
+  dropOff: DropOff;
+
+  /** Information about the assigned delivery person, if available */
+  courrier?: Courrier;
+
+  /** URL to track the delivery on the provider's platform */
+  trackingUrl?: string;
+
+  /** Delivery cost details */
+  fees: Price;
+
+  /** Code required to collect the order, if applicable */
+  collectionCode?: string;
+
+  /** Refund information if the delivery was refunded */
+  refund?: Refund;
+}
+```
+
+### Delivery Status
+
+The status represents the current delivery state. It is used to alert the different stakeholders of the delivery about what is happening in real-time.
+
+```typescript
+export type DeliveryStatus =
+  | "pending"
+  | "pickup"
+  | "pickup_imminent"
+  | "pickup_complete"
+  | "dropoff"
+  | "dropoff_imminent"
+  | "delivered"
+  | "cancelled"
+  | "returned";
+```
+
+### Courier
+
+The courier represent the physical person responsible for the delivery of the order. It has a name, an optional picture and a phone number. Its location is available to customer in real time as long as they are in charge of their orders.
+
+```typescript
+export class courier {
+  /** Unique identifier for the courier */
+  id: string;
+
+  /** Full name of the courier */
+  name: string;
+
+  /** Contact phone number (If Uber Direct, a random number that redirects to the courier's phone number only if called from the dropoff number) */
+  phone?: string;
+
+  /** URL to courier's profile picture */
+  imageUrl?: string;
+
+  /** Current GPS latitude for real-time tracking */
+  latitude?: number;
+
+  /** Current GPS longitude for real-time tracking */
+  longitude?: number;
+}
+```
+
+### Pick Up/Drop Off
+
+These represents the information about the pickup and dropoff location as well as the name/phone of the restaurant or the customer.
+
+```typescript
+export class PickUp {
+  /** Name of the pickup location (usually restaurant name) */
+  name: string;
+
+  /** Contact phone for the pickup location */
+  phone?: string;
+
+  /** Physical address of the pickup location */
+  address: Address;
+
+  /** Special instructions for the courier */
+  note?: string;
+
+  /** When the order will be ready for pickup */
+  readyTime?: Date;
+
+  /** Estimated time of arrival at pickup location */
+  etaTime?: Date;
+
+  /** Latest acceptable pickup time */
+  deadlineTime?: Date;
+}
+```
