@@ -1,0 +1,392 @@
+---
+title: "Error Handling"
+description: "Error handling strategies and best practices"
+---
+
+<Info icon="alert-triangle">
+  Proper error handling is crucial for building robust and maintainable
+  applications. This document outlines our approach to handling errors across
+  use cases.
+</Info>
+
+## Core Principles
+
+<Steps>
+  <Step title="Domain-Centric">
+    • Errors should be expressed in domain terms, not technical terms
+  </Step>
+
+<Step title="Informative">
+  • Errors should provide enough context to understand what went wrong
+</Step>
+
+<Step title="Actionable">
+  • Errors should give hints on how to fix the issue when possible
+</Step>
+
+<Step title="Centralized">
+  • Error handling should be consistent across the application
+</Step>
+
+<Step title="Layered">
+  • Each layer should handle errors appropriate to its level of abstraction
+</Step>
+
+  <Step title="Traceable">
+    • The errors should be easily traceable to understand exactly where it was triggered from
+  </Step>
+</Steps>
+
+## Error Types
+
+<AccordionGroup>
+  <Accordion title="Domain Errors">
+    Domain errors represent business rule violations or invalid operations within our domain. They should be:
+
+    • Named descriptively (e.g., `LocationNotFoundError`, `InsufficientInventoryError`)
+
+    • Specific to a single failure mode
+
+    • Rich in context (e.g., include relevant IDs, expected/actual values)
+
+    ```typescript
+    export class LocationNotFoundError extends Error {
+      constructor(locationId: string) {
+        super(`Location with ID ${locationId} not found`);
+        this.name = "LocationNotFoundError";
+      }
+    }
+
+    export class OrderAlreadyProcessedError extends Error {
+      constructor(orderId: string) {
+        super(`Order ${orderId} has already been processed and cannot be modified`);
+        this.name = "OrderAlreadyProcessedError";
+      }
+    }
+    ```
+
+  </Accordion>
+
+  <Accordion title="Infrastructure Errors">
+    Infrastructure errors represent failures in external systems or services. They should be:
+
+    • Wrapped in domain-specific errors when propagated to upper layers
+
+    • Logged with technical details
+
+    • Abstracted away from domain logic
+
+    ```typescript
+    export class DatabaseConnectionError extends Error {
+      constructor(operation: string, cause?: Error) {
+        super(`Failed to connect to database during ${operation}`);
+        this.name = "DatabaseConnectionError";
+        this.cause = cause;
+      }
+    }
+
+    export class ExternalServiceError extends Error {
+      constructor(service: string, operation: string, cause?: Error) {
+        super(`Failed to perform ${operation} on ${service}`);
+        this.name = "ExternalServiceError";
+        this.cause = cause;
+      }
+    }
+    ```
+
+  </Accordion>
+</AccordionGroup>
+
+## Error Handling by Layer
+
+<AccordionGroup>
+  <Accordion title="Domain Layer">
+    The domain layer should:
+
+    • Define domain-specific error types
+
+    • Throw errors when business rules are violated
+
+    • Not catch or handle errors (pass them up)
+
+    ```typescript
+    export class Order {
+      validate(): void {
+        if (this.items.length === 0) {
+          throw new EmptyOrderError(this.id);
+        }
+
+        if (this.totalAmount <= 0) {
+          throw new InvalidOrderAmountError(this.id, this.totalAmount);
+        }
+
+        // More validation rules...
+      }
+    }
+    ```
+
+  </Accordion>
+
+  <Accordion title="Application Layer (Use Cases)">
+    The application layer should:
+
+    • Validate inputs
+
+    • Catch infrastructure errors and translate them to domain errors when appropriate
+
+    • Let domain errors pass through
+
+    • Log errors with proper context
+
+    ```typescript
+    export class CreateOrderUseCase {
+      async execute(order: Order): Promise<Order> {
+        try {
+          // Validate order
+          order.validate();
+
+          // Check if location exists
+          const location = await this.locationRepository.findById(order.locationId);
+          if (!location) {
+            throw new LocationNotFoundError(order.locationId);
+          }
+
+          // Create order
+          return await this.orderRepository.create(order);
+        } catch (error) {
+          // Translate infrastructure errors to domain errors
+          if (error instanceof DatabaseError) {
+            throw new OrderCreationFailedError(
+              order.id,
+              `Failed to create order due to database error: ${error.message}`
+            );
+          }
+
+          // Log and rethrow
+          this.logger.error("Failed to create order", { order, error });
+          throw error;
+        }
+      }
+    }
+    ```
+
+  </Accordion>
+
+  <Accordion title="Infrastructure Layer">
+    The infrastructure layer should:
+
+    • Catch low-level errors (e.g., database errors, network errors)
+
+    • Translate them to infrastructure-specific errors
+
+    • Add context about the operation that failed
+
+    • Not leak implementation details
+
+    ```typescript
+    export class PrismaOrderRepository implements IOrderRepository {
+      async create(order: Order): Promise<Order> {
+        try {
+          const orderData = await this.prisma.order.create({
+            data: {
+              // Map from domain to database model
+            },
+          });
+
+          return this.mapToDomain(orderData);
+        } catch (error) {
+          if (error instanceof PrismaClientKnownRequestError) {
+            if (error.code === "P2002") {
+              throw new DuplicateOrderError(order.id);
+            }
+          }
+
+          throw new DatabaseError("Failed to create order", error);
+        }
+      }
+    }
+    ```
+
+  </Accordion>
+
+  <Accordion title="Presentation Layer">
+    The presentation layer should:
+
+    • Catch all errors
+
+    • Translate domain errors to appropriate HTTP responses
+
+    • Hide technical details from clients
+
+    • Provide helpful error messages
+
+    ```typescript
+    @Controller("orders")
+    export class OrderController {
+      @Post()
+      async createOrder(
+        @Body() createOrderDto: CreateOrderDto
+      ): Promise<OrderResponseDto> {
+        try {
+          const order = OrderMapper.toDomain(createOrderDto);
+          const createdOrder = await this.createOrderUseCase.execute(order);
+          return OrderMapper.toDto(createdOrder);
+        } catch (error) {
+          // Map domain errors to HTTP responses
+          if (error instanceof LocationNotFoundError) {
+            throw new NotFoundException(error.message);
+          }
+
+          if (
+            error instanceof EmptyOrderError ||
+            error instanceof InvalidOrderAmountError
+          ) {
+            throw new BadRequestException(error.message);
+          }
+
+          if (error instanceof OrderCreationFailedError) {
+            throw new UnprocessableEntityException(error.message);
+          }
+
+          // Unexpected errors
+          this.logger.error("Unexpected error creating order", {
+            error,
+            dto: createOrderDto,
+          });
+          throw new InternalServerErrorException(
+            "An unexpected error occurred while processing your request"
+          );
+        }
+      }
+    }
+    ```
+
+  </Accordion>
+</AccordionGroup>
+
+## Exception Filters
+
+<Info>
+  NestJS has a powerful exception filter system that allows us to centralize error handling:
+
+```typescript
+@Catch(LocationNotFoundError)
+export class LocationNotFoundExceptionFilter implements ExceptionFilter {
+  catch(exception: LocationNotFoundError, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+
+    response.status(404).json({
+      statusCode: 404,
+      message: exception.message,
+      error: "Not Found",
+    });
+  }
+}
+```
+
+These filters can be registered globally or per controller:
+
+```typescript
+// Global registration
+const app = await NestFactory.create(AppModule);
+app.useGlobalFilters(new LocationNotFoundExceptionFilter());
+
+// Controller-level registration
+@Controller("orders")
+@UseFilters(LocationNotFoundExceptionFilter)
+export class OrderController {}
+```
+
+</Info>
+
+## Logging Guidelines
+
+<Steps>
+  <Step title="Contextual Information">
+    • Include relevant IDs, parameters, and stack traces
+  </Step>
+
+<Step title="Severity Levels">
+  • Use appropriate log levels (error, warn, info, debug)
+</Step>
+
+<Step title="Sensitive Data">
+  • Never log sensitive information (passwords, API keys, etc.)
+</Step>
+
+  <Step title="Structured Logging">
+    • Use structured logging for easier analysis
+
+    ```typescript
+    // Good logging
+    this.logger.error("Failed to create order", {
+      orderId: order.id,
+      customerId: order.customerId,
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      },
+    });
+
+    // Bad logging
+    this.logger.error(`Failed to create order: ${error}`);
+    ```
+
+  </Step>
+</Steps>
+
+## Testing Error Scenarios
+
+<Info>
+  When testing, it's important to verify error scenarios:
+
+```typescript
+describe("CreateOrderUseCase", () => {
+  it("should throw LocationNotFoundError when location does not exist", async () => {
+    // Arrange
+    const order = OrderFactory.createValid();
+    mockLocationRepository.findById.mockResolvedValue(null);
+
+    // Act & Assert
+    await expect(useCase.execute(order)).rejects.toThrow(LocationNotFoundError);
+    expect(mockLocationRepository.findById).toHaveBeenCalledWith(
+      order.locationId
+    );
+    expect(mockOrderRepository.create).not.toHaveBeenCalled();
+  });
+});
+```
+
+</Info>
+
+## Best Practices
+
+<Steps>
+  <Step title="Be Specific">
+    • Create specific error classes for different error cases
+  </Step>
+
+<Step title="Add Context">
+  • Include relevant information in error messages
+</Step>
+
+<Step title="Don't Catch Everything">
+  • Only catch errors you can handle meaningfully
+</Step>
+
+<Step title="Centralize Translation">
+  • Translate errors to HTTP responses in controllers or filters
+</Step>
+
+<Step title="Log Appropriately">
+  • Log errors with proper context and severity
+</Step>
+
+<Step title="Test Error Cases">• Write tests for error scenarios</Step>
+
+  <Step title="Use Custom Errors">
+    • Extend built-in error classes for domain errors
+  </Step>
+</Steps>

@@ -1,0 +1,113 @@
+---
+title: "Création des adapteurs"
+description: "Création des adapteurs"
+---
+
+<Info icon="puzzle">
+  Les client adapters sont essentiels pour l'intégration avec des services tiers.
+
+• Ils assurent la transformation des entités de domaine de notre système vers les types spécifiques des APIs externes et vice versa
+
+• Cette transformation garantit que les données sont correctement formatées pour les requêtes et les réponses, facilitant ainsi une interaction fluide avec les services externes.
+
+</Info>
+
+## Fonctionnement des Client Adapters
+
+Un client adapter suit une logique structurée :
+
+<Steps>
+  <Step title="Transformation vers le Type Tiers">
+    Lors d'une requête POST, par exemple, un client adapter convertit une entité de domaine (telle qu'une `Order`) en un type compatible avec l'API externe (comme une `HubriseOrder`).
+  </Step>
+
+  <Step title="Transformation vers le Type de Domaine">
+    Lors d'une requête GET, l'API externe renvoie des données dans son format propre. Le client adapter transforme ces données en entités de domaine utilisables par notre système.
+  </Step>
+</Steps>
+
+## Exemple de Client Adapter
+
+Supposons que nous intégrions l'API Hubrise et que nous devions transformer une `Order` de notre système en une `HubriseOrder` et vice versa.
+
+<AccordionGroup>
+  <Accordion title="Définition des Types">
+    ```typescript
+    interface Order {
+      id: string;
+      status: string;
+      items: OrderItem[];
+    }
+
+    interface OrderItem {
+      id: string;
+      name: string;
+      quantity: number;
+    }
+
+    interface HubriseOrder {
+      id: string;
+      status: string;
+      items: HubriseItem[];
+    }
+
+    interface HubriseItem {
+      id: string;
+      name: string;
+      quantity: number;
+    }
+    ```
+
+  </Accordion>
+
+  <Accordion title="Implémentation du Client Adapter">
+    ```typescript
+    class HubriseAdapter {
+      static toHubriseOrder(order: Order): HubriseOrder {
+        return {
+          id: order.id,
+          status: order.status,
+          items: order.items.map((item) => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+          })),
+        };
+      }
+
+      static toDomainOrder(hubriseOrder: HubriseOrder): Order {
+        return {
+          id: hubriseOrder.id,
+          status: hubriseOrder.status,
+          items: hubriseOrder.items.map((item) => ({
+            id: item.id,
+            name: item.name,
+            quantity: item.quantity,
+          })),
+        };
+      }
+    }
+    ```
+
+  </Accordion>
+</AccordionGroup>
+
+## Avantages des Client Adapters
+
+<AccordionGroup>
+  <Accordion title="Séparation des Responsabilités">
+    Les client adapters isolent la logique de transformation, rendant le code plus maintenable et modulaire.
+  </Accordion>
+
+{" "}
+
+<Accordion title="Réutilisabilité">
+  Une fois définis, les client adapters seront réutilisés dans les clients pour
+  toutes les interactions avec l'API externe, assurant une cohérence dans les
+  transformations.
+</Accordion>
+
+  <Accordion title="Cohérence">
+    Ils garantissent que les données sont toujours dans le bon format pour les requêtes et les réponses, minimisant ainsi les erreurs de formatage.
+  </Accordion>
+</AccordionGroup>

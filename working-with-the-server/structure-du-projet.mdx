@@ -1,0 +1,210 @@
+---
+title: Structure du projet
+description: "Organisation et architecture du projet Châtaigne"
+icon: diagram-project
+---
+
+<Info>
+  Cette page décrit l'architecture et l'organisation du code de Châtaigne,
+  conçue pour être modulaire, maintenable et évolutive.
+</Info>
+
+## Organisation Générale
+
+Châtaigne utilise une architecture monorepo organisée avec les dossiers principaux suivants :
+
+```bash
+/
+├── apps/
+│   ├── server/        # Backend NestJS
+│   └── web/           # Frontend NextJS
+└── packages/
+    ├── prisma/          # Schéma de base de données et migrations
+    └── backend-client/  # Types partagés et méthode permettant
+                         # d'appeler les endpoints du backend
+```
+
+## Modules principaux
+
+<Steps>
+  <Step title="Domain Module">
+    Le cœur de l'application :
+
+    - Contient toutes les entités métier
+    - Implémente la logique métier pure
+    - Ne dépend d'aucun autre module
+
+  </Step>
+
+  <Step title="Application Module">
+    La couche d'orchestration :
+
+    - Orchestre les use cases
+    - Injecte les dépendances nécessaires
+    - Gère les transactions
+    - Dépend uniquement du Domain Module
+
+  </Step>
+
+  <Step title="Infrastructure Module">
+    La couche technique :
+
+    - Implémente les repositories
+    - Gère les connexions externes
+    - Configure les services tiers
+    - Implémente les adaptateurs
+
+  </Step>
+
+  <Step title="Presentation Module">
+    L'interface avec l'extérieur :
+
+    - Expose les API REST
+    - Gère la validation des entrées
+    - Configure la documentation OpenAPI
+    - Implémente la sécurité et l'authentification
+
+  </Step>
+</Steps>
+
+```bash
+/src
+├── domain/                # Couche Domain
+│   ├── entities/          # Entités métier
+│   ├── value-objects/     # Value Objects
+│   └── exceptions/        # Exceptions métier
+│
+├── application/           # Couche Application
+│   ├── use-cases/        # Use cases par fonctionnalité
+│      ├── order/
+│      ├── catalog/
+│      ├── catalog/
+│      └── .../
+│
+├── infrastructure/  # Couche Infrastructure
+│   ├── repositories/    # Implémentation des repositories (Accès à la Database)
+│   ├── services/        # Services externes
+│   │   ├── dialog/         # Service WhatsApp
+│   │   ├── stripe/         # Service de paiement
+│   │   ├── hubrise/        # Integration POS
+│   │   ├── expedy/         # Integration POS
+│   │   └── .../            # Service d'impression
+│   ├── adapters/        # Adaptateurs pour les services externes
+│   │   ├── prisma/         # Adapters Prisma
+│   │   └── dtos/           # Adapters DTOs
+│   ├── queues/          # Définition des queues
+│   └── processors/      # Processors pour les tâches asynchrones
+│
+└── presentation/     # Couche Presentation
+    ├── controllers/    # Controllers REST
+    ├── dtos/           # Validation et documentation des types d'entrées et de sorties
+    ├── guards/         # Guards d'authentification
+    └── middlewares/    # Middlewares
+```
+
+## Conventions de Nommage
+
+<Note>
+  Nous utilisons des conventions de nommage strictes pour maintenir la cohérence
+  du code.
+</Note>
+
+### Fichiers
+
+Tous les fichiers suivent le format kebab-case avec des suffixes spécifiques selon leur type :
+
+<CardGroup cols={2}>
+  <Card title="Entités & Repositories" icon="file-code">
+    • `.entity.ts` - Entités
+
+    • `.repository.ts` - Repositories
+
+  </Card>
+  <Card title="Use Cases & Controllers" icon="file-lines">
+    • `.usecase.ts` - Use cases
+
+    • `.controller.ts` - Controllers
+
+  </Card>
+  <Card title="Services & Adaptateurs" icon="gear">
+    • `.service.ts` - Services
+
+    • `.adapter.ts` - Adaptateurs
+
+  </Card>
+  <Card title="Events & Listeners" icon="bolt">
+    • `.event.ts` - Events
+
+    • `.listener.ts` - Event Listeners
+
+  </Card>
+</CardGroup>
+
+## Injection de Dépendances
+
+<Info>
+  NestJS fournit un système d'injection de dépendances robuste que nous
+  utilisons de la manière suivante :
+</Info>
+
+- Les interfaces sont injectées via des tokens
+- La configuration se fait dans les modules respectifs
+
+Voici un exemple de configuration :
+
+```typescript
+// Dans la couche Domain
+interface IConversationRepository {
+  //...
+}
+
+const IConversationRepository = Symbol("IConversationRepository");
+```
+
+```typescript
+// Dans la couche infrastructure
+class ConversationRepository implements IConversationRepository {
+  ///...
+}
+```
+
+```typescript
+// Dans le Module Infrastructure
+@Module({
+  providers: [
+    {
+      provide: IConversationRepository, // Symbole de la classe défini dans l'interface
+      useClass: ConversationRepository // Implementation de la classe
+    },
+  ]
+})
+```
+
+## Points d'Attention
+
+<CardGroup cols={2}>
+  <Card title="Dépendances" icon="arrow-down">
+    • Les dépendances pointent vers l'intérieur (Domain)
+
+    • Communication uniquement entre couches adjacentes
+
+  </Card>
+  <Card title="Adaptateurs" icon="plug">
+    • Obligatoires pour la transformation de données
+
+    • Isolation claire des formats de données externes
+
+  </Card>
+  <Card title="Repositories" icon="database">
+    • Manipulation exclusive des entités domain
+
+    • Pas de logique métier
+
+  </Card>
+  <Card title="Use Cases" icon="cube">
+    • Une seule responsabilité
+
+    • Orchestration claire des dépendances
+
+  </Card>
+</CardGroup>

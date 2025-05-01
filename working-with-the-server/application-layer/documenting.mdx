@@ -1,0 +1,372 @@
+---
+title: "Documenting"
+description: "Good documentation is essential for maintaining a clean, understandable, and maintainable codebase. This document outlines our approach to documenting use cases, covering both inline code documentation and separate documentation files."
+---
+
+# Documenting
+
+### Overview
+
+Good documentation is essential for maintaining a clean, understandable, and maintainable codebase. This document outlines our approach to documenting use cases, covering both inline code documentation and separate documentation files.
+
+### Principles
+
+Our documentation approach follows these principles:
+
+1. **Clarity**: Documentation should be clear and unambiguous
+2. **Completeness**: Documentation should cover all aspects of the use case
+3. **Consistency**: Documentation should follow a consistent format
+4. **Maintainability**: Documentation should be easy to keep up-to-date
+5. **Accessibility**: Documentation should be easily accessible to developers
+
+### Inline Documentation
+
+#### JSDoc Comments
+
+We use JSDoc comments to document our use cases:
+
+```typescript
+/**
+ * Creates a new order in the system.
+ *
+ * This use case is responsible for:
+ * 1. Validating the order (location exists, customer exists, etc.)
+ * 2. Creating the order in the database
+ * 3. Synchronizing the order with Hubrise
+ * 4. Creating a Stripe checkout session
+ * 5. Emitting an order.created event
+ *
+ * @param {Order} order - The order to create
+ * @returns {Promise<Order>} The created order
+ * @throws {LocationNotFoundError} When the location doesn't exist
+ * @throws {CustomerNotFoundError} When the customer doesn't exist
+ * @throws {EmptyOrderError} When the order has no items
+ * @throws {InvalidOrderAmountError} When the order amount is invalid
+ * @throws {HubriseIntegrationError} When synchronization with Hubrise fails
+ * @throws {StripeIntegrationError} When creating a Stripe checkout session fails
+ */
+async execute(order: Order): Promise<Order> {
+  // Implementation...
+}
+```
+
+#### Types and Interfaces
+
+We document types and interfaces with JSDoc comments:
+
+```typescript
+/**
+ * Repository for managing orders.
+ */
+export interface IOrderRepository {
+  /**
+   * Creates a new order.
+   *
+   * @param {Order} order - The order to create
+   * @returns {Promise<Order>} The created order
+   * @throws {DatabaseError} When the database operation fails
+   */
+  create(order: Order): Promise<Order>;
+
+  /**
+   * Finds an order by ID.
+   *
+   * @param {string} id - The ID of the order to find
+   * @returns {Promise<Order | null>} The order, or null if not found
+   * @throws {DatabaseError} When the database operation fails
+   */
+  findById(id: string): Promise<Order | null>;
+
+  // Other methods...
+}
+```
+
+#### Code Examples
+
+We include code examples in our documentation when they would be helpful:
+
+````typescript
+/**
+ * Updates the status of an order.
+ *
+ * Example:
+ * ```typescript
+ * const order = await updateOrderStatusUseCase.execute({
+ *   orderId: 'order_123',
+ *   status: 'completed'
+ * });
+ * console.log(order.status); // 'completed'
+ * ```
+ *
+ * @param {Object} params - The parameters
+ * @param {string} params.orderId - The ID of the order to update
+ * @param {OrderStatus} params.status - The new status
+ * @returns {Promise<Order>} The updated order
+ * @throws {OrderNotFoundError} When the order doesn't exist
+ * @throws {InvalidOrderStatusTransitionError} When the status transition is invalid
+ */
+async execute({ orderId, status }: { orderId: string, status: OrderStatus }): Promise<Order> {
+  // Implementation...
+}
+````
+
+### Dedicated Documentation Files
+
+For complex use cases, we create dedicated documentation files in Markdown format:
+
+````markdown
+# Create Order Use Case
+
+## Overview
+
+The Create Order use case is responsible for creating a new order in the system, including
+validating the order, storing it in the database, synchronizing it with Hubrise, creating a
+Stripe checkout session, and notifying interested parties via events.
+
+## Inputs
+
+- `order`: An `Order` entity with the following properties:
+  - `locationId`: The ID of the location where the order is placed
+  - `customerId`: The ID of the customer placing the order
+  - `items`: An array of order items, each with:
+    - `menuItemId`: The ID of the menu item
+    - `quantity`: The quantity of the item
+    - `price`: The price of the item
+  - `totalAmount`: The total amount of the order
+
+## Outputs
+
+- The created `Order` entity, including:
+  - `id`: The ID of the created order
+  - `status`: The status of the order (initially 'pending')
+  - `createdAt`: The creation timestamp
+  - `updatedAt`: The last update timestamp
+
+## Workflow
+
+1. Validate location exists
+2. Validate customer exists
+3. Validate order (items, total amount, etc.)
+4. Create order in database
+5. Synchronize order with Hubrise
+6. Create Stripe checkout session
+7. Emit order.created event
+8. Return created order
+
+## Error Handling
+
+- `LocationNotFoundError`: When the location doesn't exist
+- `CustomerNotFoundError`: When the customer doesn't exist
+- `EmptyOrderError`: When the order has no items
+- `InvalidOrderAmountError`: When the order amount is invalid
+- `HubriseIntegrationError`: When synchronization with Hubrise fails
+- `StripeIntegrationError`: When creating a Stripe checkout session fails
+
+## External Interactions
+
+- **OrderRepository**: Creates the order in the database
+- **LocationRepository**: Validates the location exists
+- **CustomerRepository**: Validates the customer exists
+- **HubriseClient**: Synchronizes the order with Hubrise
+- **StripeClient**: Creates a Stripe checkout session
+- **EventEmitter**: Emits the order.created event
+
+## Example
+
+```typescript
+// Create order data
+const order = new Order({
+  locationId: "location_123",
+  customerId: "customer_123",
+  items: [
+    {
+      menuItemId: "menuItem_123",
+      quantity: 2,
+      price: 15.0,
+    },
+  ],
+  totalAmount: 30.0,
+});
+
+// Execute use case
+const createdOrder = await createOrderUseCase.execute(order);
+
+console.log(createdOrder.id); // The ID of the created order
+console.log(createdOrder.status); // 'pending'
+```
+````
+
+### Related Use Cases
+
+- **UpdateOrderStatusUseCase**: Updates the status of an order
+- **CancelOrderUseCase**: Cancels an order
+- **GetOrderUseCase**: Gets an order by ID
+
+````
+
+## Class and Method Documentation
+
+We document class constructors and methods:
+
+```typescript
+/**
+ * Use case for creating orders in the system.
+ */
+export class CreateOrderUseCase {
+  /**
+   * Creates a new instance of the CreateOrderUseCase.
+   *
+   * @param {IOrderRepository} orderRepository - Repository for managing orders
+   * @param {ILocationRepository} locationRepository - Repository for managing locations
+   * @param {ICustomerRepository} customerRepository - Repository for managing customers
+   * @param {IHubriseClient} hubriseClient - Client for interacting with Hubrise
+   * @param {IStripeClient} stripeClient - Client for interacting with Stripe
+   * @param {IEventEmitter} eventEmitter - Service for emitting events
+   */
+  constructor(
+    private readonly orderRepository: IOrderRepository,
+    private readonly locationRepository: ILocationRepository,
+    private readonly customerRepository: ICustomerRepository,
+    private readonly hubriseClient: IHubriseClient,
+    private readonly stripeClient: IStripeClient,
+    private readonly eventEmitter: IEventEmitter
+  ) {}
+
+  /**
+   * Creates a new order in the system.
+   *
+   * @param {Order} order - The order to create
+   * @returns {Promise<Order>} The created order
+   * @throws {LocationNotFoundError} When the location doesn't exist
+   * @throws {CustomerNotFoundError} When the customer doesn't exist
+   * @throws {EmptyOrderError} When the order has no items
+   * @throws {InvalidOrderAmountError} When the order amount is invalid
+   * @throws {HubriseIntegrationError} When synchronization with Hubrise fails
+   * @throws {StripeIntegrationError} When creating a Stripe checkout session fails
+   */
+  async execute(order: Order): Promise<Order> {
+    // Implementation...
+  }
+}
+````
+
+### Documentation Organization
+
+We organize our documentation to mirror the structure of our application:
+
+```
+src/
+  application/
+    use-cases/
+      order/
+        create-order.usecase.ts
+        docs/
+          create-order.md
+      customer/
+        register-customer.usecase.ts
+        docs/
+          register-customer.md
+```
+
+This organization makes it easy to find documentation for a specific use case.
+
+### Generating Documentation
+
+We use TypeDoc to generate API documentation from our JSDoc comments:
+
+```json
+// typedoc.json
+{
+  "entryPoints": ["src/index.ts"],
+  "out": "docs/api",
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeExternals": true,
+  "theme": "default",
+  "name": "Chataigne API Documentation"
+}
+```
+
+This generates comprehensive API documentation that can be browsed in a web browser.
+
+### Best Practices
+
+1. **Document Why, Not Just What**: Explain the rationale behind design decisions
+2. **Keep Documentation Up-to-Date**: Update documentation when code changes
+3. **Use Examples**: Provide examples to illustrate usage
+4. **Be Specific About Errors**: Document all possible errors
+5. **Include Context**: Include context about how the use case fits into the larger system
+6. **Use Diagrams When Helpful**: Include diagrams for complex workflows
+7. **Link Related Documentation**: Link to related use cases or documentation
+8. **Document Side Effects**: Be explicit about side effects like event emission
+
+### Example Use Case Documentation
+
+Here's an example of a complete use case documentation file:
+
+````markdown
+# Update Order Status Use Case
+
+## Overview
+
+The Update Order Status use case is responsible for changing the status of an existing order in the system. It validates the status transition, updates the order in the database, synchronizes the status with Hubrise, and notifies interested parties via events.
+
+## Inputs
+
+- `orderId`: The ID of the order to update
+- `status`: The new status of the order (one of 'pending', 'processing', 'completed', 'cancelled')
+
+## Outputs
+
+- The updated `Order` entity
+
+## Workflow
+
+1. Validate order exists
+2. Validate status transition is valid
+3. Update order status in database
+4. Synchronize status with Hubrise
+5. Emit order.statusUpdated event
+6. Return updated order
+
+## Error Handling
+
+- `OrderNotFoundError`: When the order doesn't exist
+- `InvalidOrderStatusTransitionError`: When the status transition is invalid (e.g., from 'completed' to 'pending')
+- `HubriseIntegrationError`: When synchronization with Hubrise fails
+
+## External Interactions
+
+- **OrderRepository**: Updates the order in the database
+- **HubriseClient**: Synchronizes the order status with Hubrise
+- **EventEmitter**: Emits the order.statusUpdated event
+
+## Example
+
+```typescript
+// Execute use case
+const updatedOrder = await updateOrderStatusUseCase.execute({
+  orderId: "order_123",
+  status: "completed",
+});
+
+console.log(updatedOrder.status); // 'completed'
+
+
+## Status Transition Rules
+The following status transitions are allowed:
+'pending' → 'processing'
+'pending' → 'cancelled'
+'processing' → 'completed'
+'processing' → 'cancelled'
+All other transitions (e.g., 'completed' → 'pending') are invalid and will result in an InvalidOrderStatusTransitionError.
+Related Use Cases
+CreateOrderUseCase: Creates a new order
+CancelOrderUseCase: Cancels an order
+GetOrderUseCase: Gets an order by ID
+
+## Conclusion
+
+Good documentation is an investment that pays off in improved code understanding, easier
+```
+````

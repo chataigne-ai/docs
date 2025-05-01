@@ -1,0 +1,118 @@
+---
+title: "Test des Adapteurs"
+description: "Test des Adapteurs"
+---
+
+# Test des Adapteurs
+
+## Tests des Adapters
+
+### Introduction
+
+Les adapters transforment les données entre différentes couches de l'application. Leur test est important pour garantir que les données sont correctement transformées.
+
+### Factories
+
+Les factories nous permettent de créer facilement des données de test cohérentes.
+
+```typescript
+// Factory de base pour générer des IDs et dates
+class BaseFactory {
+  static generateId(prefix: string): string {
+    return `${prefix}-${cuid()}`;
+  }
+
+  static createDate(): Date {
+    return new Date();
+  }
+}
+
+// Factory pour créer des données de test
+class OrderFactory {
+  static createValid(): OrderDTO {
+    return {
+      id: BaseFactory.generateId("order"),
+      status: "new",
+      items: [],
+      customerId: BaseFactory.generateId("customer"),
+    };
+  }
+
+  static createWithItems(): OrderDTO {
+    const orderId = BaseFactory.generateId("order");
+    return {
+      ...this.createValid(),
+      id: orderId,
+      items: [
+        {
+          id: BaseFactory.generateId("item"),
+          orderId,
+          name: "Pizza",
+          price: { amount: 10, currency: "CHF" },
+        },
+      ],
+    };
+  }
+}
+```
+
+### Tests
+
+Les tests vérifient que les transformations fonctionnent correctement.
+
+```typescript
+describe("OrderAdapter", () => {
+  it("should transform valid data to entity", () => {
+    // Arrange
+    const data = OrderFactory.createValid();
+
+    // Act
+    const entity = OrderAdapter.toEntity(data);
+
+    // Assert
+    expect(entity).toBeInstanceOf(Order);
+    expect(entity.id).toBe(data.id);
+    expect(entity.status).toBe(data.status);
+  });
+
+  it("should handle optional fields", () => {
+    // Arrange
+    const data = OrderFactory.createValid();
+    delete data.status;
+
+    // Act
+    const entity = OrderAdapter.toEntity(data);
+
+    // Assert
+    expect(entity.status).toBe("new"); // valeur par défaut
+  });
+
+  it("should transform with relations", () => {
+    // Arrange
+    const data = OrderFactory.createWithItems();
+
+    // Act
+    const entity = OrderAdapter.toEntity(data);
+
+    // Assert
+    expect(entity.items).toHaveLength(1);
+    expect(entity.items[0].name).toBe("Pizza");
+  });
+});
+```
+
+### Points à Vérifier
+
+1. **Transformation de base**
+   - Les champs sont correctement copiés
+   - Une nouvelle instance est créée
+   - Les types sont corrects
+2. **Champs optionnels**
+   - Les valeurs par défaut sont appliquées
+   - Les champs manquants sont gérés
+3. **Relations**
+   - Les relations sont correctement transformées
+   - Les collections sont gérées
+4. **Erreurs**
+   - Les données invalides sont rejetées
+   - Les messages d'erreur sont clairs

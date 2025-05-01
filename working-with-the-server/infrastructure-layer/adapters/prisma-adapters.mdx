@@ -1,0 +1,393 @@
+---
+title: "Prisma Adapters"
+description: "Adapters Prisma"
+---
+
+<Info>
+  Les adapters Prisma sont responsables de la transformation des données entre
+  notre domaine et la couche de persistance Prisma. Ils jouent un rôle crucial
+  dans la séparation entre notre modèle de domaine et le modèle de données.
+</Info>
+
+## Types Prisma
+
+<Steps>
+  <Step title="Types Générés par Prisma">
+    Prisma génère automatiquement plusieurs types pour chaque modèle. Ces types sont accessibles via l'import de `@prisma/client` :
+
+    ```typescript
+    import { Prisma } from "@prisma/client";
+
+    // Types de base
+    type PrismaOrder = Prisma.Order;
+    type PrismaCustomer = Prisma.Customer;
+
+    // Types pour les opérations CRUD
+    type PrismaOrderCreateInput = Prisma.OrderCreateInput;
+    type PrismaOrderUpdateInput = Prisma.OrderUpdateInput;
+    type PrismaOrderWhereInput = Prisma.OrderWhereInput;
+    type PrismaOrderWhereUniqueInput = Prisma.OrderWhereUniqueInput;
+
+    // Type pour les requêtes avec includes
+    type PrismaOrderGetPayload<T> = Prisma.OrderGetPayload<T>;
+    ```
+
+  </Step>
+
+  <Step title="Utilisation des Types avec Includes">
+    Prisma fournit un système puissant de typage pour les requêtes avec includes. Voici comment cela fonctionne :
+
+    ```typescript
+    // Exemple d'une requête avec includes
+    const orderWithCustomer = await prisma.order.findUnique({
+      where: { id: "order-1" },
+      include: {
+        customer: true,
+        items: {
+          include: {
+            options: true,
+          },
+        },
+      },
+    });
+
+    // Le type de orderWithCustomer sera automatiquement inféré comme :
+    type OrderWithCustomer = Prisma.OrderGetPayload<{
+      include: {
+        customer: true;
+        items: {
+          include: {
+            options: true;
+          };
+        };
+      };
+    }>;
+    ```
+
+  </Step>
+</Steps>
+
+## Structure d'un Adapter Prisma
+
+<Steps>
+  <Step title="Méthodes de Base">
+    ```typescript
+    class PrismaOrderAdapter {
+      // Transformation d'une entité Prisma en entité du domaine
+      static prismaToOrderEntity(
+        prisma: Prisma.OrderGetPayload<{}> // Type de base sans includes
+      ): Order {
+        return new Order({
+          id: prisma.id,
+          status: prisma.status,
+          // ... autres champs
+        });
+      }
+
+      // Transformation d'une entité du domaine en input Prisma pour création
+      static orderEntityToPrismaCreate(order: Order): Prisma.OrderCreateInput {
+        return {
+          id: order.id,
+          status: order.status,
+          customer: {
+            connect: { id: order.customerId }, // Toujours utiliser connect
+          },
+        };
+      }
+
+      // Transformation d'une entité du domaine en input Prisma pour mise à jour
+      static orderEntityToPrismaUpdate(order: Order): Prisma.OrderUpdateInput {
+        return {
+          status: order.status,
+          customer: order.customerId
+            ? {
+                connect: { id: order.customerId },
+              }
+            : undefined,
+        };
+      }
+    }
+    ```
+
+  </Step>
+
+  <Step title="Méthodes pour les Requêtes avec Relations">
+    ```typescript
+    class PrismaOrderAdapter {
+      // Transformation avec customer
+      static prismaToOrderWithCustomerEntity(
+        prisma: Prisma.OrderGetPayload<{
+          include: {
+            customer: true;
+          };
+        }>
+      ): Order {
+        return new Order({
+          id: prisma.id,
+          status: prisma.status,
+          customer: prisma.customer
+            ? PrismaCustomerAdapter.prismaToCustomerEntity(prisma.customer)
+            : undefined,
+        });
+      }
+
+      // Transformation avec toutes les relations
+      static prismaToOrderWithDetailsEntity(
+        prisma: Prisma.OrderGetPayload<{
+          include: {
+            customer: true;
+            items: {
+              include: {
+                options: true;
+              };
+            };
+            delivery: true;
+          };
+        }>
+      ): Order {
+        return new Order({
+          id: prisma.id,
+          status: prisma.status,
+          customer: prisma.customer
+            ? PrismaCustomerAdapter.prismaToCustomerEntity(prisma.customer)
+            : undefined,
+          items: prisma.items?.map((item) =>
+            PrismaOrderItemAdapter.prismaToOrderItemEntity(item)
+          ),
+          delivery: prisma.delivery
+            ? PrismaDeliveryAdapter.prismaToDeliveryEntity(prisma.delivery)
+            : undefined,
+        });
+      }
+    }
+    ```
+
+  </Step>
+</Steps>
+
+## Règles Critiques
+
+<Steps>
+  <Step title="Ne Jamais Créer d'Entités de Manière Nested">
+    ```typescript
+    // ❌ À ÉVITER - Création nested
+    const createOrderWithCustomer = {
+      id: order.id,
+      customer: {
+        create: {
+          // JAMAIS de create nested
+          id: customer.id,
+          name: customer.name,
+          // ...
+        },
+      },
+    };
+
+    // ✅ CORRECT - Utiliser connect
+    const createOrderWithCustomer = {
+      id: order.id,
+      customer: {
+        connect: { id: customer.id }, // Toujours connect pour les relations
+      },
+    };
+    ```
+
+  </Step>
+
+  <Step title="Raisons pour Éviter la Création Nested">
+    • Validation du Domaine
+    
+    
+    - La création nested contourne la validation du domaine
+    - Les invariants métier ne sont pas vérifiés
+    - Risque d'incohérence dans les données
+
+    • Événements du Domaine
+
+
+    - Les événements de domaine ne sont pas déclenchés
+    - Impact sur les side effects (notifications, analytics, etc.)
+    - Risque de comportements inattendus
+
+
+    • Maintenance
+
+
+    - Code difficile à maintenir
+    - Débogage complexe
+    - Risque de duplication de logique
+
+  </Step>
+
+  <Step title="Gestion des Relations">
+    ```typescript
+    class PrismaOrderAdapter {
+      static orderEntityToPrismaCreate(order: Order): Prisma.OrderCreateInput {
+        return {
+          id: order.id,
+          status: order.status,
+          // Relations avec connect
+          customer: {
+            connect: { id: order.customerId },
+          },
+          items: {
+            create: order.items.map((item) => ({
+              id: item.id,
+              name: item.name,
+              // ... autres champs
+            })),
+          },
+        };
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+<Warning>
+  Il est par contre tout à fait normal de créer des Value Objects de manière
+  Nested. Vous pouvez donc très bien créer une adresse à l'intérieur d'une
+  entité Customer. Cette règle n'est valable que pour les Entités.
+</Warning>
+
+## Bonnes Pratiques
+
+<Steps>
+  <Step title="Séparation des Méthodes">
+    • Une méthode par type de transformation
+
+    • Méthodes distinctes pour différents niveaux d'includes
+
+
+    • Noms explicites indiquant les relations incluses
+
+  </Step>
+
+  <Step title="Validation des Données">
+    ```typescript
+    static prismaToOrderEntity(prisma: Prisma.OrderGetPayload<{}>): Order {
+      if (!prisma) {
+        throw new AdapterError('Données Prisma invalides');
+      }
+
+      return new Order({
+        id: prisma.id,
+        status: prisma.status ?? 'new',
+        // ... autres champs
+      });
+    }
+    ```
+
+  </Step>
+
+  <Step title="Gestion des Relations Nullables">
+    ```typescript
+    static prismaToOrderWithCustomerEntity(
+      prisma: Prisma.OrderGetPayload<{ include: { customer: true } }>
+    ): Order {
+      return new Order({
+        id: prisma.id,
+        customer: prisma.customer ?
+          PrismaCustomerAdapter.prismaToCustomerEntity(prisma.customer) :
+          undefined
+      });
+    }
+    ```
+  </Step>
+
+  <Step title="Types Stricts">
+    ```typescript
+    // Définition des types d'includes
+    type OrderInclude = {
+      customer?: boolean;
+      items?: {
+        include: {
+          options?: boolean;
+        };
+      };
+      delivery?: boolean;
+    };
+
+    // Utilisation dans l'adapter
+    static prismaToOrderWithRelations(
+      prisma: Prisma.OrderGetPayload<{ include: OrderInclude }>
+    ): Order {
+      // ... transformation
+    }
+    ```
+
+  </Step>
+</Steps>
+
+## Exemple Complet
+
+```typescript
+class PrismaOrderAdapter {
+  // GET - Simple
+  static prismaToOrderEntity(prisma: Prisma.OrderGetPayload<{}>): Order {
+    if (!prisma) {
+      throw new AdapterError("Données Prisma invalides");
+    }
+
+    return new Order({
+      id: prisma.id,
+      status: prisma.status ?? "new",
+      customerId: prisma.customerId,
+    });
+  }
+
+  // GET - Avec relations
+  static prismaToOrderWithCustomerEntity(
+    prisma: Prisma.OrderGetPayload<{
+      include: {
+        customer: true;
+      };
+    }>
+  ): Order {
+    if (!prisma) {
+      throw new AdapterError("Données Prisma invalides");
+    }
+
+    return new Order({
+      id: prisma.id,
+      status: prisma.status ?? "new",
+      customer: prisma.customer
+        ? PrismaCustomerAdapter.prismaToCustomerEntity(prisma.customer)
+        : undefined,
+    });
+  }
+
+  // CREATE
+  static orderEntityToPrismaCreate(order: Order): Prisma.OrderCreateInput {
+    if (!order) {
+      throw new AdapterError("Commande invalide");
+    }
+
+    return {
+      id: order.id,
+      status: order.status,
+      customer: order.customerId
+        ? {
+            connect: { id: order.customerId },
+          }
+        : undefined,
+    };
+  }
+
+  // UPDATE
+  static orderEntityToPrismaUpdate(order: Order): Prisma.OrderUpdateInput {
+    if (!order) {
+      throw new AdapterError("Commande invalide");
+    }
+
+    return {
+      status: order.status,
+      customer: order.customerId
+        ? {
+            connect: { id: order.customerId },
+          }
+        : undefined,
+    };
+  }
+}
+```

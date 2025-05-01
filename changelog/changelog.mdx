@@ -1,0 +1,45 @@
+---
+title: "Project updates"
+description: "New features, bug fixes, and improvements"
+---
+
+<Update label="2025-04-29" description="v1.3.0">
+  • Added the Delivery field in the order
+
+• Added the "delivery_status_changed" to Event Webhook
+
+</Update>
+
+<Update label="2025-04-23" description="v1.2.0">
+  **Order Draft Endpoint Updates**
+
+• Add a new paymentMethod field in the order draft data
+
+• Add a new validation error "NO_PAYMENT_METHOD"
+
+• Add AvailablePaymentMethods if the "NO_PAYMENT_METHOD" error is present
+
+• Removed ReadyForInStorePayment in favor of a general "ReadyForPayment" validation type
+
+• Add paymentType data in the validation object for ReadyForPayment: - Can be 'RegisterWithoutPayment', 'InstantPayment' or 'CheckoutPayment'
+
+**Register Order Endpoint Changes**
+
+• Changed the return type to showcase registration type: - Can be "orderRegistered", "orderPaid", "checkoutUrl"
+
+• Removed endpoints: - payOrderDraft - createCheckoutSession
+
+• Changed the PaymentSettingsDTO in Location
+
+</Update>
+
+<Update label="2025-03-24" description="v1.1.0">
+  • Formalized the documentation for Order Draft and conversation
+
+• Formalized the documentation of the Chatbot Webhooks and all chatbot data types
+
+</Update>
+
+<Update label="2025-03-22" description="v1.0.0">
+  • Initial creation of the documentation
+</Update>

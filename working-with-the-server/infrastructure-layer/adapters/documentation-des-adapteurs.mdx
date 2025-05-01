@@ -1,0 +1,221 @@
+---
+title: "Documentation des Adapteurs"
+description: "Documentation des Adapteurs"
+---
+
+<Info>
+  La documentation des adapters est cruciale pour comprendre leur portée et
+  leurs contraintes. Nous utilisons TSDoc pour documenter directement dans le
+  code.
+</Info>
+
+## Structure de la Documentation
+
+<Steps>
+  <Step title="Classe Adapter">
+    ```typescript
+    /**
+     * Adapter pour transformer les commandes entre notre domaine et Hubrise.
+     *
+     * Cet adapter gère la transformation des commandes dans le contexte de l'intégration
+     * avec Hubrise. Il ne crée pas de relations (customer, items) mais les référence
+     * uniquement par leur ID.
+     *
+     * @example
+     * ```typescript
+     * // Transformation vers Hubrise
+     * const hubriseOrder = HubriseOrderAdapter.toHubriseOrder(domainOrder);
+     *
+     * // Transformation depuis Hubrise
+     * const domainOrder = HubriseOrderAdapter.toDomainOrder(hubriseOrder);
+     * ```
+     */
+    export class HubriseOrderAdapter {
+      // ... implementation
+    }
+    ```
+  </Step>
+
+  <Step title="Méthodes de Transformation">
+    ```typescript
+    /**
+     * Transforme une commande de notre domaine vers le format Hubrise.
+     *
+     * @param order - La commande de notre domaine
+     * @returns La commande au format Hubrise
+     * @throws {ValidationError} Si la commande n'a pas d'items ou de customer
+     *
+     * @remarks
+     * - Ne crée pas de relations (customer, items)
+     * - Référence les relations par leur ID
+     * - Valide la présence d'au moins un item
+     *
+     * @example
+     * ```typescript
+     * const hubriseOrder = HubriseOrderAdapter.toHubriseOrder({
+     *   id: "123",
+     *   customerId: "456",
+     *   items: [{ id: "789", quantity: 1 }]
+     * });
+     * ```
+     */
+    static toHubriseOrder(order: Order): HubriseOrder {
+      // ... implementation
+    }
+
+    /**
+     * Transforme une commande du format Hubrise vers notre domaine.
+     *
+     * @param order - La commande au format Hubrise
+     * @returns La commande de notre domaine
+     * @throws {ValidationError} Si les données Hubrise sont invalides
+     *
+     * @remarks
+     * - Ne crée pas de relations
+     * - Conserve les IDs des relations
+     * - Valide le format des données Hubrise
+     */
+    static toDomainOrder(order: HubriseOrder): Order {
+      // ... implementation
+    }
+    ```
+
+  </Step>
+</Steps>
+
+## Points à Documenter
+
+<Steps>
+  <Step title="Portée de l'Adapter">
+    • Types transformés
+
+    • Contexte d'utilisation
+
+
+    • Opérations supportées
+
+  </Step>
+
+  <Step title="Contraintes">
+    • Champs obligatoires
+
+    • Champs optionnels
+
+
+    • Validations effectuées
+
+  </Step>
+
+  <Step title="Comportements">
+    • Gestion des relations
+
+    • Valeurs par défaut
+
+
+    • Gestion des erreurs
+
+  </Step>
+</Steps>
+
+## Bonnes Pratiques
+
+<Steps>
+  <Step title="Documentation de la Classe">
+    • Description générale
+
+    • Contexte d'utilisation
+
+
+    • Exemple d'utilisation basique
+
+  </Step>
+
+  <Step title="Documentation des Méthodes">
+    • Description de la transformation
+
+    • Paramètres et types
+
+
+    • Type de retour
+
+
+    • Exceptions possibles
+
+
+    • Exemples concrets
+
+  </Step>
+
+  <Step title="Remarques Importantes">
+    • Contraintes spécifiques
+
+    • Comportements particuliers
+
+
+    • Limitations connues
+
+  </Step>
+</Steps>
+
+## Exemple Complet
+
+````typescript
+/**
+ * Adapter pour transformer les commandes entre notre domaine et Hubrise.
+ *
+ * Cet adapter gère la transformation des commandes dans le contexte de l'intégration
+ * avec Hubrise. Il ne crée pas de relations (customer, items) mais les référence
+ * uniquement par leur ID.
+ *
+ * @example
+ * ```typescript
+ * // Transformation vers Hubrise
+ * const hubriseOrder = HubriseOrderAdapter.toHubriseOrder(domainOrder);
+ *
+ * // Transformation depuis Hubrise
+ * const domainOrder = HubriseOrderAdapter.toDomainOrder(hubriseOrder);
+ * ```
+ */
+export class HubriseOrderAdapter {
+  /**
+   * Transforme une commande de notre domaine vers le format Hubrise.
+   *
+   * @param order - La commande de notre domaine
+   * @returns La commande au format Hubrise
+   * @throws {ValidationError} Si la commande n'a pas d'items ou de customer
+   *
+   * @remarks
+   * - Ne crée pas de relations (customer, items)
+   * - Référence les relations par leur ID
+   * - Valide la présence d'au moins un item
+   *
+   * @example
+   * ```typescript
+   * const hubriseOrder = HubriseOrderAdapter.toHubriseOrder({
+   *   id: "123",
+   *   customerId: "456",
+   *   items: [{ id: "789", quantity: 1 }]
+   * });
+   * ```
+   */
+  static toHubriseOrder(order: Order): HubriseOrder {
+    // ... implementation
+  }
+
+  /**
+   * Transforme une commande du format Hubrise vers notre domaine.
+   *
+   * @param order - La commande au format Hubrise
+   * @returns La commande de notre domaine
+   * @throws {ValidationError} Si les données Hubrise sont invalides
+   *
+   * @remarks
+   * - Ne crée pas de relations
+   * - Conserve les IDs des relations
+   * - Valide le format des données Hubrise
+   */
+  static toDomainOrder(order: HubriseOrder): Order {
+    // ... implementation
+  }
+}
+````

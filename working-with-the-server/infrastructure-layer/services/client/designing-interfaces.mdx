@@ -1,0 +1,229 @@
+---
+title: "Designing Interfaces"
+description: "Designing interfaces for external services"
+---
+
+<Info icon="code">
+  Client interfaces define the contract between our application and external
+  services. They play a crucial role in our architecture, allowing us to
+  implement the dependency inversion principle and greatly simplify testing.
+</Info>
+
+## Purpose
+
+<AccordionGroup>
+  <Accordion title="Dependency Inversion">
+    They allow our application to depend on abstractions rather than concrete implementations, making it possible to swap one implementation for another without changing the consuming code.
+  </Accordion>
+
+  <Accordion title="Testability">
+    They make it easy to create mock implementations for testing, eliminating the need to interact with real external services during tests.
+  </Accordion>
+</AccordionGroup>
+
+## Interface Design Principles
+
+<Steps>
+  <Step title="Domain-Focused">
+    • Design interfaces around domain concepts, not around the structure of external APIs
+  </Step>
+
+<Step title="Minimal">
+  • Include only the methods that our application needs
+</Step>
+
+<Step title="Consistent">
+  • Follow consistent naming conventions and method signatures
+</Step>
+
+<Step title="Error Handling">• Define clear error handling patterns</Step>
+
+  <Step title="Self-Contained">
+    • Interfaces should include all necessary types and not depend on external API types
+  </Step>
+</Steps>
+
+## Example: Hubrise Client Interface
+
+```typescript
+/**
+ * Interface for interacting with the Hubrise API.
+ */
+export interface IHubriseClient {
+  /**
+   * Creates a new order in Hubrise.
+   *
+   * @param {Order} order - The order to create
+   * @returns {Promise<HubriseOrderResponse>} The created Hubrise order
+   * @throws {HubriseIntegrationError} When the API call fails
+   */
+  createOrder(order: Order): Promise<HubriseOrderResponse>;
+
+  /**
+   * Retrieves an order from Hubrise.
+   *
+   * @param {string} orderId - The ID of the order to retrieve
+   * @returns {Promise<HubriseOrderResponse>} The Hubrise order
+   * @throws {HubriseIntegrationError} When the API call fails
+   */
+  getOrder(orderId: string): Promise<HubriseOrderResponse>;
+
+  /**
+   * Updates the status of an order in Hubrise.
+   *
+   * @param {string} orderId - The ID of the order to update
+   * @param {OrderStatus} status - The new status
+   * @returns {Promise<HubriseOrderResponse>} The updated Hubrise order
+   * @throws {HubriseIntegrationError} When the API call fails
+   */
+  updateOrderStatus(
+    orderId: string,
+    status: OrderStatus
+  ): Promise<HubriseOrderResponse>;
+
+  /**
+   * Creates a new customer in Hubrise.
+   *
+   * @param {Customer} customer - The customer to create
+   * @returns {Promise<HubriseCustomerResponse>} The created Hubrise customer
+   * @throws {HubriseIntegrationError} When the API call fails
+   */
+  createCustomer(customer: Customer): Promise<HubriseCustomerResponse>;
+
+  /**
+   * Retrieves the catalog from Hubrise.
+   *
+   * @param {string} locationId - The ID of the location
+   * @returns {Promise<HubriseCatalogResponse>} The Hubrise catalog
+   * @throws {HubriseIntegrationError} When the API call fails
+   */
+  getCatalog(locationId: string): Promise<HubriseCatalogResponse>;
+}
+```
+
+## Implementing Interfaces
+
+<Info>
+  Once the interfaces are defined, we create concrete implementations for each
+  external service:
+</Info>
+
+```typescript
+/**
+ * Implementation of the Hubrise client interface.
+ */
+export class HubriseClient implements IHubriseClient {
+  constructor(
+    private readonly baseUrl: string,
+    private readonly apiKey: string
+  ) {}
+
+  async createOrder(order: Order): Promise<HubriseOrderResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/orders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify(this.mapOrderToHubrise(order)),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Hubrise API error: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      throw new HubriseIntegrationError(
+        "Failed to create order in Hubrise",
+        error instanceof Error ? error : new Error(String(error))
+      );
+    }
+  }
+}
+```
+
+## Testing with Mock Implementations
+
+<Info>For testing, we create mock implementations of our interfaces:</Info>
+
+```typescript
+/**
+ * Mock implementation of the Hubrise client interface for testing.
+ */
+export class MockHubriseClient implements IHubriseClient {
+  createOrder = jest.fn();
+  getOrder = jest.fn();
+  updateOrderStatus = jest.fn();
+  createCustomer = jest.fn();
+  getCatalog = jest.fn();
+
+  // Helper methods for test setup
+  mockCreateOrderSuccess(response: HubriseOrderResponse): void {
+    this.createOrder.mockResolvedValue(response);
+  }
+
+  mockCreateOrderFailure(error: Error): void {
+    this.createOrder.mockRejectedValue(
+      new HubriseIntegrationError("Failed to create order in Hubrise", error)
+    );
+  }
+}
+```
+
+## Using Interfaces in Use Cases
+
+```typescript
+export class CreateOrderUseCase {
+  constructor(
+    @Inject(IOrderRepository)
+    private readonly orderRepository: IOrderRepository,
+    @Inject(IHubriseClient)
+    private readonly hubriseClient: IHubriseClient
+  ) {}
+
+  async execute(order: Order): Promise<Order> {
+    // Implementation that uses the interfaces...
+  }
+}
+```
+
+## Dependency Injection Setup
+
+```typescript
+@Module({
+  providers: [
+    CreateOrderUseCase,
+    {
+      provide: IHubriseClient,
+      useClass: HubriseClient,
+    },
+  ],
+})
+export class InfrastructureModule {}
+```
+
+## Benefits of Using Interfaces
+
+<Steps>
+  <Step title="Dependency Inversion">
+    • Our application depends on abstractions, not concrete implementations
+  </Step>
+
+<Step title="Testability">
+  • We can easily mock external services for testing
+</Step>
+
+<Step title="Flexibility">
+  • We can swap implementations without changing consuming code
+</Step>
+
+<Step title="Isolation">
+  • Our domain logic is isolated from external service details
+</Step>
+
+  <Step title="Contract Definition">
+    • Interfaces clearly define what our application needs from external services
+  </Step>
+</Steps>

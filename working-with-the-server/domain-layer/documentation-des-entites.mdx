@@ -1,0 +1,171 @@
+---
+title: "Documentation des entités"
+description: "Documentation des entités du domaine"
+---
+
+### Principes Généraux
+
+La documentation des entités du domaine suit une approche structurée et cohérente pour assurer une compréhension claire du code et faciliter sa maintenance.
+
+### Structure de la Documentation
+
+<Steps>
+  <Step title="Documentation de la Classe">
+    • Description générale de l'entité
+
+    • Son rôle dans le domaine
+
+
+    • Ses responsabilités principales
+
+
+    • Ses relations avec d'autres entités
+
+  </Step>
+
+  <Step title="Documentation des Propriétés">
+    • Description de chaque propriété
+
+    • Son rôle dans l'entité
+
+
+    • Les contraintes associées
+
+  </Step>
+
+  <Step title="Documentation des Méthodes">
+    • Description de la fonctionnalité
+
+    • Les paramètres d'entrée
+
+
+    • Les valeurs de retour
+
+
+    • Les exceptions potentielles
+
+  </Step>
+</Steps>
+
+#### Exemple de Documentation
+
+```typescript
+/**
+ * Représente une commande dans le système.
+ * Une commande est un agrégat racine qui contient tous les éléments nécessaires à la gestion d'une commande :
+ * - Les articles commandés (OrderItem)
+ * - Les réductions appliquées (OrderDiscount)
+ * - Les frais additionnels (OrderCharge)
+ * - Les paiements effectués (OrderPayment)
+ * - Les informations de livraison (Delivery)
+ */
+export class Order {
+  /** Identifiant unique de la commande */
+  private _id: string;
+
+  /** Identifiant Hubrise associé à la commande */
+  private _hubriseId?: string;
+
+  /**
+   * Met à jour les informations de la commande.
+   * @param data - Les données à mettre à jour
+   */
+  public update(data: {...}): void {
+    // ...
+  }
+
+  /**
+   * Calcule le montant total de la commande.
+   * Le total est calculé en :
+   * 1. Additionnant le prix de tous les articles
+   * 2. Soustrayant les réductions
+   * 3. Ajoutant les frais additionnels
+   * @returns Le prix total de la commande
+   */
+  public get total(): Price {
+    // ...
+  }
+}
+```
+
+### Bonnes Pratiques
+
+<Steps>
+  <Step title="Clarté et Concision">
+    • Utiliser un langage clair et précis
+
+    • Éviter les redondances
+
+
+    • Se concentrer sur l'essentiel
+
+  </Step>
+
+  <Step title="Cohérence">
+    • Maintenir un style de documentation uniforme
+
+    • Utiliser la même terminologie dans toute la documentation
+
+
+    • Documenter systématiquement toutes les propriétés et méthodes publiques
+
+  </Step>
+
+  <Step title="Maintenance">
+    • Mettre à jour la documentation en même temps que le code
+
+    • Vérifier la cohérence lors des modifications
+
+
+    • Supprimer la documentation obsolète
+
+  </Step>
+
+  <Step title="Relations">
+    • Documenter clairement les relations entre les entités
+
+    • Expliquer les dépendances et leurs implications
+
+
+    • Préciser le type de relation (composition, agrégation, etc.)
+
+  </Step>
+</Steps>
+
+#### Types de Documentation
+
+1.  **Types et Enums**
+
+    ```typescript
+    /** Canal de commande possible */
+    export type OrderChannel =
+      | "Chataigne"
+      | "Uber Eats"
+      | "Just Eat"
+      | "Deliveroo";
+
+    /** État possible d'une commande */
+    export type OrderStatus = "new" | "accepted" | "completed";
+    ```
+
+2.  **Classes**
+
+    ```typescript
+    /** Description de la classe */
+    export class EntityName {
+      /** Description de la propriété */
+      private _property: string;
+
+      /** Description de la méthode */
+      public methodName(): void {
+        // ...
+      }
+    }
+    ```
+
+Cette approche de documentation permet de :
+
+- Faciliter la compréhension du code
+- Maintenir une cohérence dans le codebase
+- Simplifier la maintenance
+- Améliorer la collaboration entre les développeurs

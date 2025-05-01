@@ -1,0 +1,92 @@
+---
+title: "Repositories"
+description: "Repositories"
+icon: "database"
+---
+
+<Info>
+  Les repositories sont des classes responsables de l'accès aux données dans
+  l'application. Ils encapsulent la logique nécessaire pour interagir avec la
+  base de données via Prisma et transforment les entités de domaine en objets
+  Prisma et vice versa.
+</Info>
+
+## Structure d'un Repository
+
+<Steps>
+  <Step title="Méthodes Standards">
+    • `findById(id: string): Promise<T | null>` : Recherche une entité par son identifiant unique
+
+    • `create(entity: T): Promise<T>` : Crée une nouvelle entité dans la base de données
+
+
+    • `update(id: string, entity: T): Promise<T>` : Met à jour une entité existante
+
+
+    • `delete(id: string): Promise<void>` : Supprime une entité de la base de données
+
+  </Step>
+
+  <Step title="Processus de Transformation">
+    Chaque méthode prend une entité de domaine, la transforme en objet Prisma, effectue l'opération de base de données, puis transforme le résultat en entité de domaine.
+  </Step>
+</Steps>
+
+## Exemple de Repository
+
+```typescript
+class OrderRepository {
+  constructor(
+    @Inject(PrismaService)
+    private readonly prisma: PrismaService
+  ) {}
+
+  async findById(id: string): Promise<Order | null> {
+    const data = await this.prisma.order.findUnique({
+      where: { id },
+    });
+    if (!data) {
+      return null;
+    }
+    return data ? PrismaOrderAdapter.toEntity(data) : null;
+  }
+
+  async create(order: Order): Promise<Order> {
+    const data = await this.prisma.order.create({
+      data: PrismaOrderAdapter.toPrismaCreate(order),
+    });
+    return PrismaOrderAdapter.toEntity(data);
+  }
+
+  async update(id: string, order: Order): Promise<Order> {
+    const data = await this.prisma.order.update({
+      where: { id },
+      data: PrismaOrderAdapter.toPrismaUpdate(order),
+    });
+    return PrismaOrderAdapter.toEntity(data);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.order.delete({
+      where: { id },
+    });
+  }
+}
+```
+
+## Points Clés
+
+<Steps>
+  <Step title="Transformation">
+    • Utiliser un adapter pour transformer les entités de domaine en objets Prisma et vice versa
+  </Step>
+
+<Step title="Flexibilité">
+  • Chaque repository peut avoir des méthodes spécifiques selon les besoins (ex:
+  `findByWhatsappNumber`)
+</Step>
+
+  <Step title="Simplicité">
+    • Garder les repositories simples et concentrés sur l'accès aux données
+  </Step>
+</Steps>

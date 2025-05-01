@@ -1,0 +1,104 @@
+---
+title: "Gestion des Erreurs des Clients"
+description: "Gestion des erreurs des clients dans l'infrastructure"
+---
+
+<Info icon="alert-circle">
+  La gestion des erreurs des clients est simple et directe. Nous utilisons une
+  seule classe d'erreur qui conserve toutes les informations nécessaires pour le
+  debugging.
+</Info>
+
+## Structure de l'Erreur
+
+```typescript
+/**
+ * Erreur pour les clients d'API.
+ * Conserve le message original de l'API, le statusCode et l'erreur originale.
+ */
+export class ClientError extends Error {
+  constructor(
+    message: string,
+    public readonly statusCode?: number,
+    public readonly originalError?: unknown
+  ) {
+    super(message);
+    this.name = "ClientError";
+  }
+}
+```
+
+## Implémentation
+
+```typescript
+export class HubriseClient {
+  async createOrder(order: Order): Promise<Order> {
+    try {
+      const response = await fetch(`${this.baseUrl}/orders`, {
+        method: "POST",
+        headers: this.headers,
+        body: JSON.stringify(order),
+      });
+
+      if (!response.ok) {
+        throw new ClientError(await response.text(), response.status, response);
+      }
+
+      return await response.json();
+    } catch (error) {
+      throw new ClientError(
+        error instanceof Error ? error.message : "Erreur inconnue",
+        undefined,
+        error
+      );
+    }
+  }
+}
+```
+
+## Caractéristiques
+
+<Steps>
+  <Step title="Simplicité">
+    • Une seule classe d'erreur
+
+    • Pas de codes d'erreur complexes
+
+    • Message d'erreur original de l'API
+
+  </Step>
+
+  <Step title="Debugging">
+    • StatusCode HTTP conservé
+
+    • Erreur originale disponible
+
+    • Message clair et direct
+
+  </Step>
+
+  <Step title="Tracing">
+    • Facile à tracer dans Sentry
+
+    • Contexte complet conservé
+
+    • Origine de l'erreur claire
+
+  </Step>
+</Steps>
+
+## Exemple d'Utilisation
+
+```typescript
+try {
+  const order = await hubriseClient.createOrder(newOrder);
+} catch (error) {
+  if (error instanceof ClientError) {
+    // On peut accéder à :
+    // error.message - Le message d'erreur
+    // error.statusCode - Le code HTTP
+    // error.originalError - L'erreur originale
+  }
+  throw error;
+}
+```

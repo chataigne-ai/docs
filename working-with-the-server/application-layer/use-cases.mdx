@@ -1,0 +1,291 @@
+---
+title: "Use Cases"
+description: "Overview of use cases"
+---
+
+<Info icon="puzzle">
+  Use cases represent the core business logic of our application. They act as
+  orchestrators, coordinating the interactions between different parts of the
+  system to accomplish specific business goals. Each use case corresponds to a
+  specific action or operation that a user can perform within our application.
+</Info>
+
+## Purpose
+
+<Steps>
+  <Step title="Business Logic Encapsulation">
+    • They encapsulate the business rules and workflows of our application
+  </Step>
+
+<Step title="Orchestration">
+  • They coordinate interactions between different domain entities and
+  infrastructure services
+</Step>
+
+<Step title="Independence">
+  • They keep the business logic separate from infrastructure concerns like
+  HTTP, databases, or external services
+</Step>
+
+  <Step title="Reusability">
+    • They can be called from different controllers or even from other use cases
+  </Step>
+</Steps>
+
+## Implementation
+
+<AccordionGroup>
+  <Accordion title="Structure">
+    Use cases follow a consistent structure:
+
+    • Single Responsibility: Each use case performs one specific action
+
+    • Explicit Dependencies: All dependencies are injected through the constructor
+
+    • Single Entry Point: Each use case exposes a single `execute` method
+
+    • Domain-Oriented: They work with domain entities, not DTOs or other external representations
+
+  </Accordion>
+
+  <Accordion title="Example">
+    ```typescript
+    export class CreateOrderUseCase {
+      constructor(
+        @Inject(IOrderRepository)
+        private readonly orderRepository: IOrderRepository,
+        @Inject(ILocationRepository)
+        private readonly locationRepository: ILocationRepository,
+        @Inject(ICustomerRepository)
+        private readonly customerRepository: ICustomerRepository,
+        @Inject(IHubriseClient)
+        private readonly hubriseClient: IHubriseClient,
+        @Inject(IStripeClient)
+        private readonly stripeClient: IStripeClient,
+        @Inject(IEventEmitter)
+        private readonly eventEmitter: IEventEmitter
+      ) {}
+
+      async execute(order: Order): Promise<Order> {
+        // Validate location exists
+        const location = await this.locationRepository.findById({
+          locationId: order.locationId,
+          includeCatalog: false,
+        });
+        if (!location) {
+          throw new LocationNotFoundError(order.locationId);
+        }
+
+        // Validate customer exists
+        const customer = await this.customerRepository.get(order.customerId);
+        if (!customer) {
+          throw new CustomerNotFoundError(order.customerId);
+        }
+
+        // Create order in database
+        const createdOrder = await this.orderRepository.create(order);
+
+        // Sync with Hubrise
+        await this.hubriseClient.createOrder(createdOrder);
+
+        // Create Stripe checkout session
+        await this.stripeClient.createCheckoutSession(createdOrder);
+
+        // Emit order created event
+        await this.eventEmitter.emit("order.created", {
+          orderId: createdOrder.id,
+          locationId: createdOrder.locationId,
+          customerId: createdOrder.customerId,
+          totalAmount: createdOrder.totalAmount,
+        });
+
+        return createdOrder;
+      }
+    }
+    ```
+
+  </Accordion>
+</AccordionGroup>
+
+## Key Principles
+
+<AccordionGroup>
+  <Accordion title="Input and Output">
+    • Input: Use cases accept domain entities as input, not DTOs
+
+    • Output: Use cases return domain entities or specific result objects, not DTOs
+
+    • Transformation: Any transformation between DTOs and domain entities should happen in controllers or dedicated mappers
+
+  </Accordion>
+
+  <Accordion title="Error Handling">
+    • Use cases should throw domain-specific errors that represent business rule violations
+
+    • These errors should be descriptive and provide enough context to understand the issue
+
+    • The presentation layer is responsible for translating these errors into appropriate HTTP responses
+
+  </Accordion>
+
+  <Accordion title="Dependency Inversion">
+    • Use cases should depend on interfaces, not concrete implementations
+
+    • This makes them easier to test and less coupled to specific infrastructure choices
+
+    • All dependencies should be explicitly declared in the constructor
+
+  </Accordion>
+
+  <Accordion title="No Side Effects">
+    • Use cases should avoid side effects that aren't part of their core responsibility
+
+    • Any side effects (like sending emails or notifications) should be handled through events or dedicated services
+
+    • This keeps use cases focused and easier to test
+
+  </Accordion>
+
+  <Accordion title="Composability">
+    Complex workflows can be composed of multiple use cases:
+
+    ```typescript
+    export class PlaceOrderUseCase {
+      constructor(
+        private readonly createOrderUseCase: CreateOrderUseCase,
+        private readonly notifyCustomerUseCase: NotifyCustomerUseCase
+      ) {}
+
+      async execute(order: Order): Promise<Order> {
+        // Create the order
+        const createdOrder = await this.createOrderUseCase.execute(order);
+
+        // Notify the customer
+        await this.notifyCustomerUseCase.execute({
+          customerId: createdOrder.customerId,
+          orderId: createdOrder.id,
+        });
+
+        return createdOrder;
+      }
+    }
+    ```
+
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<Steps>
+  <Step title="Keep Use Cases Small and Focused">
+    • Each use case should do one thing well
+  </Step>
+
+<Step title="Validate Inputs Early">
+  • Check that inputs are valid before performing operations
+</Step>
+
+<Step title="Use Descriptive Names">
+  • Names should clearly indicate what the use case does
+</Step>
+<Step title="Document Public APIs">
+  • Document the inputs, outputs, and possible errors of each use case
+</Step>
+
+<Step title="Write Thorough Tests">
+  • Test happy paths, error cases, and edge cases
+</Step>
+
+<Step title="Don't Mix Concerns">
+  • Keep business logic separate from infrastructure concerns
+</Step>
+
+  <Step title="Domain First">
+    • Let domain rules guide the implementation, not infrastructure or frameworks
+  </Step>
+</Steps>
+
+## Organization
+
+<Info>
+  Use cases are organized by domain entities or functional areas:
+
+```
+src/
+  application/
+    use-cases/
+      order/
+        create-order.usecase.ts
+        update-order.usecase.ts
+        cancel-order.usecase.ts
+      customer/
+        register-customer.usecase.ts
+        update-customer.usecase.ts
+      payment/
+        process-payment.usecase.ts
+        refund-payment.usecase.ts
+```
+
+This organization makes it easier to find related use cases and understand the system's capabilities.
+
+</Info>
+
+## Testing
+
+<Info>
+  Use cases are tested through unit tests that mock all dependencies. We'll
+  determine later if we want to do integration tests on use cases.
+</Info>
+
+```typescript
+describe("CreateOrderUseCase", () => {
+  let useCase: CreateOrderUseCase;
+  let mockOrderRepository: MockOrderRepository;
+  let mockLocationRepository: MockLocationRepository;
+  let mockCustomerRepository: MockCustomerRepository;
+  let mockHubriseClient: MockHubriseClient;
+  let mockStripeClient: MockStripeClient;
+  let mockEventEmitter: MockEventEmitter;
+
+  beforeEach(() => {
+    mockOrderRepository = new MockOrderRepository();
+    mockLocationRepository = new MockLocationRepository();
+    mockCustomerRepository = new MockCustomerRepository();
+    mockHubriseClient = new MockHubriseClient();
+    mockStripeClient = new MockStripeClient();
+    mockEventEmitter = new MockEventEmitter();
+
+    useCase = new CreateOrderUseCase(
+      mockOrderRepository,
+      mockLocationRepository,
+      mockCustomerRepository,
+      mockHubriseClient,
+      mockStripeClient,
+      mockEventEmitter
+    );
+  });
+
+  it("should create order successfully", async () => {
+    // Arrange
+    const order = OrderFactory.createValid();
+    mockLocationRepository.findById.mockResolvedValue(
+      LocationFactory.createValid()
+    );
+    mockCustomerRepository.get.mockResolvedValue(CustomerFactory.createValid());
+    mockOrderRepository.create.mockResolvedValue(order);
+
+    // Act
+    const result = await useCase.execute(order);
+
+    // Assert
+    expect(result).toEqual(order);
+    expect(mockOrderRepository.create).toHaveBeenCalledWith(order);
+    expect(mockHubriseClient.createOrder).toHaveBeenCalledWith(order);
+    expect(mockStripeClient.createCheckoutSession).toHaveBeenCalledWith(order);
+    expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+      "order.created",
+      expect.any(Object)
+    );
+  });
+});
+```

@@ -1,0 +1,170 @@
+---
+title: "Gestion d'erreur"
+description: "Gestion des erreurs dans le Domain Layer"
+---
+
+La gestion des erreurs dans le Domain Layer suit une approche simple et directe. Nous utilisons une seule classe d'erreur pour toutes les erreurs du domaine, ce qui facilite la traçabilité et la maintenance.
+
+### Structure
+
+#### Erreur de Base
+
+```typescript
+class DomainError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DomainError";
+  }
+}
+```
+
+### Utilisation
+
+#### Dans les Entités
+
+```typescript
+class Order {
+  constructor(items: OrderItem[]) {
+    if (!items || items.length === 0) {
+      throw new DomainError("Une commande doit contenir au moins un article");
+    }
+    // ...
+  }
+}
+
+class Customer {
+  constructor(email: string) {
+    if (!email || !this.isValidEmail(email)) {
+      throw new DomainError("Email invalide");
+    }
+    // ...
+  }
+}
+```
+
+### Bonnes Pratiques
+
+1. **Messages d'Erreur**
+   - Messages clairs et descriptifs
+   - En français
+   - Explication du problème
+   - Pas de détails techniques
+2. **Emplacement**
+   - Dans les constructeurs
+   - Dans les méthodes de validation
+   - Dans les méthodes de changement d'état
+   - Dans les méthodes de calcul
+3. **Validation**
+   - Valider les données d'entrée
+   - Vérifier les invariants
+   - Protéger l'intégrité des données
+   - Assurer la cohérence des états
+
+### Propagation
+
+Les erreurs du domaine sont propagées vers le haut :
+
+1. Domain Layer → Application Layer
+2. Application Layer → Presentation Layer
+3. Presentation Layer → Client
+
+Chaque layer peut :
+
+- Logger l'erreur
+- Transformer l'erreur si nécessaire
+- Ajouter du contexte
+- Décider de la gestion finale
+
+### Intégration avec le Logging
+
+```typescript
+class OrderService {
+  constructor(private readonly logger: AxiomLogger) {}
+
+  async createOrder(order: Order) {
+    try {
+      await this.logger.info(
+        "Tentative de création de commande",
+        "OrderService"
+      );
+
+      if (!order.items.length) {
+        await this.logger.error("Commande sans articles", "OrderService");
+        throw new DomainError("Une commande doit contenir au moins un article");
+      }
+
+      await this.logger.info("Commande créée avec succès", "OrderService");
+    } catch (error) {
+      await this.logger.error(
+        `Erreur lors de la création de la commande: ${error.message}`,
+        error.stack,
+        "OrderService"
+      );
+      throw error;
+    }
+  }
+}
+```
+
+### Exemples d'Utilisation
+
+#### Validation de Données
+
+```typescript
+class Price {
+  constructor(amount: number, currency: string) {
+    if (amount < 0) {
+      throw new DomainError("Le prix ne peut pas être négatif");
+    }
+    if (!["CHF", "EUR"].includes(currency)) {
+      throw new DomainError("Devise non supportée");
+    }
+    // ...
+  }
+}
+```
+
+#### Protection d'Invariants
+
+```typescript
+class Order {
+  public cancel() {
+    if (this.status !== "new" && this.status !== "accepted") {
+      throw new DomainError("Impossible d'annuler une commande dans cet état");
+    }
+    // ...
+  }
+}
+```
+
+#### Cohérence des États
+
+```typescript
+class Customer {
+  public addOrder(order: Order) {
+    if (order.customerId !== this.id) {
+      throw new DomainError("La commande n'appartient pas à ce client");
+    }
+    // ...
+  }
+}
+```
+
+### Avantages de cette Approche
+
+1. **Simplicité**
+   - Une seule classe d'erreur
+   - Messages clairs
+   - Facile à maintenir
+2. **Traçabilité**
+   - Stack trace claire
+   - Origine de l'erreur évidente
+   - Contexte préservé
+3. **Maintenance**
+   - Code simple
+   - Facile à comprendre
+   - Facile à modifier
+4. **Performance**
+   - Pas de surcharge
+   - Pas de complexité inutile
+   - Stack trace optimisée

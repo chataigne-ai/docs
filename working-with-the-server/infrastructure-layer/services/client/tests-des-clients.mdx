@@ -1,0 +1,73 @@
+---
+title: "Tests des Clients"
+description: "Tests des clients dans l'infrastructure"
+---
+
+<Info icon="test">
+  Les clients sont des composants simples qui ne nécessitent en général pas de
+  tests unitaires dédiés. Leur logique est couverte par d'autres mécanismes de
+  test.
+</Info>
+
+## Pourquoi Pas de Tests ?
+
+<AccordionGroup>
+  <Accordion title="Simplicité des Clients">
+    Les clients sont des composants très simples qui :
+
+    • Font des appels `fetch`
+
+    • Transforment les données avec des adapters
+
+    • Gèrent les erreurs de manière basique
+
+  </Accordion>
+
+  <Accordion title="Couverture Existante">
+    La logique des clients est déjà couverte par :
+
+    <Steps>
+      <Step title="TypeScript">
+        • Vérifie les types des paramètres
+
+        • Vérifie les types des retours
+
+        • Assure la cohérence des données
+      </Step>
+
+      <Step title="Tests des Adapters">
+        • Testent la transformation des données
+
+        • Testent la gestion des erreurs
+
+        • Vérifient la cohérence des types
+      </Step>
+    </Steps>
+
+  </Accordion>
+
+  <Accordion title="Complexité Inutile">
+    Les tests des clients ajouteraient :
+
+    • De la complexité inutile
+
+    • Des tests potentiellement flaky
+
+    • Une maintenance supplémentaire
+
+    • Peu de valeur ajoutée
+
+  </Accordion>
+</AccordionGroup>
+
+## Notre Approche
+
+Nous nous concentrons sur :
+
+• Les tests des adapters
+
+• La vérification des types par TypeScript
+
+• La gestion d'erreur dans les adapters
+
+Cette approche nous permet de maintenir une base de code simple et fiable sans tests redondants.

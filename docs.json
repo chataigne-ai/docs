@@ -12,6 +12,7 @@
     "dropdowns": [
       {
         "dropdown": "Guides",
+        "icon": "book",
         "groups": [
           {
             "group": "Introduction",
@@ -29,11 +30,68 @@
             "group": "Working with the server",
             "pages": [
               "working-with-the-server/overview",
-              "working-with-the-server/code",
-              "working-with-the-server/images",
-              "working-with-the-server/settings",
-              "working-with-the-server/navigation",
-              "working-with-the-server/reusable-snippets"
+              "working-with-the-server/structure-du-projet",
+              {
+                "group": "Domain Layer",
+                "icon": "layer-group",
+                "pages": [
+                  "working-with-the-server/domain-layer/introduction",
+                  "working-with-the-server/domain-layer/entites-domaines",
+                  "working-with-the-server/domain-layer/documentation-des-entites",
+                  "working-with-the-server/domain-layer/gestion-erreur",
+                  "working-with-the-server/domain-layer/builders-domaine",
+                  "working-with-the-server/domain-layer/tests-domaine"
+                ]
+              },
+              {
+                "group": "Infrastructure Layer",
+                "icon": "layer-group",
+                "pages": [
+                  {
+                    "group": "Adapters",
+                    "icon": "plug",
+                    "pages": [
+                      "working-with-the-server/infrastructure-layer/adapters/introduction",
+                      "working-with-the-server/infrastructure-layer/adapters/prisma-adapters",
+                      "working-with-the-server/infrastructure-layer/adapters/test-des-adapteurs",
+                      "working-with-the-server/infrastructure-layer/adapters/documentation-des-adapteurs"
+                    ]
+                  },
+                  "working-with-the-server/infrastructure-layer/repositories",
+                  {
+                    "group": "Services",
+                    "icon": "layer-group",
+                    "pages": [
+                      "working-with-the-server/infrastructure-layer/services/introduction",
+                      "working-with-the-server/infrastructure-layer/services/definition-des-types-externe",
+                      "working-with-the-server/infrastructure-layer/services/creation-des-adapteurs",
+                      {
+                        "group": "Client",
+                        "icon": "",
+                        "pages": [
+                          "working-with-the-server/infrastructure-layer/services/client/introduction",
+                          "working-with-the-server/infrastructure-layer/services/client/organisation-des-clients",
+                          "working-with-the-server/infrastructure-layer/services/client/documentation-des-clients",
+                          "working-with-the-server/infrastructure-layer/services/client/gestion-des-erreurs-des-clients",
+                          "working-with-the-server/infrastructure-layer/services/client/tests-des-clients",
+                          "working-with-the-server/infrastructure-layer/services/client/designing-interfaces"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "group": "Application Layer",
+                "icon": "layer-group",
+                "pages": [
+                  "working-with-the-server/application-layer/use-cases",
+                  "working-with-the-server/application-layer/error-handling",
+                  "working-with-the-server/application-layer/unit-testing",
+                  "working-with-the-server/application-layer/documenting"
+                ]
+              },
+              "working-with-the-server/logging"
             ]
           }
         ]
@@ -61,8 +119,8 @@
         "icon": "clock",
         "groups": [
           {
-            "group": "API Documentation",
-            "pages": ["api-reference/introduction"]
+            "group": "Changelog",
+            "pages": ["changelog/changelog"]
           }
         ]
       }

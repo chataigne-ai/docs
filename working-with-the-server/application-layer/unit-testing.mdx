@@ -1,0 +1,403 @@
+---
+title: "Unit Testing"
+description: "Unit testing is a critical part of our development process, ensuring that our business logic works as expected in isolation. This document outlines our approach to unit testing use cases, covering mock setup, test structure, and best practices."
+---
+
+<Info icon="test-tube">
+  Unit testing is a critical part of our development process, ensuring that our
+  business logic works as expected in isolation. This document outlines our
+  approach to unit testing use cases, covering mock setup, test structure, and
+  best practices.
+</Info>
+
+## Principles
+
+<Steps>
+  <Step title="Isolation">
+    • Test components in isolation from their dependencies
+  </Step>
+
+<Step title="Completeness">
+  • Test all happy paths, error cases, and edge cases
+</Step>
+
+<Step title="Readability">
+  • Write clear, descriptive tests that serve as documentation
+</Step>
+
+<Step title="Maintainability">
+  • Keep tests maintainable and resistant to implementation changes
+</Step>
+
+  <Step title="Performance">
+    • Keep tests fast so they can be run frequently
+  </Step>
+</Steps>
+
+## Test Structure
+
+<Info>
+  We follow the Arrange-Act-Assert (AAA) pattern for structuring our tests:
+
+• Arrange: Set up the test data and mock dependencies
+
+• Act: Execute the function or method being tested
+
+• Assert: Verify the expected outcomes
+
+</Info>
+
+Example:
+
+```typescript
+describe("CreateOrderUseCase", () => {
+  it("should create order successfully", async () => {
+    // Arrange
+    const order = OrderFactory.createValid();
+    mockLocationRepository.findById.mockResolvedValue(
+      LocationFactory.createValid()
+    );
+    mockCustomerRepository.get.mockResolvedValue(CustomerFactory.createValid());
+    mockOrderRepository.create.mockResolvedValue(order);
+
+    // Act
+    const result = await useCase.execute(order);
+
+    // Assert
+    expect(result).toEqual(order);
+    expect(mockOrderRepository.create).toHaveBeenCalledWith(order);
+    expect(mockHubriseClient.createOrder).toHaveBeenCalledWith(order);
+    expect(mockStripeClient.createCheckoutSession).toHaveBeenCalledWith(order);
+    expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+      "order.created",
+      expect.any(Object)
+    );
+  });
+});
+```
+
+## Mock Setup
+
+<AccordionGroup>
+  <Accordion icon="code" title="Base Mock Classes">
+    We create base mock classes for common interfaces:
+
+    ```typescript
+    // src/__mocks__/base.repository.mock.ts
+    export class BaseRepositoryMock<T> {
+      findById = jest.fn();
+      create = jest.fn();
+      update = jest.fn();
+      delete = jest.fn();
+      findAll = jest.fn();
+    }
+    ```
+
+  </Accordion>
+
+  <Accordion icon="code-2" title="Specific Mock Classes">
+    We create specific mock classes that extend the base mocks and implement the specific interface:
+
+    ```typescript
+    // src/domain/repositories/order/__mocks__/order.repository.mock.ts
+    import { BaseRepositoryMock } from "../../../../__mocks__/base.repository.mock";
+    import { IOrderRepository } from "../order.repository.interface";
+    import { Order } from "../../../entities/order/order.entity";
+
+    export class MockOrderRepository
+      extends BaseRepositoryMock<Order>
+      implements IOrderRepository
+    {
+      findByLocationId = jest.fn();
+      findByCustomerId = jest.fn();
+      updateStatus = jest.fn();
+    }
+    ```
+
+  </Accordion>
+
+  <Accordion icon="plug" title="Client Mocks">
+    We create mock classes for external clients:
+
+    ```typescript
+    // src/infrastructure/clients/__mocks__/hubrise.client.mock.ts
+    import { IHubriseClient } from "../interfaces/hubrise.client.interface";
+
+    export class MockHubriseClient implements IHubriseClient {
+      createOrder = jest.fn();
+      getOrder = jest.fn();
+      updateOrderStatus = jest.fn();
+      createCustomer = jest.fn();
+      getCatalog = jest.fn();
+    }
+    ```
+
+  </Accordion>
+
+  <Accordion icon="factory" title="Test Factories">
+    We create factories to generate test data:
+
+    ```typescript
+    // src/__tests__/factories/order.factory.ts
+    import { Order } from "../../domain/entities/order/order.entity";
+
+    export class OrderFactory {
+      static createValid(overrides: Partial<Order> = {}): Order {
+        return {
+          id: "order_123",
+          locationId: "location_123",
+          customerId: "customer_123",
+          items: [
+            {
+              menuItemId: "menuItem_123",
+              quantity: 2,
+              price: 15.0,
+            },
+          ],
+          totalAmount: 30.0,
+          status: "pending",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          ...overrides,
+        };
+      }
+
+      static createPending(): Order {
+        return this.createValid({ status: "pending" });
+      }
+
+      static createCompleted(): Order {
+        return this.createValid({ status: "completed" });
+      }
+
+      static createCancelled(): Order {
+        return this.createValid({ status: "cancelled" });
+      }
+    }
+    ```
+
+  </Accordion>
+</AccordionGroup>
+
+## Test Setup
+
+<Info>
+  We use Jest's powerful setup and teardown functions to manage test state:
+</Info>
+
+```typescript
+describe("CreateOrderUseCase", () => {
+  let useCase: CreateOrderUseCase;
+  let mockOrderRepository: MockOrderRepository;
+  let mockLocationRepository: MockLocationRepository;
+  let mockCustomerRepository: MockCustomerRepository;
+  let mockHubriseClient: MockHubriseClient;
+  let mockStripeClient: MockStripeClient;
+  let mockEventEmitter: MockEventEmitter;
+
+  beforeEach(() => {
+    // Initialize mocks
+    mockOrderRepository = new MockOrderRepository();
+    mockLocationRepository = new MockLocationRepository();
+    mockCustomerRepository = new MockCustomerRepository();
+    mockHubriseClient = new MockHubriseClient();
+    mockStripeClient = new MockStripeClient();
+    mockEventEmitter = new MockEventEmitter();
+
+    // Initialize use case with mocks
+    useCase = new CreateOrderUseCase(
+      mockOrderRepository,
+      mockLocationRepository,
+      mockCustomerRepository,
+      mockHubriseClient,
+      mockStripeClient,
+      mockEventEmitter
+    );
+  });
+
+  afterEach(() => {
+    // Clear all mocks after each test
+    jest.clearAllMocks();
+  });
+});
+```
+
+## Testing Use Cases
+
+<AccordionGroup>
+  <Accordion icon="check" title="Testing Happy Paths">
+    Happy path tests verify that the use case works as expected when all conditions are met:
+
+    ```typescript
+    it("should create order successfully", async () => {
+      // Arrange
+      const order = OrderFactory.createValid();
+      mockLocationRepository.findById.mockResolvedValue(
+        LocationFactory.createValid()
+      );
+      mockCustomerRepository.get.mockResolvedValue(CustomerFactory.createValid());
+      mockOrderRepository.create.mockResolvedValue(order);
+
+      // Act
+      const result = await useCase.execute(order);
+
+      // Assert
+      expect(result).toEqual(order);
+      expect(mockOrderRepository.create).toHaveBeenCalledWith(order);
+      expect(mockHubriseClient.createOrder).toHaveBeenCalledWith(order);
+      expect(mockStripeClient.createCheckoutSession).toHaveBeenCalledWith(order);
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        "order.created",
+        expect.any(Object)
+      );
+    });
+    ```
+
+  </Accordion>
+
+  <Accordion icon="x" title="Testing Error Cases">
+    Error case tests verify that the use case handles errors as expected:
+
+    ```typescript
+    it("should throw LocationNotFoundError when location does not exist", async () => {
+      // Arrange
+      const order = OrderFactory.createValid();
+      mockLocationRepository.findById.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(useCase.execute(order)).rejects.toThrow(LocationNotFoundError);
+      expect(mockLocationRepository.findById).toHaveBeenCalledWith({
+        locationId: order.locationId,
+        includeCatalog: false,
+      });
+      expect(mockOrderRepository.create).not.toHaveBeenCalled();
+    });
+
+    it("should throw CustomerNotFoundError when customer does not exist", async () => {
+      // Arrange
+      const order = OrderFactory.createValid();
+      mockLocationRepository.findById.mockResolvedValue(
+        LocationFactory.createValid()
+      );
+      mockCustomerRepository.get.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(useCase.execute(order)).rejects.toThrow(CustomerNotFoundError);
+      expect(mockLocationRepository.findById).toHaveBeenCalled();
+      expect(mockCustomerRepository.get).toHaveBeenCalledWith(order.customerId);
+      expect(mockOrderRepository.create).not.toHaveBeenCalled();
+    });
+    ```
+
+  </Accordion>
+
+  <Accordion icon="corner-down-right" title="Testing Edge Cases">
+    Edge case tests verify that the use case handles unusual but valid inputs correctly:
+
+    ```typescript
+    it("should handle order with zero items by throwing error", async () => {
+      // Arrange
+      const order = OrderFactory.createValid();
+      order.items = [];
+
+      // Act & Assert
+      await expect(useCase.execute(order)).rejects.toThrow(EmptyOrderError);
+      expect(mockOrderRepository.create).not.toHaveBeenCalled();
+    });
+
+    it("should handle order with very large numbers of items", async () => {
+      // Arrange
+      const order = OrderFactory.createValid();
+      order.items = Array(100)
+        .fill(null)
+        .map(() => ({
+          menuItemId: "menuItem_123",
+          quantity: 1,
+          price: 15.0,
+        }));
+      order.totalAmount = 1500.0;
+
+      mockLocationRepository.findById.mockResolvedValue(
+        LocationFactory.createValid()
+      );
+      mockCustomerRepository.get.mockResolvedValue(CustomerFactory.createValid());
+      mockOrderRepository.create.mockResolvedValue(order);
+
+      // Act
+      const result = await useCase.execute(order);
+
+      // Assert
+      expect(result).toEqual(order);
+      expect(mockOrderRepository.create).toHaveBeenCalledWith(order);
+    });
+    ```
+
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<Steps>
+  <Step title="Keep Tests Small and Focused">
+    • Each test should verify one specific behavior or use case
+  </Step>
+
+<Step title="Use Descriptive Test Names">
+  • Test names should clearly describe what is being tested
+</Step>
+
+<Step title="Avoid Test Duplication">
+  • Use factories and helper functions to avoid duplication
+</Step>
+
+<Step title="Test Failures">
+  • Make sure to test both successful and failure scenarios
+</Step>
+
+<Step title="Clean Up After Tests">
+  • Reset mocks and state after each test
+</Step>
+
+<Step title="Don't Mock What You Don't Own">
+  • Prefer to mock interfaces that you control
+</Step>
+
+<Step title="Verify Mock Interactions">
+  • Test that mocks are called with the expected arguments
+</Step>
+
+<Step title="Test Edge Cases">
+  • Test boundary conditions and unusual inputs
+</Step>
+
+<Step title="Avoid Implementation Details">
+  • Test behavior, not implementation details
+</Step>
+
+  <Step title="Keep Tests Fast">
+    • Unit tests should be fast to run
+  </Step>
+</Steps>
+
+## Test Organization
+
+<Info>
+  We organize our tests to mirror the structure of our application:
+
+```
+src/
+  application/
+    use-cases/
+      order/
+        create-order.usecase.ts
+        __tests__/
+          create-order.usecase.spec.ts
+      customer/
+        register-customer.usecase.ts
+        __tests__/
+          register-customer.usecase.spec.ts
+```
+
+This organization makes it easy to find tests for a specific component.
+
+</Info>

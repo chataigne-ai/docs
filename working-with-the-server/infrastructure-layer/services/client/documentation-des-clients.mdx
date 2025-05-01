@@ -1,0 +1,171 @@
+---
+title: "Documentation des Clients"
+description: "Documentation des clients dans l'infrastructure"
+---
+
+<Info icon="book">
+  Les clients sont organisés de manière à refléter fidèlement la structure des
+  API externes. Chaque client est composé d'un client principal et de
+  sous-clients, chacun correspondant à un domaine fonctionnel de l'API.
+</Info>
+
+## Structure
+
+### Client Principal
+
+Le client principal est responsable de l'initialisation et de la gestion des sous-clients. Il expose ces sous-clients via des getters pour une utilisation fluide.
+
+```typescript
+class HubriseClient {
+  private readonly _order: HubriseOrderClient;
+  private readonly _customer: HubriseCustomerClient;
+  private readonly _menu: HubriseMenuClient;
+
+  constructor(
+    private readonly baseUrl: string,
+    private readonly apiKey: string
+  ) {
+    this._order = new HubriseOrderClient(baseUrl, apiKey);
+    this._customer = new HubriseCustomerClient(baseUrl, apiKey);
+    this._menu = new HubriseMenuClient(baseUrl, apiKey);
+  }
+
+  get order(): HubriseOrderClient {
+    return this._order;
+  }
+
+  get customer(): HubriseCustomerClient {
+    return this._customer;
+  }
+
+  get menu(): HubriseMenuClient {
+    return this._menu;
+  }
+}
+```
+
+### Sous-Clients
+
+Les sous-clients implémentent directement les endpoints de l'API. Chaque méthode correspond à un endpoint spécifique, sans ajout de logique métier supplémentaire.
+
+```typescript
+class HubriseOrderClient {
+  constructor(
+    private readonly baseUrl: string,
+    private readonly apiKey: string
+  ) {}
+
+  // Endpoints de l'API Hubrise
+  async createOrder(order: Order): Promise<Order> {
+    const hubriseOrder = HubriseAdapter.toHubriseOrder(order);
+    const response = await fetch(`${this.baseUrl}/orders`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(hubriseOrder),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return HubriseAdapter.toDomainOrder(data);
+  }
+
+  async getOrderDetails(id: string): Promise<Order> {
+    const response = await fetch(`${this.baseUrl}/orders/${id}`, {
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return HubriseAdapter.toDomainOrder(data);
+  }
+
+  async updateOrderStatus(
+    id: string,
+    status: HubriseOrderStatus
+  ): Promise<Order> {
+    const response = await fetch(`${this.baseUrl}/orders/${id}/status`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return HubriseAdapter.toDomainOrder(data);
+  }
+}
+```
+
+## Principes
+
+<Steps>
+  <Step title="Fidélité à l'API">
+    • Les clients implémentent exactement les endpoints disponibles dans l'API
+
+    • Pas d'ajout de logique métier supplémentaire
+
+    • Respect de la structure et des conventions de l'API
+
+  </Step>
+
+  <Step title="Organisation Logique">
+    • Les endpoints sont regroupés par domaine fonctionnel
+
+    • Chaque sous-client correspond à un aspect de l'API
+
+    • Les noms des méthodes reflètent les endpoints de l'API
+
+  </Step>
+
+  <Step title="Transformation des Données">
+    • Utilisation d'adapters pour la transformation des données
+
+    • Transformation des entités de domaine en types tiers pour les requêtes
+
+    • Transformation des réponses en entités de domaine
+
+  </Step>
+
+  <Step title="Utilisation Fluent">
+    • Accès aux sous-clients via des getters
+
+    • Syntaxe intuitive : `client.order.createOrder()`
+
+    • Organisation hiérarchique claire
+
+  </Step>
+</Steps>
+
+## Exemple d'Utilisation
+
+```typescript
+const hubrise = new HubriseClient("https://api.hubrise.com/v1", "your-api-key");
+
+// Création d'une commande
+const order = await hubrise.order.createOrder(newOrder);
+
+// Mise à jour du statut
+const updatedOrder = await hubrise.order.updateOrderStatus(orderId, "accepted");
+
+// Récupération des détails d'un client
+const customer = await hubrise.customer.getCustomerDetails(customerId);
+```
+
+Cette organisation permet une intégration claire et maintenable avec les API externes, tout en respectant leur structure et leurs conventions. Elle facilite l'ajout de nouvelles fonctionnalités et la maintenance du code.

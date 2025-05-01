@@ -1,0 +1,209 @@
+---
+title: "Tests Domaines"
+description: "Tests des Entités du Domaine"
+---
+
+Ce document décrit notre approche pour tester les entités du domaine dans le codebase de Châtaigne. Il fournit des directives pour écrire des tests maintenables, lisibles et efficaces.
+
+### Principes Fondamentaux
+
+1. **Indépendance des Tests**
+   - Chaque test doit être indépendant
+   - Les tests ne doivent pas dépendre de l'état d'autres tests
+   - Utiliser `beforeEach` pour initialiser des données de test fraîches
+2. **Responsabilité Unique**
+   - Chaque test doit vérifier un comportement spécifique
+   - Éviter les assertions multiples sauf pour des comportements liés
+   - Noms de tests clairs décrivant le comportement attendu
+3. **Proposition: Test-Driven Development (TDD)**
+   - Écrire les tests en premier
+   - Implémenter le code minimal pour faire passer les tests
+   - Refactoriser tout en maintenant les tests passants
+   - À utiliser quand on code sur Cursor. Définir les tests en premier permet de bien orienter l'agent pour écrire des méthodes qui font ce qu'on attend d'elle et de vérifier leur comportement rapidement
+
+### Structure des Tests
+
+#### 1. Builders et Factories
+
+Utiliser des [builders](builders-domaine.md) pour créer des instances de test avec des valeurs par défaut sensibles :
+
+```typescript
+// Exemple : OrderBuilder
+const order = new OrderBuilder().asDelivery().withCustomer(customer).build();
+```
+
+Avantages :
+
+- Réduit la duplication de code
+- Rend les tests plus lisibles
+- Facilite la modification des données de test
+- Assure la cohérence des données de test à travers la codebase avec des edge-case bien précis
+
+#### 2. Organisation des Tests
+
+Organiser les tests en sections logiques :
+
+```typescript
+describe("Order", () => {
+  // 1. Création & Validation
+  describe("Création & Validation", () => {
+    it("devrait créer une commande valide");
+    it("devrait valider les champs requis");
+  });
+
+  // 2. États & Transitions
+  describe("États & Transitions", () => {
+    it("devrait gérer les changements d'état");
+    it("devrait forcer les transitions valides");
+  });
+
+  // 3. Règles Métier
+  describe("Règles Métier", () => {
+    it("devrait appliquer les contraintes métier");
+    it("devrait calculer correctement les valeurs");
+  });
+});
+```
+
+#### 3. Patterns de Test
+
+**Pattern Arrange-Act-Assert**
+
+```typescript
+it("devrait calculer le montant total", () => {
+  // Arrange
+  const order = new OrderBuilder().withItems([item1, item2]).build();
+
+  // Act
+  const total = order.calculateTotal();
+
+  // Assert
+  expect(total).toBe(expectedAmount);
+});
+```
+
+**Helpers de Test**
+
+```typescript
+const createTestOrder = (overrides = {}) => {
+  return new OrderBuilder()
+    .withDefaultValues()
+    .withOverrides(overrides)
+    .build();
+};
+```
+
+### Écriture des Tests
+
+#### 1. Nommage des Tests
+
+- Utiliser des noms descriptifs expliquant le comportement attendu
+- Suivre le pattern : "devrait \[comportement attendu] quand \[condition]"
+- Éviter les détails d'implémentation dans les noms de tests
+
+Bons exemples :
+
+```typescript
+it("devrait appliquer une réduction quand le montant dépasse le seuil");
+it("devrait empêcher l'annulation quand déjà livré");
+it("devrait calculer les frais de livraison selon la distance");
+```
+
+#### 2. Données de Test
+
+- Utiliser des builders pour les objets complexes
+- Garder les données de test minimales et ciblées
+- Utiliser des constantes pour les nombres magiques
+- Considérer l'utilisation de fixtures pour les données complexes
+
+#### 3. Assertions
+
+- Se concentrer sur le comportement, pas l'implémentation
+- Utiliser des messages d'assertion significatifs
+- Grouper les assertions liées
+- Éviter de tester les détails d'implémentation privés
+
+### Scénarios de Test Courants
+
+#### 1. Création d'Entité
+
+- Tester la création uniquement avec les champs requis
+- Tester la création avec tous les champs
+- Tester la validation des champs requis
+- Tester la gestion des champs optionnels
+
+#### 2. Gestion des États
+
+- Tester les transitions d'état valides
+- Tester les transitions d'état invalides
+- Tester les comportements dépendants de l'état
+- Tester la validation des états
+
+#### 3. Règles Métier
+
+- Tester les contraintes métier
+- Tester les calculs
+- Tester les validations
+- Tester les cas limites
+
+#### 4. Relations
+
+- Tester la gestion des relations
+- Tester la gestion des collections
+- Tester les relations bidirectionnelles
+- Tester les contraintes de relations
+
+### Bonnes Pratiques
+
+1. **Garder les Tests Simples**
+   - Un concept par test
+   - Configuration et nettoyage clairs
+   - Dépendances minimales
+2. **Maintenir l'Indépendance des Tests**
+   - Réinitialiser l'état entre les tests
+   - Éviter l'état partagé
+   - Utiliser des instances fraîches
+3. **Se Concentrer sur le Comportement**
+   - Tester ce que fait l'entité, pas comment elle le fait
+   - Éviter de tester les détails d'implémentation
+   - Tester uniquement l'interface publique
+4. **Utiliser des Assertions Appropriées**
+   - Choisir l'assertion la plus spécifique
+   - Fournir des messages d'erreur clairs
+   - Tester un concept par assertion
+
+### Exemple
+
+```typescript
+describe("Order", () => {
+  let orderBuilder: OrderBuilder;
+
+  beforeEach(() => {
+    orderBuilder = new OrderBuilder();
+  });
+
+  describe("Création & Validation", () => {
+    it("devrait créer une commande valide avec les champs requis", () => {
+      const order = orderBuilder.withRequiredFields().build();
+
+      expect(order).toBeValid();
+    });
+
+    it("devrait forcer un montant minimum de commande", () => {
+      const order = orderBuilder.withAmount(MIN_ORDER_AMOUNT - 1).build();
+
+      expect(() => order.validate()).toThrow();
+    });
+  });
+
+  describe("États & Transitions", () => {
+    it("devrait passer de nouveau à confirmé", () => {
+      const order = orderBuilder.asNew().build();
+
+      order.confirm();
+
+      expect(order.status).toBe("confirmed");
+    });
+  });
+});
+```

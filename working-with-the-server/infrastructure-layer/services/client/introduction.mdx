@@ -1,0 +1,59 @@
+---
+title: "Introduction"
+description: "Introduction aux clients"
+---
+
+<Info icon="api">
+  Les clients sont la couche qui gère les appels HTTP vers les APIs externes.
+  Ils sont simples et directs, utilisant `fetch` pour communiquer avec les
+  services tiers.
+</Info>
+
+## Rôle des Clients
+
+- Font des appels HTTP vers les APIs externes
+- Gèrent l'authentification
+- Transforment les erreurs de manière simple
+
+## Organisation
+
+Les clients sont organisés par API :
+
+```
+clients/
+  hubrise/
+    hubrise.client.ts
+    hubrise-order.client.ts
+    hubrise-customer.client.ts
+```
+
+## Bonnes Pratiques
+
+<Steps>
+  <Step title="Simplicité">
+    • Un client par API
+
+    • Utilisation directe de `fetch`
+
+    • Pas de logique métier
+
+  </Step>
+
+  <Step title="Gestion d'Erreur">
+    • Une seule classe d'erreur
+
+    • Conservation du message original
+
+    • Status code HTTP conservé
+
+  </Step>
+
+  <Step title="Documentation">
+    • Documentation TSDoc claire
+
+    • Exemples d'utilisation
+
+    • Description des endpoints
+
+  </Step>
+</Steps>

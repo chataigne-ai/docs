@@ -1,0 +1,170 @@
+---
+title: "Introduction"
+description: "Introduction aux adapters"
+---
+
+Les adapters sont responsables de la transformation des données entre différentes couches de l'application. Ils permettent de maintenir une séparation claire entre le domaine et les couches externes (API, persistance, services tiers).
+
+### Problèmes Critiques
+
+#### 1. Gestion des Valeurs Nulles et Undefined
+
+Le problème le plus courant avec les adapters est la gestion des valeurs nulles ou undefined. Voici comment le gérer correctement :
+
+```typescript
+// ❌ À ÉVITER - Problèmes courants
+class OrderAdapter {
+  static dtoToOrderEntity(dto: OrderDTO): Order {
+    // Problème 1: Pas de vérification de dto
+    return new Order({
+      id: dto.id,
+      customer: DtoCustomerAdapter.dtoToCustomerEntity(dto.customer), // Erreur si dto.customer est undefined
+      items: dto.items.map((item) => DtoItemAdapter.dtoToItemEntity(item)), // Erreur si dto.items est undefined
+    });
+  }
+}
+
+// ✅ SOLUTION CORRECTE
+class OrderAdapter {
+  static dtoToOrderEntity(dto: OrderDTO): Order {
+    if (!dto) {
+      throw new AdapterError("DTO de commande invalide");
+    }
+
+    return new Order({
+      id: dto.id,
+      // Gestion sécurisée des relations
+      customer: dto.customer
+        ? DtoCustomerAdapter.dtoToCustomerEntity(dto.customer)
+        : undefined,
+      // Gestion sécurisée des collections
+      items: (dto.items ?? []).map((item) => {
+        if (!item) {
+          throw new AdapterError("Item de commande invalide");
+        }
+        return DtoItemAdapter.dtoToItemEntity(item);
+      }),
+    });
+  }
+}
+```
+
+#### 2. Gestion des Erreurs
+
+La gestion des erreurs dans les adapters doit être précise et informative. Voici l'approche recommandée :
+
+```typescript
+// Définition de l'erreur d'adapter dans la couche infrastructure
+class AdapterError extends Error {
+  constructor(
+    message: string,
+    public readonly field?: string,
+    public readonly value?: any
+  ) {
+    super(message);
+    this.name = "AdapterError";
+  }
+}
+
+// Utilisation dans un adapter
+class OrderAdapter {
+  static dtoToOrderEntity(dto: OrderDTO): Order {
+    try {
+      if (!dto) {
+        throw new AdapterError("DTO de commande invalide");
+      }
+
+      // Transformation avec validation
+      return new Order({
+        id: dto.id,
+        items: this.mapItems(dto.items),
+        customer: this.mapCustomer(dto.customer),
+      });
+    } catch (error) {
+      // Si c'est déjà une AdapterError, on la relance
+      if (error instanceof AdapterError) {
+        throw error;
+      }
+      // Sinon, on l'enveloppe avec plus de contexte
+      throw new AdapterError(
+        `Erreur lors de la transformation de la commande: ${error.message}`
+      );
+    }
+  }
+
+  private static mapItems(items: any[]): OrderItem[] {
+    if (!Array.isArray(items)) {
+      throw new AdapterError(
+        "Les items doivent être un tableau",
+        "items",
+        items
+      );
+    }
+
+    return items.map((item, index) => {
+      if (!item) {
+        throw new AdapterError(
+          `Item invalide à l'index ${index}`,
+          `items[${index}]`,
+          item
+        );
+      }
+      return DtoItemAdapter.dtoToItemEntity(item);
+    });
+  }
+
+  private static mapCustomer(customer: any): Customer | undefined {
+    if (!customer) {
+      return undefined;
+    }
+    return DtoCustomerAdapter.dtoToCustomerEntity(customer);
+  }
+}
+```
+
+### Bonnes Pratiques
+
+#### 1. Validation des Données
+
+- Vérifier immédiatement les données nulles
+- Utiliser l'opérateur `??` pour les valeurs par défaut
+- Gérer sécuritairement les relations et collections
+
+#### 2. Gestion des Erreurs
+
+- Utiliser des messages d'erreur précis
+- Inclure le contexte (champ, valeur) dans les erreurs
+- Valider les données avant la transformation
+- Gérer les erreurs à chaque niveau de transformation
+
+#### 3. Transformation Progressive
+
+- Transformer les données étape par étape
+- Utiliser des méthodes privées pour la réutilisation
+- Valider à chaque étape
+- Gérer séparément les relations et collections
+
+### Exemple Complet
+
+```typescript
+class OrderAdapter {
+  static dtoToOrderEntity(dto: OrderDTO): Order {
+    try {
+      if (!dto) {
+        throw new AdapterError("DTO de commande invalide");
+      }
+
+      return new Order({
+        id: dto.id,
+        status: dto.status ?? "new",
+        items: this.mapItems(dto.items),
+        customer: this.mapCustomer(dto.customer),
+        delivery: this.mapDelivery(dto.delivery),
+      });
+    } catch (error) {
+      if (error instanceof AdapterError) {
+        throw error;
+      }
+      throw new AdapterError(
+        `Erreur lors de la transformation de la commande: ${error.message}`
+```

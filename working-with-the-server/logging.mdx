@@ -1,0 +1,300 @@
+---
+title: "Logging"
+description: "Configuration et bonnes pratiques pour le logging de l'application"
+---
+
+<Info>
+  Le logging est une partie cruciale de notre infrastructure. Nous utilisons
+  Axiom comme solution principale de logging, combiné avec Sentry pour la
+  gestion des erreurs. Cette approche nous permet d'avoir une traçabilité
+  complète de notre application tout en maintenant de bonnes performances.
+</Info>
+
+## Configuration
+
+<AccordionGroup>
+  <Accordion title="Logger Personnalisé">
+    ```typescript
+    @Injectable()
+    class AxiomLogger extends Logger {
+      private buffer: LogEntry[] = [];
+      private readonly bufferSize = 100;
+      private readonly flushInterval = 5000; // 5 secondes
+
+      constructor() {
+        super();
+        this.startPeriodicFlush();
+      }
+
+      private async flush() {
+        if (this.buffer.length === 0) return;
+
+        try {
+          await axiom.ingest("logs", this.buffer);
+          this.buffer = [];
+        } catch (error) {
+          console.error("Erreur lors de l'envoi des logs:", error);
+        }
+      }
+
+      private startPeriodicFlush() {
+        setInterval(() => this.flush(), this.flushInterval);
+      }
+
+      async error(message: string, trace?: string, context?: string) {
+        super.error(message, trace, context);
+        this.buffer.push({
+          timestamp: new Date(),
+          level: "error",
+          message,
+          trace,
+          context,
+          service: "chataigne-api",
+        });
+
+        if (this.buffer.length >= this.bufferSize) {
+          await this.flush();
+        }
+      }
+
+      // Autres méthodes similaires pour warn, info, debug
+    }
+    ```
+
+  </Accordion>
+
+  <Accordion title="Middleware de Contexte">
+    ```typescript
+    @Injectable()
+    class RequestContextMiddleware implements NestMiddleware {
+      use(req: Request, res: Response, next: Function) {
+        const requestId = uuidv4();
+        const context = {
+          requestId,
+          userId: req.user?.id,
+          path: req.path,
+          method: req.method,
+          timestamp: new Date(),
+        };
+
+        axiom.setContext(context);
+        next();
+      }
+    }
+    ```
+
+  </Accordion>
+</AccordionGroup>
+
+## Niveaux de Log
+
+<AccordionGroup>
+  <Accordion title="ERROR">
+    • Erreurs critiques qui nécessitent une attention immédiate
+
+    • Exemple : Échec de paiement, erreur de base de données
+
+    ```typescript
+    await logger.error(
+      "Échec du traitement du paiement",
+      error.stack,
+      "PaymentService"
+    );
+    ```
+
+  </Accordion>
+
+  <Accordion title="WARN">
+    • Situations anormales mais non critiques
+
+    • Exemple : Tentatives de connexion échouées, timeouts
+
+    ```typescript
+    await logger.warn("Tentative de connexion échouée", "AuthService");
+    ```
+
+  </Accordion>
+
+  <Accordion title="INFO">
+    • Événements importants du flux normal
+
+    • Exemple : Création de commande, mise à jour de statut
+
+    ```typescript
+    await logger.info("Commande créée avec succès", "OrderService");
+    ```
+
+  </Accordion>
+
+  <Accordion title="DEBUG">
+    • Informations détaillées pour le développement
+
+    • Exemple : Valeurs de variables, états intermédiaires
+
+    ```typescript
+    await logger.debug(
+      `État de la commande: ${JSON.stringify(order)}`,
+      "OrderService"
+    );
+    ```
+
+  </Accordion>
+</AccordionGroup>
+
+## Bonnes Pratiques
+
+<AccordionGroup>
+  <Accordion title="Performance">
+    1. **Buffering**
+      • Utilisation d'un buffer en mémoire
+      • Envoi périodique des logs
+      • Taille de buffer configurable
+
+    2. **Optimisation**
+      • Logs asynchrones
+      • Compression des données
+      • Batching des envois
+
+  </Accordion>
+
+  <Accordion title="Sécurité">
+    1. **Données Sensibles**
+      • Ne pas logger de données personnelles
+      • Masquer les tokens et mots de passe
+      • Filtrer les informations sensibles
+
+    2. **Contexte**
+      • Ajouter le contexte de la requête
+      • Inclure les IDs de traçage
+      • Logger les actions utilisateur
+
+  </Accordion>
+
+  <Accordion title="Production">
+    1. **Configuration**
+      • Désactiver les logs DEBUG
+      • Augmenter la taille du buffer
+      • Ajuster l'intervalle de flush
+
+    2. **Monitoring**
+      • Surveiller le volume de logs
+      • Vérifier les erreurs d'envoi
+      • Analyser les patterns
+
+  </Accordion>
+</AccordionGroup>
+
+## Requêtes Axiom
+
+<AccordionGroup>
+  <Accordion title="Par Request ID">
+    ```sql
+    SELECT * FROM logs
+    WHERE requestId = 'abc-123'
+    ORDER BY timestamp ASC;
+    ```
+  </Accordion>
+
+{" "}
+
+<Accordion title="Par Utilisateur">
+  ```sql SELECT * FROM logs WHERE userId = 'user-456' ORDER BY timestamp DESC
+  LIMIT 100; ```
+</Accordion>
+
+  <Accordion title="Analyse d'Erreurs">
+    ```sql
+    SELECT
+      COUNT(*) as error_count,
+      message,
+      context
+    FROM logs
+    WHERE level = 'error'
+      AND timestamp >= NOW() - INTERVAL '24 hours'
+    GROUP BY message, context
+    ORDER BY error_count DESC;
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Intégration avec Sentry
+
+1. **Séparation des Responsabilités**
+   • Axiom : Logging général
+   • Sentry : Gestion des erreurs
+
+2. **Interceptor**
+
+```typescript
+@Injectable()
+class ErrorInterceptor implements NestInterceptor {
+  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    return next.handle().pipe(
+      catchError((error) => {
+        Sentry.captureException(error, {
+          extra: {
+            originalError: error.originalError,
+            code: error.code,
+          },
+        });
+        throw new HttpError(
+          error.message,
+          this.mapToHttpStatus(error.code),
+          error.code,
+          error
+        );
+      })
+    );
+  }
+}
+```
+
+## Dashboards et Alertes
+
+<AccordionGroup>
+  <Accordion title="Dashboards Recommandés">
+    1. **Monitoring Général**
+      • Volume de logs par niveau
+      • Taux d'erreurs
+      • Temps de réponse
+
+    2. **Erreurs**
+      • Distribution par type
+      • Impact utilisateur
+      • Patterns temporels
+
+  </Accordion>
+
+  <Accordion title="Alertes">
+    1. **Critiques**
+      • Taux d'erreurs > 5%
+      • Temps de réponse > 2s
+      • Erreurs de paiement
+
+    2. **Warnings**
+      • Tentatives de connexion échouées
+      • Timeouts fréquents
+      • Patterns anormaux
+
+  </Accordion>
+</AccordionGroup>
+
+## Maintenance
+
+<Steps>
+  <Step title="Nettoyage">
+    • Rotation des logs
+    • Archivage des anciennes données
+    • Gestion des quotas
+  </Step>
+
+<Step title="Monitoring">
+  • Volume de logs • Performance d'envoi • Qualité des données
+</Step>
+
+  <Step title="Documentation">
+    • Mise à jour des requêtes
+    • Ajout de nouveaux dashboards
+    • Documentation des patterns
+  </Step>
+</Steps>

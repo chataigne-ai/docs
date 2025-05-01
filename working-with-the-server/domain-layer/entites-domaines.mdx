@@ -1,0 +1,226 @@
+---
+title: "Entités Domaines"
+description: "Entités de domaines"
+---
+
+### Principes Fondamentaux
+
+#### 1. Structure de Base
+
+```typescript
+class EntityName {
+  // Propriétés privées avec underscore
+  private _id: string;
+  private _createdAt?: Date;
+  private _updatedAt?: Date;
+
+  // Autres propriétés privées
+  private _property: PropertyType;
+
+  // Constructeur avec objet de paramètres
+  constructor(data: EntityNameData) {
+    this._id = data.id;
+    this._createdAt = data.createdAt;
+    this._updatedAt = data.updatedAt;
+    this._property = data.property;
+  }
+
+  // Getters publics
+  public get id(): string {
+    return this._id;
+  }
+
+  // Setters avec validation si nécessaire
+  public set property(value: PropertyType) {
+    this.validateProperty(value);
+    this._property = value;
+  }
+}
+```
+
+#### 2. Gestion des Relations
+
+**2.1 Relations Simples**
+
+```typescript
+class Entity {
+  private _relatedEntity: RelatedEntity | null = null;
+
+  public get relatedEntity(): RelatedEntity | null {
+    return this._relatedEntity;
+  }
+
+  public set relatedEntity(value: RelatedEntity | null) {
+    this._relatedEntity = value;
+  }
+}
+```
+
+**2.2 Collections**
+
+```typescript
+class Entity {
+  private _items: Item[] = [];
+
+  // Retourner une copie pour éviter les modifications externes
+  public get items(): Item[] {
+    return [...this._items];
+  }
+
+  // Méthodes pour manipuler la collection
+  public addItem(item: Item): void {
+    this._items.push(item);
+  }
+
+  public removeItem(itemId: string): void {
+    this._items = this._items.filter((item) => item.id !== itemId);
+  }
+}
+```
+
+#### 3. Entités Enrichies
+
+Pour gérer les différents niveaux de chargement des relations, nous utilisons des classes distinctes :
+
+```typescript
+// Entité de base
+class Customer {
+  private _id: string;
+  private _name: string;
+  // ... autres propriétés de base
+}
+
+// Entité enrichie avec des relations
+class CustomerWithOrders extends Customer {
+  private _orders: Order[];
+
+  constructor(customer: Customer, orders: Order[]) {
+    super(customer);
+    this._orders = orders;
+  }
+
+  // Getters spécifiques aux relations
+  public get orders(): Order[] {
+    return this._orders;
+  }
+
+  // Méthodes calculées sur les relations
+  public getTotalOrderAmount(): number {
+    return this._orders.reduce((total, order) => total + order.total, 0);
+  }
+}
+```
+
+#### 4. Value Objects
+
+Pour les concepts qui n'ont pas d'identité propre, nous utilisons des Value Objects :
+
+```typescript
+class Address {
+  private readonly _street: string;
+  private readonly _city: string;
+  private readonly _postalCode: string;
+
+  constructor(data: AddressData) {
+    this._street = data.street;
+    this._city = data.city;
+    this._postalCode = data.postalCode;
+  }
+
+  // Getters immutables
+  public get street(): string {
+    return this._street;
+  }
+
+  // Méthodes de validation
+  private validatePostalCode(code: string): void {
+    if (!this.isValidPostalCode(code)) {
+      throw new DomainException("Invalid postal code", "INVALID_POSTAL_CODE");
+    }
+  }
+}
+```
+
+#### 5. Validation
+
+La validation se fait à plusieurs niveaux :
+
+1. **Dans les setters** pour les validations simples
+2. **Dans le constructeur** pour les invariants de base
+3. **Dans des méthodes privées** pour les validations complexes
+
+```typescript
+class Entity {
+  private validateInvariants(): void {
+    // Validation des invariants complexes
+  }
+
+  public set property(value: PropertyType) {
+    this.validateProperty(value);
+    this._property = value;
+  }
+
+  private validateProperty(value: PropertyType): void {
+    // Validation spécifique
+  }
+}
+```
+
+## Bonnes Pratiques
+
+<AccordionGroup>
+  <Accordion icon="lock" title="Immutabilité">
+    • Utiliser `readonly` pour les propriétés qui ne doivent pas changer
+
+    • Retourner des copies des collections dans les getters
+
+  </Accordion>
+
+{" "}
+
+  <Accordion icon="shield" title="Encapsulation">
+    • Toutes les propriétés sont privées
+
+    • Accès via getters/setters
+
+
+    • Validation dans les setters
+
+  </Accordion>
+
+{" "}
+
+  <Accordion icon="diagram-project" title="Relations">
+    • Distinguer clairement les relations chargées/non chargées
+
+    • Utiliser des classes distinctes pour les différents niveaux de chargement
+
+
+    • Encapsuler les collections dans des Value Objects
+
+  </Accordion>
+
+{" "}
+
+  <Accordion icon="check" title="Validation">
+    • Valider dans les setters
+
+    • Valider dans le constructeur
+
+
+    • Utiliser des exceptions de domaine
+
+  </Accordion>
+
+{" "}
+
+  <Accordion icon="book" title="Documentation">
+    • Documenter les invariants
+
+    • Documenter les validations
+
+
+    • Documenter les relations
+
+  </Accordion>
+</AccordionGroup>

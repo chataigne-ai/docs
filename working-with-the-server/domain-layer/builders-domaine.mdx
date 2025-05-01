@@ -1,0 +1,322 @@
+---
+title: "Builders Domaines"
+description: "Builders Domaines"
+icon: ""
+---
+
+Les builders sont un pattern de conception qui permet de créer des objets complexes de manière fluide et lisible. Dans le contexte des tests, ils sont particulièrement utiles pour créer des instances d'entités avec des valeurs par défaut sensibles tout en permettant une personnalisation facile.
+
+### Pourquoi Utiliser des Builders ?
+
+#### 1. Réduction de la Duplication
+
+Sans builder :
+
+```typescript
+// Répétition dans chaque test
+const order = new Order({
+  id: "test-order-1",
+  status: "new",
+  serviceType: "delivery",
+  items: [],
+  customer: new Customer({
+    id: "test-customer-1",
+    firstName: "John",
+    lastName: "Doe",
+  }),
+});
+```
+
+Avec builder :
+
+```typescript
+// Réutilisation du code
+const order = new OrderBuilder().asDelivery().withCustomer().build();
+```
+
+#### 2. Lisibilité des Tests
+
+Les builders rendent les tests plus expressifs en :
+
+- Masquant la complexité de la création d'objets
+- Rendant les intentions claires
+- Permettant une lecture fluide du code
+
+#### 3. Maintenance
+
+Les builders facilitent la maintenance en :
+
+- Centralisant la logique de création
+- Réduisant les points de modification
+- Assurant la cohérence des données de test
+
+### Comment Créer un Builder
+
+#### 1. Structure de Base
+
+```typescript
+class OrderBuilder {
+  private data: OrderData = {
+    id: "test-order-1",
+    status: "new",
+    serviceType: "delivery",
+    items: [],
+    // ... autres valeurs par défaut
+  };
+
+  // Méthodes de construction fluides
+  asDelivery(): OrderBuilder {
+    this.data.serviceType = "delivery";
+    return this;
+  }
+
+  asPickup(): OrderBuilder {
+    this.data.serviceType = "pickup";
+    return this;
+  }
+
+  withCustomer(customer?: Customer): OrderBuilder {
+    this.data.customer = customer || new CustomerBuilder().build();
+    return this;
+  }
+
+  // Méthode de construction finale
+  build(): Order {
+    return new Order(this.data);
+  }
+}
+```
+
+#### 2. Méthodes Utiles
+
+```typescript
+class OrderBuilder {
+  // Méthodes pour les états
+  asNew(): OrderBuilder {
+    this.data.status = "new";
+    return this;
+  }
+
+  asConfirmed(): OrderBuilder {
+    this.data.status = "confirmed";
+    return this;
+  }
+
+  // Méthodes pour les intégrations
+  fromUberEats(): OrderBuilder {
+    this.data.channel = "Uber Eats";
+    return this;
+  }
+
+  // Méthodes pour les données spécifiques
+  withAmount(amount: number): OrderBuilder {
+    this.data.totalAmount = new Price(amount, "CHF");
+    return this;
+  }
+
+  // Méthodes pour les collections
+  withItems(items: OrderItem[]): OrderBuilder {
+    this.data.items = items;
+    return this;
+  }
+
+  addItem(item: OrderItem): OrderBuilder {
+    this.data.items.push(item);
+    return this;
+  }
+
+  // Méthodes pour les overrides
+  withOverrides(overrides: Partial<OrderData>): OrderBuilder {
+    this.data = { ...this.data, ...overrides };
+    return this;
+  }
+}
+```
+
+#### 3. Gestion des Dépendances
+
+```typescript
+class OrderBuilder {
+  // Builders imbriqués
+  private customerBuilder = new CustomerBuilder();
+  private itemBuilder = new OrderItemBuilder();
+
+  // Méthodes pour configurer les dépendances
+  withCustomerBuilder(customerBuilder: CustomerBuilder): OrderBuilder {
+    this.customerBuilder = customerBuilder;
+    return this;
+  }
+
+  // Méthodes pour créer des instances liées
+  withDefaultCustomer(): OrderBuilder {
+    this.data.customer = this.customerBuilder.build();
+    return this;
+  }
+
+  withDefaultItem(): OrderBuilder {
+    this.data.items.push(this.itemBuilder.build());
+    return this;
+  }
+}
+```
+
+### Utilisation dans les Tests
+
+#### 1. Cas d'Utilisation Courants
+
+```typescript
+describe("Order", () => {
+  let orderBuilder: OrderBuilder;
+
+  beforeEach(() => {
+    orderBuilder = new OrderBuilder();
+  });
+
+  it("devrait créer une commande en livraison", () => {
+    const order = orderBuilder.asDelivery().withDefaultCustomer().build();
+
+    expect(order.serviceType).toBe("delivery");
+  });
+
+  it("devrait créer une commande avec des items", () => {
+    const order = orderBuilder.withDefaultItem().withDefaultItem().build();
+
+    expect(order.items).toHaveLength(2);
+  });
+});
+```
+
+#### 2. Patterns Avancés
+
+```typescript
+// 1. Builders réutilisables
+const createDeliveryOrder = () => {
+  return new OrderBuilder().asDelivery().withDefaultCustomer().build();
+};
+
+// 2. Builders avec des scénarios prédéfinis
+class OrderBuilder {
+  asNewDeliveryOrder(): OrderBuilder {
+    return this.asNew().asDelivery().withDefaultCustomer();
+  }
+
+  asConfirmedPickupOrder(): OrderBuilder {
+    return this.asConfirmed().asPickup().withDefaultCustomer();
+  }
+}
+
+// 3. Builders avec des données aléatoires
+class OrderBuilder {
+  withRandomAmount(): OrderBuilder {
+    const amount = Math.floor(Math.random() * 100);
+    return this.withAmount(amount);
+  }
+}
+```
+
+### Bonnes Pratiques
+
+#### 1. Valeurs par Défaut
+
+- Utiliser des valeurs par défaut sensibles
+- Éviter les valeurs magiques
+- Documenter les valeurs par défaut importantes
+
+#### 2. Méthodes de Construction
+
+- Nommer les méthodes de manière descriptive
+- Retourner `this` pour permettre le chaînage
+- Grouper les méthodes par catégorie
+
+#### 3. Validation
+
+- Valider les données dans la méthode `build()`
+- Lancer des erreurs explicites en cas de données invalides
+- Documenter les contraintes de validation
+
+#### 4. Performance
+
+- Éviter de créer des objets inutilement
+- Réutiliser les builders quand possible
+- Optimiser les méthodes de construction
+
+### Exemple Complet
+
+```typescript
+class OrderBuilder {
+  private data: OrderData = {
+    id: `test-order-${Date.now()}`,
+    status: "new",
+    serviceType: "delivery",
+    items: [],
+    customer: null,
+    totalAmount: new Price(0, "CHF"),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  // États
+  asNew(): OrderBuilder {
+    this.data.status = "new";
+    return this;
+  }
+
+  asConfirmed(): OrderBuilder {
+    this.data.status = "confirmed";
+    return this;
+  }
+
+  // Types de service
+  asDelivery(): OrderBuilder {
+    this.data.serviceType = "delivery";
+    return this;
+  }
+
+  asPickup(): OrderBuilder {
+    this.data.serviceType = "pickup";
+    return this;
+  }
+
+  // Relations
+  withCustomer(customer?: Customer): OrderBuilder {
+    this.data.customer = customer || new CustomerBuilder().build();
+    return this;
+  }
+
+  withItems(items: OrderItem[]): OrderBuilder {
+    this.data.items = items;
+    return this;
+  }
+
+  addItem(item: OrderItem): OrderBuilder {
+    this.data.items.push(item);
+    return this;
+  }
+
+  // Données spécifiques
+  withAmount(amount: number): OrderBuilder {
+    this.data.totalAmount = new Price(amount, "CHF");
+    return this;
+  }
+
+  // Scénarios prédéfinis
+  asNewDeliveryOrder(): OrderBuilder {
+    return this.asNew().asDelivery().withDefaultCustomer();
+  }
+
+  // Construction finale
+  build(): Order {
+    this.validate();
+    return new Order(this.data);
+  }
+
+  private validate(): void {
+    if (!this.data.customer) {
+      throw new Error("Customer is required");
+    }
+    if (this.data.items.length === 0) {
+      throw new Error("Order must have at least one item");
+    }
+  }
+}
+```

@@ -1,0 +1,119 @@
+---
+title: "Définition des types externes"
+description: "Définition des types externes"
+---
+
+<Info>
+  Lors de l'intégration avec des services externes, il est crucial de définir
+  des types TypeScript qui reflètent fidèlement les structures de données des
+  API. Cela garantit une interaction fluide et réduit les erreurs potentielles.
+</Info>
+
+## Processus de Définition des Types
+
+<Steps>
+  <Step title="Comprendre l'API de l'Intégration">
+    • Consulter la Documentation
+    
+    
+    - Explorez la documentation officielle de l'API de l'intégration (par exemple, Hubrise)
+    - Identifiez les endpoints que vous allez utiliser et les structures de données qu'ils renvoient ou acceptent
+
+    • Identifier les Types de Données
+
+
+    - Notez les types de données que chaque endpoint renvoie ou accepte, y compris les objets, tableaux, chaînes de caractères, nombres, etc.
+
+  </Step>
+
+  <Step title="Définir les Types en TypeScript">
+    • Créer des Interfaces
+    
+    
+    - Pour chaque type de données identifié, créez une interface TypeScript pour structurer les données de manière cohérente
+
+    • Gérer les Champs Optionnels
+
+
+    - Marquez les champs optionnels avec `?` pour éviter les erreurs lorsque l'API ne renvoie pas certaines données
+
+
+    • Vérifier les Noms de Propriétés
+
+
+    - Assurez-vous que les noms de propriétés dans vos interfaces correspondent exactement à ceux utilisés par l'API
+
+  </Step>
+</Steps>
+
+## Exemple avec Hubrise
+
+<Steps>
+  <Step title="Documentation Hubrise">
+    • **Endpoint** : `/orders`
+    
+    
+    • **Réponse** :
+
+    ```json
+    {
+      "id": "123",
+      "status": "new",
+      "items": [
+        {
+          "id": "item-1",
+          "name": "Pizza",
+          "quantity": 2
+        }
+      ],
+      "customer": {
+        "id": "cust-1",
+        "name": "John Doe"
+      }
+    }
+    ```
+
+  </Step>
+
+  <Step title="Définition des Types">
+    ```typescript
+    interface HubriseItem {
+      id: string;
+      name: string;
+      quantity: number;
+    }
+
+    interface HubriseCustomer {
+      id: string;
+      name: string;
+    }
+
+    interface HubriseOrder {
+      id: string;
+      status: string;
+      items: HubriseItem[];
+      customer?: HubriseCustomer; // Champ optionnel
+    }
+    ```
+
+  </Step>
+</Steps>
+
+## Bonnes Pratiques
+
+<Steps>
+  <Step title="Champs Optionnels">
+    • Ne pas oublier de marquer les champs optionnels
+  </Step>
+
+<Step title="Types Précis">• Utilisez les types les plus précis possibles</Step>
+
+  <Step title="Consistance des Noms">
+    • Assurez-vous que les noms de propriétés correspondent exactement à ceux de l'API
+  </Step>
+</Steps>
+
+En suivant ce guide, vous pouvez créer des types TypeScript qui reflètent
+fidèlement les structures de données des API externes, facilitant ainsi
+l'intégration et réduisant les erreurs potentielles lors de l'interaction avec
+les services tiers.
