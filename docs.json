@@ -105,12 +105,10 @@
           },
           {
             "group": "Endpoint Examples",
-            "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
-            ]
+            "openapi": {
+              "source": "api-reference/openapi.json",
+              "directory": "api-reference"
+            }
           }
         ]
       },
