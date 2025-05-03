@@ -1,0 +1,23 @@
+---
+title: Message Webhook
+description: This endpoint is called by the server whenever a new message is received in a conversation where the chatbot is activated.
+---
+
+**`POST`** `https://${chatbotUrl}/message`
+
+## Headers
+
+| Name         | Value              |
+| ------------ | ------------------ |
+| Content-Type | `application/json` |
+
+## Body
+
+| Name           | Type                                   | Description                                                            |
+| -------------- | -------------------------------------- | ---------------------------------------------------------------------- |
+| `lastMessage`  | [last-message](/types/last-message.md) | The message of the customer that triggered the chatbot                 |
+| `conversation` | [conversation](/types/conversation/)   | Data about the conversation between the customer and the restaurant    |
+| `location`     | [location](/types/location/)           | Data about the restaurant                                              |
+| `customer`     | [customer](/types/customer.md)         | Data about the customer                                                |
+| `orderDraft`   | [order-draft](/types/order-draft/)     | Data about the current order draft being processed in the conversation |
+| `orders`       | [order](/types/order/)[]               | Data about the previous orders of the customer                         |

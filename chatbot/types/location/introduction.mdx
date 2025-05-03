@@ -1,0 +1,66 @@
+---
+title: Location
+---
+
+| Field                  | Type                                    | Description                                                                              |
+| ---------------------- | --------------------------------------- | ---------------------------------------------------------------------------------------- |
+| internalId             | string                                  | Unique identifier of the location                                                        |
+| name                   | string                                  | Name of the location                                                                     |
+| address                | [Address](../common/address.md)         | Address of the location                                                                  |
+| contactInformations    | string (optional)                       | Phone number or email of contact of the location                                         |
+| timezone               | string                                  | Timezone of the location                                                                 |
+| openingHours           | [Opening Hours](#opening-hours)         | Opening Hours of the location                                                            |
+| catalog                | [Catalog](catalog.md)                   | Catalog of the location                                                                  |
+| whatsappNumber         | string                                  | WhatsApp number of the location                                                          |
+| locationInformations   | string (optional)                       | Additional information about the location to give as personalized context to the chatbot |
+| averagePreparationTime | object                                  | Average preparation time of the location                                                 |
+| minOrderAmount         | number                                  | Minimum order amount for this location                                                   |
+| deliverySettings       | [Delivery Settings](#delivery-settings) | Delivery settings of the location                                                        |
+| paymentSettings        | [Payment Settings](#payment-settings)   | Payment Settings of the location                                                         |
+
+## Opening Hours
+
+| Field    | Type          |
+| -------- | ------------- |
+| delivery | [Hour](#hour) |
+| pickup   | [Hour](#hour) |
+
+## Hour
+
+| Field     | Type                      |
+| --------- | ------------------------- |
+| monday    | [Time Range](#time-range) |
+| tuesday   | [Time Range](#time-range) |
+| wednesday | [Time Range](#time-range) |
+| thursday  | [Time Range](#time-range) |
+| friday    | [Time Range](#time-range) |
+| saturday  | [Time Range](#time-range) |
+| sunday    | [Time Range](#time-range) |
+
+## Time Range
+
+| Field | Type   | Example |
+| ----- | ------ | ------- |
+| from  | string | 10:00   |
+| to    | string | 22:00   |
+
+## Delivery Settings
+
+| Field       | Type                          | Description                                            |
+| ----------- | ----------------------------- | ------------------------------------------------------ |
+| mode        | string                        | Can be "none", "postalCode", or "uberDirect"           |
+| postalCodes | [Postal Code](#postal-code)[] | Array of postal codes, present if mode is "postalCode" |
+
+## Postal Code
+
+| Field              | Type                        | Example |
+| ------------------ | --------------------------- | ------- |
+| postalCode         | number                      | 1022    |
+| minimumOrderAmount | number                      | 15.50   |
+| deliveryFee        | [Price](../common/price.md) |         |
+
+## Payment Settings
+
+| Field          | Type     | Description                                                                            |
+| -------------- | -------- | -------------------------------------------------------------------------------------- |
+| paymentMethods | string[] | Array of payment methods: "InStore", "SavedCard", "OneTimeCard", "Twint", "RevolutPay" |

@@ -1,0 +1,20 @@
+---
+title: Getting started
+description: This page and its subpages describe the chatbot integration and the different ways it interacts with the server.
+---
+
+The chatbot has two webhooks listening to events sent from the server:
+
+- **Message webhook:** Handle incoming messages received by the server and that needs the chatbot to take action
+
+[message-webhook.mdx](message-webhook.mdx)
+
+- **Event webhook:** Handle events received by the server and that might be interesting for the chabot. For example this could be an order status change or a successful payment.
+
+[event-webhook.mdx](event-webhook.mdx)
+
+<Info>
+  We might want to review the way we handle these as we scale as there might be
+  quite a lot of events we would want to send the chatbot, each events being of
+  different type
+</Info>

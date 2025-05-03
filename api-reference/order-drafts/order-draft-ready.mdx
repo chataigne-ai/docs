@@ -1,0 +1,6 @@
+---
+title: When the order draft is ready for payment
+description: When the order draft is ready for payment
+---
+
+When the order draft no longer contains validation errors, it is ready to be confirmed and transformed into an order. The following method to call is registerOrderDraft. Depending on the paymentMethod that was chose by the customer during the orderDraft creation process, the endpoint will either register the order so that it can be paid later, pay the order with a saved paymentMethod or output a checkoutSession Url where the customer can pay using a temporary payment method. The type field in the returned object will inform the chatbot of the type of registration that took place.

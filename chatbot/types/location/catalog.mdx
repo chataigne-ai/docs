@@ -1,0 +1,57 @@
+---
+title: Catalog
+---
+
+| Name          | Type                                               | Description                      |
+| ------------- | -------------------------------------------------- | -------------------------------- |
+| `id`          | string                                             | Unique identifier of the catalog |
+| `name`        | string                                             | Name of the catalog              |
+| `categories`  | [#categories](catalog.md#categories "mention")     | Categories of the catalog        |
+| `products`    | [#products](catalog.md#products "mention")         | Products of the catalog          |
+| `skus`        | [#skus](catalog.md#skus "mention")                 | Skus of the catalog              |
+| `optionLists` | [#option-lists](catalog.md#option-lists "mention") | Option Lists of the catalog      |
+| `options`     | [#options](catalog.md#options "mention")           | Options of the catalog           |
+
+## Categories
+
+| Name         | Type   | Description                                                               |
+| ------------ | ------ | ------------------------------------------------------------------------- |
+| `internalId` | string | Unique internal identifier of the category, optimized for LLM readability |
+| `name`       | string | Name of the category                                                      |
+
+## Products
+
+| Name           | Type              | Description                                                              |
+| -------------- | ----------------- | ------------------------------------------------------------------------ |
+| `internalId`   | string            | Unique internal identifier of the product, optimized for LLM readability |
+| `name`         | string            | Name of the product                                                      |
+| `categoryName` | string            | Name of the category this product is part of                             |
+| `description`  | string (optional) | Description of this product                                              |
+
+## Skus
+
+| Name                    | Type                                     | Description                                                          |
+| ----------------------- | ---------------------------------------- | -------------------------------------------------------------------- |
+| `internalId`            | string                                   | Unique internal identifier of the sku, optimized for LLM readability |
+| `productInternalId`     | string                                   | Internal Id of the product this sku is part of                       |
+| `price`                 | [price.md](../common/price.md "mention") | Price of this sku                                                    |
+| `optionListInternalIds` | string\[]                                | Internal Ids of the option lists that are associated to this sku     |
+
+## Option Lists
+
+| Name            | Type              | Description                                                                  |
+| --------------- | ----------------- | ---------------------------------------------------------------------------- |
+| `internalId`    | string            | Unique internal identifier of the option list, optimized for LLM readability |
+| `name`          | string            | Name of the option list                                                      |
+| `minSelections` | number (optional) | Minimum number of options that can be selected in this option list           |
+| `maxSelections` | number (optional) | Maximum number of options that can be selected in this option list           |
+
+## Options
+
+| Name                   | Type                                     | Description                                                             |
+| ---------------------- | ---------------------------------------- | ----------------------------------------------------------------------- |
+| `internalId`           | string                                   | Unique internal identifier of the option, optimized for LLM readability |
+| `name`                 | string                                   | Name of the option                                                      |
+| `optionListInternalId` | string                                   | Internal id of the option list this option is part of                   |
+| `optionListName`       | string                                   | Name of the option list this option is part of                          |
+| `price`                | [price.md](../common/price.md "mention") | Price of this option                                                    |

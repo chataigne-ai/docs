@@ -1,0 +1,43 @@
+---
+title: Delivery
+---
+
+|                   |                                                           |                                                       |
+| ----------------- | --------------------------------------------------------- | ----------------------------------------------------- |
+| `id`              | `String`                                                  | id of the delivery                                    |
+| `provider`        | `"store"` \| `"uberDirect"` \| `"chaskis"`                |                                                       |
+| `status`          | [#delivery-status](delivery.md#delivery-status "mention") |                                                       |
+| `deliveryAddress` | [address.md](../common/address.md "mention")              |                                                       |
+| `etaTime`         | `String`                                                  | ISO format in the timezone of the location            |
+| `collectionCode`  | `String`                                                  | Collection code of the order. Not used for the moment |
+| `trackingUrl`     | `String`                                                  | URL to track the order                                |
+| `fees`            | [price.md](../common/price.md "mention")                  |                                                       |
+| courier           | [#courier](delivery.md#courier "mention")                 |                                                       |
+
+### Delivery Status
+
+- pending
+- assigned
+- pickup_imminent
+- en_route
+- dropoff_imminent
+- delivered
+- cancelled
+- failed
+
+### Courier
+
+```typescript
+id: string;
+name: string;
+phone?: string;
+imageUrl?: string;
+latitude?: number;
+longitude?: number;
+vehicleType?: string;
+vehicleLicensePlate?: string;
+vehicleColor?: string;
+vehicleModel?: string;
+locationDescription?: string;
+rating?: string;
+```

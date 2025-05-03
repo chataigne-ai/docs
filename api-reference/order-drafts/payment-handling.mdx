@@ -1,0 +1,10 @@
+---
+title: Payment handling
+description: "Handling payment methods"
+---
+
+If type is "noPaymentMethod":
+In this case the payment is handled by our solution through Stripe. This message indicate that the customer do not have any payment method linked to his account yet. In this case an additional "paymentMethodSetupUrl" field is appended to the verification object in the response from the update order draft endpoint. This payment URL must be sent to the customer, as soon as he completes it, the payment mehod will br linked to his account and the chatbot will be informed through an event so that it can send trigger update order draft again with an empty object to get the following response code.
+
+If the customer wants to change his payment method
+In case the customer wants to update his payment method (The card assigned to his account), the chabot can trigger this endpoint in order to get a new URL for payment method setup. This will work exactly like for the first payment setup and the previous card of the customer will be overwritten.

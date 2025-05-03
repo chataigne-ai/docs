@@ -1,0 +1,18 @@
+---
+title: Introduction
+description: Conversation regroups all the informations about an exchange between a customer and a location including the chatbot memory.
+---
+
+## Creating conversations
+
+Most of the times conversation will be created automatically when receiving a message from a customer or when the location send a first message to the customer through a marketing template for example. It is however possible to create a conversation manually from this endpoint.
+
+<Info>
+  Only one conversation can exist between a customer and a location. Trying to
+  create a new conversation if there already exist one between the customer and
+  the location will return an error.
+</Info>
+
+## Activating/Disabling the chatbot on a conversation
+
+It is possible to enable/disable automatic responses from the chatbot on a given conversation by changing the $$\mathrm{chatbotActive}$$ property. It is set to true by default and disabling it will make the conversation a classic Whatsapp Conversation where a human from the store have to manually answer the customer.

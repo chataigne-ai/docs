@@ -1,0 +1,63 @@
+---
+title: Applied Discount
+---
+
+There exist different type of applied discounts:
+
+## Percentage
+
+|                  |                                          |     |
+| ---------------- | ---------------------------------------- | --- |
+| `name`           | string                                   |     |
+| `discountId`     | string                                   |     |
+| `priceOff`       | [price.md](../common/price.md "mention") |     |
+| `type`           | "percentage"                             |     |
+| `percentage`     | number                                   |     |
+| `appliedToTotal` | [price.md](../common/price.md "mention") |     |
+
+## Fixed
+
+|              |                                          |     |
+| ------------ | ---------------------------------------- | --- |
+| `name`       | string                                   |     |
+| `discountId` | string                                   |     |
+| `priceOff`   | [price.md](../common/price.md "mention") |     |
+| `type`       | "fixed"                                  |     |
+
+## BOGO
+
+|              |                                                           |     |
+| ------------ | --------------------------------------------------------- | --- |
+| `name`       | string                                                    |     |
+| `discountId` | string                                                    |     |
+| `priceOff`   | [price.md](../common/price.md "mention")                  |     |
+| `type`       | "bogo"                                                    |     |
+| `freeItems`  | [#free-item](applied-discount.md#free-item "mention") \[] |     |
+
+## Free Product
+
+|              |                                                       |     |
+| ------------ | ----------------------------------------------------- | --- |
+| `name`       | string                                                |     |
+| `discountId` | string                                                |     |
+| `priceOff`   | [price.md](../common/price.md "mention")              |     |
+| `type`       | "free_product"                                        |     |
+| `freeItem`   | [#free-item](applied-discount.md#free-item "mention") |     |
+
+## Free Delivery
+
+|                       |                                          |     |
+| --------------------- | ---------------------------------------- | --- |
+| `name`                | string                                   |     |
+| `discountId`          | string                                   |     |
+| `priceOff`            | [price.md](../common/price.md "mention") |     |
+| `type`                | "free_shipping"                          |     |
+| `originalDeliveryFee` | [price.md](../common/price.md "mention") |     |
+
+### Free item
+
+|                 |                                          |     |
+| --------------- | ---------------------------------------- | --- |
+| `skuInternalId` | string                                   |     |
+| `quantity`      | number                                   |     |
+| `originalPrice` | [price.md](../common/price.md "mention") |     |

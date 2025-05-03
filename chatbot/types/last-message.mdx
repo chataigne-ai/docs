@@ -1,0 +1,52 @@
+---
+title: Last Message
+---
+
+| Field         | Type                                                     | Description                                                                  |
+| ------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `type`        | `"text"` \| `"form"` \| `"button_reply"` \| `"location"` | The type of the message sent by the customer that triggered the chatbot      |
+| `content`     | string (optional)                                        | Text of the message, present if type is `"text"`                             |
+| `location`    | [Geopoint](#geopoint) (optional)                         | Location sent by the customer as a geopoint. Present if type is `"location"` |
+| `buttonReply` | [Button Reply](#button-reply) (optional)                 | Button reply data. Present if type is `"button_reply"`                       |
+| `flowData`    | [Flow Data](#flow-data) (optional)                       | Data of the form confirmed by the customer. Present if type is `"form"`      |
+
+## Geopoint
+
+| Field       | Type   |
+| ----------- | ------ |
+| `latitude`  | number |
+| `longitude` | number |
+
+## Button Reply
+
+| Field   | Type   | Description                                      |
+| ------- | ------ | ------------------------------------------------ |
+| `id`    | string | Id of the button the customer clicked on         |
+| `title` | string | Text shown on the button the customer clicked on |
+
+## Flow Data
+
+| Field               | Type                           | Description                                                                                                         |
+| ------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `deliveryType`      | `"collection"` \| `"delivery"` | Delivery type chosen by the customer                                                                                |
+| `products`          | Array of Product Objects       | Products and options chosen by the customer                                                                         |
+| `customerFirstName` | string (optional)              | First name of the customer. Present if the name page is enabled in the flow settings                                |
+| `customerLastName`  | string (optional)              | Last name of the customer. Present if the name page is enabled in the flow settings                                 |
+| `street`            | string (optional)              | Street of the address of the customer. Present if the address page is enabled in the flow settings                  |
+| `postalCode`        | string (optional)              | Postal code of the address of the customer. Present if the address page is enabled in the flow settings             |
+| `city`              | string (optional)              | City of the address of the customer. Present if the address page is enabled in the flow settings                    |
+| `requestedTime`     | string (optional)              | Requested time. Can be `"ASAP"` or the time in ISO format. Present if the time page is enabled in the flow settings |
+
+### Product Object Structure
+
+```typescript
+{
+  internalId: string;
+  name: string;
+  options: {
+    internalId: string;
+    name: string;
+  }
+  [];
+}
+```

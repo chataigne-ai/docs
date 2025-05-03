@@ -1,0 +1,19 @@
+---
+title: Payment Method
+---
+
+|               |                   |                                                                                                            |
+| ------------- | ----------------- | ---------------------------------------------------------------------------------------------------------- |
+| `id`          | string            | unique identifier of the payment method                                                                    |
+| `isActive`    | boolean           | Whether this payment method is active. Defautlts to `true`                                                 |
+| `customerId`  | string            | Unique identifier of the customer this payment method belongs to.                                          |
+| `stripeId`    | string (optional) | Unique identifier of the payment method in Stripe                                                          |
+| `type`        | string (optional) | Type of the payment method. Usually `"card"`                                                               |
+| `last4`       | string (optional) | last 4 digits of the card                                                                                  |
+| `brand`       | string (optional) | Brand of the card i.e. Visa, Mastercard...                                                                 |
+| `exp_month`   | number (optional) | Month of expiration of the card                                                                            |
+| `exp_year`    | number (optional) | Year of expiration of the card                                                                             |
+| `funding`     | string (optional) | ?                                                                                                          |
+| `wallet`      | Object (optional) | ?                                                                                                          |
+| `country`     | string (optional) | Country the card was issued in                                                                             |
+| `fingerprint` | string (optional) | Unique fingerprint of the card, can be used to track the card along multiple payments online and in store. |

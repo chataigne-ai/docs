@@ -1,0 +1,49 @@
+---
+title: Assistant Message
+---
+
+There are 3 possible types of Assistant Message:
+
+## Assistant Text Message
+
+| Field          | Type   | Description                                     |
+| -------------- | ------ | ----------------------------------------------- |
+| id             | string | Unique identifier of the message                |
+| createdAt      | Date   | Creation timestamp                              |
+| conversationId | string | ID of the conversation                          |
+| sender         | string | Can be "system", "user", "assistant", or "tool" |
+| type           | string | Fixed value: "text"                             |
+| content        | string | Text content of the message                     |
+
+## Assistant Tool Call Message
+
+| Field          | Type     | Description                      |
+| -------------- | -------- | -------------------------------- |
+| id             | string   | Unique identifier of the message |
+| createdAt      | Date     | Creation timestamp               |
+| conversationId | string   | ID of the conversation           |
+| sender         | string   | Fixed value: "assistant"         |
+| type           | string   | Fixed value: "toolCall"          |
+| toolCalls      | object[] | Array of tool call objects       |
+
+### Tool Call Object
+
+| Field              | Type   | Description                        |
+| ------------------ | ------ | ---------------------------------- |
+| toolCallId         | string | Unique identifier of the tool call |
+| type               | string | Fixed value: "function"            |
+| function           | object | Function call details              |
+| function.name      | string | Name of the function to call       |
+| function.arguments | string | Arguments for the function call    |
+
+## Assistant Tool Result Message
+
+| Field          | Type   | Description                         |
+| -------------- | ------ | ----------------------------------- |
+| id             | string | Unique identifier of the message    |
+| createdAt      | Date   | Creation timestamp                  |
+| conversationId | string | ID of the conversation              |
+| sender         | string | Fixed value: "tool"                 |
+| type           | string | Fixed value: "toolResult"           |
+| toolCallId     | string | ID of the related tool call         |
+| toolResultData | string | Result data from the tool execution |

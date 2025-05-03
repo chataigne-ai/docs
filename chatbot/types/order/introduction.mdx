@@ -1,0 +1,37 @@
+---
+title: Order
+---
+
+| Name              | Type                                                    | Description                                                                                           |
+| ----------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `id`              | string                                                  | Unique identifier of the order                                                                        |
+| `shortId`         | string                                                  | Shorter identifier of this order optimized for human-readability. May be non unique (extremely rare). |
+| `status`          | [#order-status](./#order-status "mention")              | The current status of the order                                                                       |
+| `createdAt`       | Time                                                    | Time at which the order was created in the backend                                                    |
+| `updatedAt`       | Time                                                    | Time of the most recent update to the order                                                           |
+| `serviceType`     | "collection" \| "delivery"                              | How the customer wishes to receive his order                                                          |
+| `channel`         | string                                                  | The channel the order was created on (Whatsapp, Uber, POS...)                                         |
+| `customerNotes`   | string (optional)                                       | Notes from the customer about this order                                                              |
+| `deliveryAddress` | [address.md](../common/address.md "mention") (optional) | Address to which the customer wants this order to be delivered                                        |
+| `total`           | [price.md](../common/price.md "mention")                | Order total price (With charges, discounts, etc...)                                                   |
+| `items`           | [order-items.md](order-items.md "mention")              | Items in the order                                                                                    |
+| `delivery`        |                                                         | (Optional) Information on the delivery of the delivery exists                                         |
+
+## Order status
+
+The status of the order can be in the following states:
+
+| Status                | Description                                                                                                                                                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `awaiting_payment`    | The order is not official yet, it has been confirmed by the customer but have not been payed.                                                                                                                      |
+| `new`                 | The default state for a new incoming order.                                                                                                                                                                        |
+| `received`            | This state marks the order as received by the restaurant and awaiting for confirmation.                                                                                                                            |
+| `accepted`            | The order have been accepted by the restaurant (Usually automatic, some restaurant may want manual validation of the order)                                                                                        |
+| `in_preparation`      | The order is being prepared in the kitchen. (Usually orders do not go through this state and it is mainly used for integration purpose with other POS systems).                                                    |
+| `awaiting_shipment`   | The order is ready and waiting for the delivery Carier.                                                                                                                                                            |
+| `awaiting_collection` | The order is ready and is waiting for the customer to pick it up.                                                                                                                                                  |
+| `in_delivery`         | The order is in delivery. If the delivery is handled with our system or with our third party integration (i.e. Chaskis or Uber Direct). The status of the delivery can be checked from the order's delivery object |
+| `completed`           | The customer have received the order. Everything went well. Work is done.                                                                                                                                          |
+| `rejected`            | The order was rejected by the restaurant.                                                                                                                                                                          |
+| `cancelled`           | The order was cancelled either by the restaurant or by the customer for some reason. (Unlike `rejected` reaching this status is probably not intentional and is due to some problem)                               |
+| `delivery_failed`     | The delivery of the order failed.                                                                                                                                                                                  |
