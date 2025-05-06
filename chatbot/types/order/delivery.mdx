@@ -2,17 +2,17 @@
 title: Delivery
 ---
 
-|                   |                                                           |                                                       |
-| ----------------- | --------------------------------------------------------- | ----------------------------------------------------- |
-| `id`              | `String`                                                  | id of the delivery                                    |
-| `provider`        | `"store"` \| `"uberDirect"` \| `"chaskis"`                |                                                       |
-| `status`          | [#delivery-status](delivery.md#delivery-status "mention") |                                                       |
-| `deliveryAddress` | [address.md](../common/address.md "mention")              |                                                       |
-| `etaTime`         | `String`                                                  | ISO format in the timezone of the location            |
-| `collectionCode`  | `String`                                                  | Collection code of the order. Not used for the moment |
-| `trackingUrl`     | `String`                                                  | URL to track the order                                |
-| `fees`            | [price.md](../common/price.md "mention")                  |                                                       |
-| courier           | [#courier](delivery.md#courier "mention")                 |                                                       |
+|                   |                                            |                                                       |
+| ----------------- | ------------------------------------------ | ----------------------------------------------------- |
+| `id`              | `String`                                   | id of the delivery                                    |
+| `provider`        | `"store"` \| `"uberDirect"` \| `"chaskis"` |                                                       |
+| `status`          | [Delivery Status](#delivery-status)        |                                                       |
+| `deliveryAddress` | [Address](/chatbot/types/common/address)   |                                                       |
+| `etaTime`         | `String`                                   | ISO format in the timezone of the location            |
+| `collectionCode`  | `String`                                   | Collection code of the order. Not used for the moment |
+| `trackingUrl`     | `String`                                   | URL to track the order                                |
+| `fees`            | [Price](/chatbot/types/common/price)       |                                                       |
+| courier           | [Courier](#courier)                        |                                                       |
 
 ### Delivery Status
 

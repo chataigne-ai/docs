@@ -6,9 +6,9 @@ title: Last Message
 | ------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | `type`        | `"text"` \| `"form"` \| `"button_reply"` \| `"location"` | The type of the message sent by the customer that triggered the chatbot      |
 | `content`     | string (optional)                                        | Text of the message, present if type is `"text"`                             |
-| `location`    | [Geopoint](#geopoint) (optional)                         | Location sent by the customer as a geopoint. Present if type is `"location"` |
-| `buttonReply` | [Button Reply](#button-reply) (optional)                 | Button reply data. Present if type is `"button_reply"`                       |
-| `flowData`    | [Flow Data](#flow-data) (optional)                       | Data of the form confirmed by the customer. Present if type is `"form"`      |
+| `location`    | [Geopoint](#geopoint)                                    | Location sent by the customer as a geopoint. Present if type is `"location"` |
+| `buttonReply` | [Button Reply](#button-reply)                            | Button reply data. Present if type is `"button_reply"`                       |
+| `flowData`    | [Flow Data](#flow-data)                                  | Data of the form confirmed by the customer. Present if type is `"form"`      |
 
 ## Geopoint
 

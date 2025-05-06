@@ -4,21 +4,21 @@ title: Order Items
 
 ## Items
 
-| Field           | Type                        | Description                                                       |
-| --------------- | --------------------------- | ----------------------------------------------------------------- |
-| `internalId`    | string                      | The internal system id of the item optimized for LLM readability  |
-| `name`          | string                      | Name of the item                                                  |
-| `price`         | [Price](../common/price.md) | Price of the item                                                 |
-| `quantity`      | number                      | Desired quantity of the item                                      |
-| `customerNotes` | string (optional)           | Notes from the customer about this item ("No cheese" for example) |
-| `options`       | [Options](#options)         | Options associated to this item                                   |
+| Field           | Type                                 | Description                                                       |
+| --------------- | ------------------------------------ | ----------------------------------------------------------------- |
+| `internalId`    | string                               | The internal system id of the item optimized for LLM readability  |
+| `name`          | string                               | Name of the item                                                  |
+| `price`         | [Price](/chatbot/types/common/price) | Price of the item                                                 |
+| `quantity`      | number                               | Desired quantity of the item                                      |
+| `customerNotes` | string (optional)                    | Notes from the customer about this item ("No cheese" for example) |
+| `options`       | [Options](#options)                  | Options associated to this item                                   |
 
 ## Options
 
-| Field            | Type                        | Description                                                        |
-| ---------------- | --------------------------- | ------------------------------------------------------------------ |
-| `internalId`     | string                      | The internal system id of the option optimized for LLM readability |
-| `name`           | string                      | Name of the option                                                 |
-| `price`          | [Price](../common/price.md) | Price of the option                                                |
-| `quantity`       | number (optional)           | Desired quantity of the option (defaults to 1)                     |
-| `optionListName` | string                      | Name of the option category this option belongs to                 |
+| Field            | Type                                 | Description                                                        |
+| ---------------- | ------------------------------------ | ------------------------------------------------------------------ |
+| `internalId`     | string                               | The internal system id of the option optimized for LLM readability |
+| `name`           | string                               | Name of the option                                                 |
+| `price`          | [Price](/chatbot/types/common/price) | Price of the option                                                |
+| `quantity`       | number (optional)                    | Desired quantity of the option (defaults to 1)                     |
+| `optionListName` | string                               | Name of the option category this option belongs to                 |

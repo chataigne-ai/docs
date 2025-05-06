@@ -2,17 +2,17 @@
 title: Order Draft
 ---
 
-|                     |                                                      |     |
-| ------------------- | ---------------------------------------------------- | --- |
-| `id`                | string                                               |     |
-| `conversationId`    | string                                               |     |
-| `deliveryAddress`   | [address.md](../common/address.md "mention")         |     |
-| `startTime`         | Date                                                 |     |
-| `readyTime`         | Date                                                 |     |
-| `deliveryTime`      | Date                                                 |     |
-| `customerFirstName` | string                                               |     |
-| `customerLastName`  | string                                               |     |
-| `customerNote`      | string                                               |     |
-| `items`             | [order-draft-item.md](order-draft-item.md "mention") |     |
-| `serviceType`       | "collection" \| "delivery"                           |     |
-| `discounts`         | [applied-discount.md](applied-discount.md "mention") |     |
+|                     |                                                                 |     |
+| ------------------- | --------------------------------------------------------------- | --- |
+| `id`                | string                                                          |     |
+| `conversationId`    | string                                                          |     |
+| `deliveryAddress`   | [Address](/chatbot/types/common/address)                        |     |
+| `startTime`         | Date                                                            |     |
+| `readyTime`         | Date                                                            |     |
+| `deliveryTime`      | Date                                                            |     |
+| `customerFirstName` | string                                                          |     |
+| `customerLastName`  | string                                                          |     |
+| `customerNote`      | string                                                          |     |
+| `items`             | [Order Draft Item](/chatbot/types/order-draft/order-draft-item) |     |
+| `serviceType`       | "collection" \| "delivery"                                      |     |
+| `discounts`         | [Applied Discount](/chatbot/types/order-draft/applied-discount) |     |

@@ -2,15 +2,15 @@
 title: Catalog
 ---
 
-| Name          | Type                                               | Description                      |
-| ------------- | -------------------------------------------------- | -------------------------------- |
-| `id`          | string                                             | Unique identifier of the catalog |
-| `name`        | string                                             | Name of the catalog              |
-| `categories`  | [#categories](catalog.md#categories "mention")     | Categories of the catalog        |
-| `products`    | [#products](catalog.md#products "mention")         | Products of the catalog          |
-| `skus`        | [#skus](catalog.md#skus "mention")                 | Skus of the catalog              |
-| `optionLists` | [#option-lists](catalog.md#option-lists "mention") | Option Lists of the catalog      |
-| `options`     | [#options](catalog.md#options "mention")           | Options of the catalog           |
+| Name          | Type                          | Description                      |
+| ------------- | ----------------------------- | -------------------------------- |
+| `id`          | string                        | Unique identifier of the catalog |
+| `name`        | string                        | Name of the catalog              |
+| `categories`  | [Categories](#categories)     | Categories of the catalog        |
+| `products`    | [Products](#products)         | Products of the catalog          |
+| `skus`        | [Skus](#skus)                 | Skus of the catalog              |
+| `optionLists` | [Option Lists](#option-lists) | Option Lists of the catalog      |
+| `options`     | [Options](#options)           | Options of the catalog           |
 
 ## Categories
 
@@ -30,12 +30,12 @@ title: Catalog
 
 ## Skus
 
-| Name                    | Type                                     | Description                                                          |
-| ----------------------- | ---------------------------------------- | -------------------------------------------------------------------- |
-| `internalId`            | string                                   | Unique internal identifier of the sku, optimized for LLM readability |
-| `productInternalId`     | string                                   | Internal Id of the product this sku is part of                       |
-| `price`                 | [price.md](../common/price.md "mention") | Price of this sku                                                    |
-| `optionListInternalIds` | string\[]                                | Internal Ids of the option lists that are associated to this sku     |
+| Name                    | Type                                 | Description                                                          |
+| ----------------------- | ------------------------------------ | -------------------------------------------------------------------- |
+| `internalId`            | string                               | Unique internal identifier of the sku, optimized for LLM readability |
+| `productInternalId`     | string                               | Internal Id of the product this sku is part of                       |
+| `price`                 | [Price](/chatbot/types/common/price) | Price of this sku                                                    |
+| `optionListInternalIds` | string[]                             | Internal Ids of the option lists that are associated to this sku     |
 
 ## Option Lists
 
@@ -48,10 +48,10 @@ title: Catalog
 
 ## Options
 
-| Name                   | Type                                     | Description                                                             |
-| ---------------------- | ---------------------------------------- | ----------------------------------------------------------------------- |
-| `internalId`           | string                                   | Unique internal identifier of the option, optimized for LLM readability |
-| `name`                 | string                                   | Name of the option                                                      |
-| `optionListInternalId` | string                                   | Internal id of the option list this option is part of                   |
-| `optionListName`       | string                                   | Name of the option list this option is part of                          |
-| `price`                | [price.md](../common/price.md "mention") | Price of this option                                                    |
+| Name                   | Type                                 | Description                                                             |
+| ---------------------- | ------------------------------------ | ----------------------------------------------------------------------- |
+| `internalId`           | string                               | Unique internal identifier of the option, optimized for LLM readability |
+| `name`                 | string                               | Name of the option                                                      |
+| `optionListInternalId` | string                               | Internal id of the option list this option is part of                   |
+| `optionListName`       | string                               | Name of the option list this option is part of                          |
+| `price`                | [Price](/chatbot/types/common/price) | Price of this option                                                    |

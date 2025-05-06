@@ -6,58 +6,58 @@ There exist different type of applied discounts:
 
 ## Percentage
 
-|                  |                                          |     |
-| ---------------- | ---------------------------------------- | --- |
-| `name`           | string                                   |     |
-| `discountId`     | string                                   |     |
-| `priceOff`       | [price.md](../common/price.md "mention") |     |
-| `type`           | "percentage"                             |     |
-| `percentage`     | number                                   |     |
-| `appliedToTotal` | [price.md](../common/price.md "mention") |     |
+|                  |                                      |     |
+| ---------------- | ------------------------------------ | --- |
+| `name`           | string                               |     |
+| `discountId`     | string                               |     |
+| `priceOff`       | [Price](/chatbot/types/common/price) |     |
+| `type`           | "percentage"                         |     |
+| `percentage`     | number                               |     |
+| `appliedToTotal` | [Price](/chatbot/types/common/price) |     |
 
 ## Fixed
 
-|              |                                          |     |
-| ------------ | ---------------------------------------- | --- |
-| `name`       | string                                   |     |
-| `discountId` | string                                   |     |
-| `priceOff`   | [price.md](../common/price.md "mention") |     |
-| `type`       | "fixed"                                  |     |
+|              |                                      |     |
+| ------------ | ------------------------------------ | --- |
+| `name`       | string                               |     |
+| `discountId` | string                               |     |
+| `priceOff`   | [Price](/chatbot/types/common/price) |     |
+| `type`       | "fixed"                              |     |
 
 ## BOGO
 
-|              |                                                           |     |
-| ------------ | --------------------------------------------------------- | --- |
-| `name`       | string                                                    |     |
-| `discountId` | string                                                    |     |
-| `priceOff`   | [price.md](../common/price.md "mention")                  |     |
-| `type`       | "bogo"                                                    |     |
-| `freeItems`  | [#free-item](applied-discount.md#free-item "mention") \[] |     |
+|              |                                      |     |
+| ------------ | ------------------------------------ | --- |
+| `name`       | string                               |     |
+| `discountId` | string                               |     |
+| `priceOff`   | [Price](/chatbot/types/common/price) |     |
+| `type`       | "bogo"                               |     |
+| `freeItems`  | [Free Item](#free-item)[]            |     |
 
 ## Free Product
 
-|              |                                                       |     |
-| ------------ | ----------------------------------------------------- | --- |
-| `name`       | string                                                |     |
-| `discountId` | string                                                |     |
-| `priceOff`   | [price.md](../common/price.md "mention")              |     |
-| `type`       | "free_product"                                        |     |
-| `freeItem`   | [#free-item](applied-discount.md#free-item "mention") |     |
+|              |                                      |     |
+| ------------ | ------------------------------------ | --- |
+| `name`       | string                               |     |
+| `discountId` | string                               |     |
+| `priceOff`   | [Price](/chatbot/types/common/price) |     |
+| `type`       | "free_product"                       |     |
+| `freeItem`   | [Free Item](#free-item)              |     |
 
 ## Free Delivery
 
-|                       |                                          |     |
-| --------------------- | ---------------------------------------- | --- |
-| `name`                | string                                   |     |
-| `discountId`          | string                                   |     |
-| `priceOff`            | [price.md](../common/price.md "mention") |     |
-| `type`                | "free_shipping"                          |     |
-| `originalDeliveryFee` | [price.md](../common/price.md "mention") |     |
+|                       |                                      |     |
+| --------------------- | ------------------------------------ | --- |
+| `name`                | string                               |     |
+| `discountId`          | string                               |     |
+| `priceOff`            | [Price](/chatbot/types/common/price) |     |
+| `type`                | "free_shipping"                      |     |
+| `originalDeliveryFee` | [Price](/chatbot/types/common/price) |     |
 
 ### Free item
 
-|                 |                                          |     |
-| --------------- | ---------------------------------------- | --- |
-| `skuInternalId` | string                                   |     |
-| `quantity`      | number                                   |     |
-| `originalPrice` | [price.md](../common/price.md "mention") |     |
+|                 |                                      |     |
+| --------------- | ------------------------------------ | --- |
+| `skuInternalId` | string                               |     |
+| `quantity`      | number                               |     |
+| `originalPrice` | [Price](/chatbot/types/common/price) |     |

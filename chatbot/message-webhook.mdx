@@ -13,11 +13,11 @@ description: This endpoint is called by the server whenever a new message is rec
 
 ## Body
 
-| Name           | Type                                   | Description                                                            |
-| -------------- | -------------------------------------- | ---------------------------------------------------------------------- |
-| `lastMessage`  | [last-message](/types/last-message.md) | The message of the customer that triggered the chatbot                 |
-| `conversation` | [conversation](/types/conversation/)   | Data about the conversation between the customer and the restaurant    |
-| `location`     | [location](/types/location/)           | Data about the restaurant                                              |
-| `customer`     | [customer](/types/customer.md)         | Data about the customer                                                |
-| `orderDraft`   | [order-draft](/types/order-draft/)     | Data about the current order draft being processed in the conversation |
-| `orders`       | [order](/types/order/)[]               | Data about the previous orders of the customer                         |
+| Name           | Type                                        | Description                                                            |
+| -------------- | ------------------------------------------- | ---------------------------------------------------------------------- |
+| `lastMessage`  | [last-message](/chatbot/types/last-message) | The message of the customer that triggered the chatbot                 |
+| `conversation` | [conversation](/chatbot/types/conversation) | Data about the conversation between the customer and the restaurant    |
+| `location`     | [location](/chatbot/types/location)         | Data about the restaurant                                              |
+| `customer`     | [customer](/chatbot/types/customer)         | Data about the customer                                                |
+| `orderDraft`   | [order-draft](/chatbot/types/order-draft)   | Data about the current order draft being processed in the conversation |
+| `orders`       | [order](/chatbot/types/order)[]             | Data about the previous orders of the customer                         |
