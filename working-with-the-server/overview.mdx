@@ -108,52 +108,40 @@ graph LR
 
 ## Principes de Design Clés
 
-<AccordionGroup>
-  <Accordion icon="puzzle-piece" title="Modularité">
-    <ul>
-      <li>Chaque intégration est isolée dans son propre module</li>
-      <li>
-        Les adaptateurs permettent de modifier les classes domaine en classe
-        adaptée à chaque intégration
-      </li>
-    </ul>
-  </Accordion>
+<Steps>
+  <Step title="Modularité">
+    • Chaque intégration est isolée dans son propre module
 
-{" "}
+    • Les adaptateurs permettent de modifier les classes domaine en classe adaptée à chaque intégration
 
-<Accordion icon="shield" title="Résilience">
-  <ul>
-    <li>Gestion des erreurs standardisés</li>
-    <li>Retry patterns pour les appels externes</li>
-    <li>
-      Queue de messages pour les opérations asynchrones lourdes en
-      ressources/temps
-    </li>
-  </ul>
-</Accordion>
+  </Step>
 
-{" "}
+  <Step title="Résilience">
+    • Gestion des erreurs standardisés
 
-<Accordion icon="arrows-up-down-left-right" title="Scalabilité">
-  <ul>
-    <li>Architecture modulaire</li>
-    <li>
-      Interface claires pour certaines fonctionnalités stratégique permettant de
-      remplacer facilement l'intégration (Inversion de dépendance)
-    </li>
-    <li>
-      Interface claire des intégrations de Messaging pour un switch simple entre
-      Whatsapp et Instagram par exemple
-    </li>
-  </ul>
-</Accordion>
+    • Retry patterns pour les appels externes
 
-  <Accordion icon="wrench" title="Maintenabilité">
-    <ul>
-      <li>Tests unitaire, integration et E2E pour chaque fonctionnalités</li>
-      <li>Monitoring complet</li>
-      <li>Documentation à jour</li>
-      <li>Code standardisé</li>
-    </ul>
-  </Accordion>
-</AccordionGroup>
+    • Queue de messages pour les opérations asynchrones lourdes en ressources/temps
+
+  </Step>
+
+  <Step title="Scalabilité">
+    • Architecture modulaire
+
+    • Interface claires pour les fonctionnalités stratégiques permettant de remplacer facilement l'intégration
+
+    • Interface claire des intégrations de Messaging pour un switch simple entre Whatsapp et Instagram
+
+  </Step>
+
+  <Step title="Maintenabilité">
+    • Tests unitaire, integration et E2E pour chaque fonctionnalités
+
+    • Monitoring complet
+
+    • Documentation à jour
+
+    • Code standardisé
+
+  </Step>
+</Steps>
