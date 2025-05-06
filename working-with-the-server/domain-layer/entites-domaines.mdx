@@ -168,59 +168,47 @@ class Entity {
 
 ## Bonnes Pratiques
 
-<AccordionGroup>
-  <Accordion icon="lock" title="Immutabilité">
+<Steps>
+  <Step title="Immutabilité">
     • Utiliser `readonly` pour les propriétés qui ne doivent pas changer
 
     • Retourner des copies des collections dans les getters
 
-  </Accordion>
+  </Step>
 
-{" "}
-
-  <Accordion icon="shield" title="Encapsulation">
+  <Step title="Encapsulation">
     • Toutes les propriétés sont privées
 
     • Accès via getters/setters
 
-
     • Validation dans les setters
 
-  </Accordion>
+  </Step>
 
-{" "}
-
-  <Accordion icon="diagram-project" title="Relations">
+  <Step title="Relations">
     • Distinguer clairement les relations chargées/non chargées
 
     • Utiliser des classes distinctes pour les différents niveaux de chargement
 
-
     • Encapsuler les collections dans des Value Objects
 
-  </Accordion>
+  </Step>
 
-{" "}
-
-  <Accordion icon="check" title="Validation">
+  <Step title="Validation">
     • Valider dans les setters
 
     • Valider dans le constructeur
 
-
     • Utiliser des exceptions de domaine
 
-  </Accordion>
+  </Step>
 
-{" "}
-
-  <Accordion icon="book" title="Documentation">
+  <Step title="Documentation">
     • Documenter les invariants
 
     • Documenter les validations
 
-
     • Documenter les relations
 
-  </Accordion>
-</AccordionGroup>
+  </Step>
+</Steps>

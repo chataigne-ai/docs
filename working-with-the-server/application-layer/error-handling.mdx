@@ -11,6 +11,8 @@ description: "Error handling strategies and best practices"
 
 ## Core Principles
 
+Our error handling approach is based on the following principles:
+
 <Steps>
   <Step title="Domain-Centric">
     • Errors should be expressed in domain terms, not technical terms
@@ -267,7 +269,7 @@ description: "Error handling strategies and best practices"
 ## Exception Filters
 
 <Info>
-  NestJS has a powerful exception filter system that allows us to centralize error handling:
+  NestJS has a powerful exception filter system that allows us to centralize error handling, We can create custom exception filters for common error types:
 
 ```typescript
 @Catch(LocationNotFoundError)
@@ -301,6 +303,8 @@ export class OrderController {}
 </Info>
 
 ## Logging Guidelines
+
+Proper logging is essential for debugging and monitoring. We follow these guidelines:
 
 <Steps>
   <Step title="Contextual Information">

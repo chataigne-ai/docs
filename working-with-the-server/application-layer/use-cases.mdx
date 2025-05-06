@@ -12,6 +12,8 @@ description: "Overview of use cases"
 
 ## Purpose
 
+Use cases serve several important purposes in our architecture:
+
 <Steps>
   <Step title="Business Logic Encapsulation">
     • They encapsulate the business rules and workflows of our application
@@ -34,8 +36,8 @@ description: "Overview of use cases"
 
 ## Implementation
 
-<AccordionGroup>
-  <Accordion title="Structure">
+<Steps>
+  <Step title="Structure">
     Use cases follow a consistent structure:
 
     • Single Responsibility: Each use case performs one specific action
@@ -46,9 +48,9 @@ description: "Overview of use cases"
 
     • Domain-Oriented: They work with domain entities, not DTOs or other external representations
 
-  </Accordion>
+  </Step>
 
-  <Accordion title="Example">
+  <Step title="Example">
     ```typescript
     export class CreateOrderUseCase {
       constructor(
@@ -104,50 +106,56 @@ description: "Overview of use cases"
     }
     ```
 
-  </Accordion>
-</AccordionGroup>
+  </Step>
+</Steps>
 
 ## Key Principles
 
-<AccordionGroup>
-  <Accordion title="Input and Output">
+<Steps>
+  <Step title="Input and Output">
     • Input: Use cases accept domain entities as input, not DTOs
 
     • Output: Use cases return domain entities or specific result objects, not DTOs
 
     • Transformation: Any transformation between DTOs and domain entities should happen in controllers or dedicated mappers
 
-  </Accordion>
+This approach makes use cases more reusable and prevents them from being coupled to specific API contracts.
 
-  <Accordion title="Error Handling">
+  </Step>
+
+  <Step title="Error Handling">
     • Use cases should throw domain-specific errors that represent business rule violations
 
     • These errors should be descriptive and provide enough context to understand the issue
 
     • The presentation layer is responsible for translating these errors into appropriate HTTP responses
 
-  </Accordion>
+  </Step>
 
-  <Accordion title="Dependency Inversion">
+  <Step title="Dependency Inversion">
     • Use cases should depend on interfaces, not concrete implementations
 
     • This makes them easier to test and less coupled to specific infrastructure choices
 
     • All dependencies should be explicitly declared in the constructor
 
-  </Accordion>
+  </Step>
 
-  <Accordion title="No Side Effects">
+  <Step title="No Side Effects">
     • Use cases should avoid side effects that aren't part of their core responsibility
 
     • Any side effects (like sending emails or notifications) should be handled through events or dedicated services
 
     • This keeps use cases focused and easier to test
 
-  </Accordion>
+  </Step>
 
-  <Accordion title="Composability">
-    Complex workflows can be composed of multiple use cases:
+  <Step title="Composability">
+    • Complex workflows can be composed of multiple use cases.
+
+    • Smaller, focused use cases are easier to test and maintain.
+
+    • Use cases can call other use cases when needed.
 
     ```typescript
     export class PlaceOrderUseCase {
@@ -171,8 +179,8 @@ description: "Overview of use cases"
     }
     ```
 
-  </Accordion>
-</AccordionGroup>
+  </Step>
+</Steps>
 
 ## Best Practices
 

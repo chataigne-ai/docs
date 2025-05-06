@@ -1,6 +1,6 @@
 ---
 title: "Unit Testing"
-description: "Unit testing is a critical part of our development process, ensuring that our business logic works as expected in isolation. This document outlines our approach to unit testing use cases, covering mock setup, test structure, and best practices."
+description: "Guidelines for unit testing use cases"
 ---
 
 <Info icon="test-tube">
@@ -11,6 +11,8 @@ description: "Unit testing is a critical part of our development process, ensuri
 </Info>
 
 ## Principles
+
+Our unit testing approach follows these principles:
 
 <Steps>
   <Step title="Isolation">
@@ -78,9 +80,9 @@ describe("CreateOrderUseCase", () => {
 
 ## Mock Setup
 
-<AccordionGroup>
-  <Accordion icon="code" title="Base Mock Classes">
-    We create base mock classes for common interfaces:
+<Steps>
+  <Step title="Base Mock Classes">
+    • We create base mock classes for common interfaces:
 
     ```typescript
     // src/__mocks__/base.repository.mock.ts
@@ -93,10 +95,10 @@ describe("CreateOrderUseCase", () => {
     }
     ```
 
-  </Accordion>
+  </Step>
 
-  <Accordion icon="code-2" title="Specific Mock Classes">
-    We create specific mock classes that extend the base mocks and implement the specific interface:
+  <Step title="Specific Mock Classes">
+    • We create specific mock classes that extend the base mocks and implement the specific interface:
 
     ```typescript
     // src/domain/repositories/order/__mocks__/order.repository.mock.ts
@@ -114,10 +116,10 @@ describe("CreateOrderUseCase", () => {
     }
     ```
 
-  </Accordion>
+  </Step>
 
-  <Accordion icon="plug" title="Client Mocks">
-    We create mock classes for external clients:
+  <Step title="Client Mocks">
+    • We create mock classes for external clients:
 
     ```typescript
     // src/infrastructure/clients/__mocks__/hubrise.client.mock.ts
@@ -132,10 +134,10 @@ describe("CreateOrderUseCase", () => {
     }
     ```
 
-  </Accordion>
+  </Step>
 
-  <Accordion icon="factory" title="Test Factories">
-    We create factories to generate test data:
+  <Step title="Test Factories">
+    • We create factories to generate test data:
 
     ```typescript
     // src/__tests__/factories/order.factory.ts
@@ -176,8 +178,8 @@ describe("CreateOrderUseCase", () => {
     }
     ```
 
-  </Accordion>
-</AccordionGroup>
+  </Step>
+</Steps>
 
 ## Test Setup
 
@@ -224,9 +226,9 @@ describe("CreateOrderUseCase", () => {
 
 ## Testing Use Cases
 
-<AccordionGroup>
-  <Accordion icon="check" title="Testing Happy Paths">
-    Happy path tests verify that the use case works as expected when all conditions are met:
+<Steps>
+  <Step title="Testing Happy Paths">
+    • Happy path tests verify that the use case works as expected when all conditions are met:
 
     ```typescript
     it("should create order successfully", async () => {
@@ -253,10 +255,10 @@ describe("CreateOrderUseCase", () => {
     });
     ```
 
-  </Accordion>
+  </Step>
 
-  <Accordion icon="x" title="Testing Error Cases">
-    Error case tests verify that the use case handles errors as expected:
+  <Step title="Testing Error Cases">
+    • Error case tests verify that the use case handles errors as expected:
 
     ```typescript
     it("should throw LocationNotFoundError when location does not exist", async () => {
@@ -289,10 +291,10 @@ describe("CreateOrderUseCase", () => {
     });
     ```
 
-  </Accordion>
+  </Step>
 
-  <Accordion icon="corner-down-right" title="Testing Edge Cases">
-    Edge case tests verify that the use case handles unusual but valid inputs correctly:
+  <Step title="Testing Edge Cases">
+    • Edge case tests verify that the use case handles unusual but valid inputs correctly:
 
     ```typescript
     it("should handle order with zero items by throwing error", async () => {
@@ -332,8 +334,62 @@ describe("CreateOrderUseCase", () => {
     });
     ```
 
-  </Accordion>
-</AccordionGroup>
+  </Step>
+</Steps>
+
+### Handling External Dependencies
+
+#### Testing with Mocked External Services
+
+When testing use cases that interact with external services, we mock these services:
+
+```typescript
+it("should handle Hubrise API failure gracefully", async () => {
+  // Arrange
+  const order = OrderFactory.createValid();
+  mockLocationRepository.findById.mockResolvedValue(
+    LocationFactory.createValid()
+  );
+  mockCustomerRepository.get.mockResolvedValue(CustomerFactory.createValid());
+  mockOrderRepository.create.mockResolvedValue(order);
+  mockHubriseClient.createOrder.mockRejectedValue(
+    new Error("Hubrise API Error")
+  );
+
+  // Act & Assert
+  await expect(useCase.execute(order)).rejects.toThrow(HubriseIntegrationError);
+  expect(mockOrderRepository.create).toHaveBeenCalled();
+  expect(mockHubriseClient.createOrder).toHaveBeenCalled();
+  expect(mockStripeClient.createCheckoutSession).not.toHaveBeenCalled();
+});
+```
+
+#### Testing Event Emission
+
+When testing use cases that emit events, we verify the events are emitted correctly:
+
+```typescript
+it("should emit order.created event with correct payload", async () => {
+  // Arrange
+  const order = OrderFactory.createValid();
+  mockLocationRepository.findById.mockResolvedValue(
+    LocationFactory.createValid()
+  );
+  mockCustomerRepository.get.mockResolvedValue(CustomerFactory.createValid());
+  mockOrderRepository.create.mockResolvedValue(order);
+
+  // Act
+  await useCase.execute(order);
+
+  // Assert
+  expect(mockEventEmitter.emit).toHaveBeenCalledWith("order.created", {
+    orderId: order.id,
+    locationId: order.locationId,
+    customerId: order.customerId,
+    totalAmount: order.totalAmount,
+  });
+});
+```
 
 ## Best Practices
 

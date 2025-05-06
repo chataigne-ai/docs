@@ -18,18 +18,25 @@ Le Domain Layer est structuré autour de plusieurs concepts clés :
 
 ### Entités du Domaine
 
-- Représentent les objets métier principaux
-- Encapsulent leur logique métier
-- Maintiennent leurs invariants
-- Sont immutables dans leur état
-- Exemple : `Order`
+• Représentent les objets métier principaux
+
+• Encapsulent leur logique métier
+
+• Maintiennent leurs invariants
+
+• Sont immutables dans leur état
+
+• Exemple : `Order`
 
 ### Value Objects
 
-- Représentent des concepts sans identité
-- Sont immutables
-- Encapsulent des règles de validation
-- Exemple : `Price`, `Address`
+• Représentent des concepts sans identité
+
+• Sont immutables
+
+• Encapsulent des règles de validation
+
+• Exemple : `Price`, `Address`
 
 ## Documentation
 
@@ -37,55 +44,69 @@ La documentation du domaine suit une approche structurée :
 
 <Steps>
   <Step title="Écriture des classes Entités">
-    - Structure d'une classe - Best practices concernant l'écriture de la classe
-    - Cas d'usages avancés
+    • Structure d'une classe
+
+    • Best practices concernant l'écriture de la classe
+
+    • Cas d'usages avancés
+
   </Step>
+
   <Step title="Documentation des Entités">
-    - Description claire du rôle de chaque entité - Documentation des propriétés
-    et méthodes - Explication des relations entre entités
+    • Description claire du rôle de chaque entité
+
+    • Documentation des propriétés et méthodes
+
+    • Explication des relations entre entités
+
   </Step>
+
   <Step title="Builders">
-    - Factories pour créer des instances de test - Simplification de la création
-    d'objets complexes - Réutilisation du code de test
+    • Factories pour créer des instances de test
+
+    • Simplification de la création d'objets complexes
+
+    • Réutilisation du code de test
+
   </Step>
+
   <Step title="Tests">
-    - Tests unitaires pour chaque entité - Validation des invariants - Tests des
-    comportements métier
+    • Tests unitaires pour chaque entité
+
+    • Validation des invariants
+
+    • Tests des comportements métier
+
   </Step>
 </Steps>
 
 ## Bonnes Pratiques
 
-<AccordionGroup>
-  <Accordion icon="lock" title="Encapsulation">
+<Steps>
+  <Step title="Encapsulation">
     • Propriétés privées avec getters publics
 
     • Validation des données dans les setters
 
-
     • Protection des invariants
 
-  </Accordion>
-  
-  {" "}
-  <Accordion icon="shield" title="Immutabilité">
+  </Step>
+
+  <Step title="Immutabilité">
     • État immuable des entités
 
     • Méthodes qui retournent de nouvelles instances
 
-
     • Protection contre les modifications non autorisées
 
-  </Accordion>
-  
-  {" "}
-  <Accordion icon="check" title="Validation">
+  </Step>
+
+  <Step title="Validation">
     • Validation stricte des données
 
     • Messages d'erreur clairs
 
-
     • Gestion des cas d'erreur
 
-  </Accordion>
-</AccordionGroup>
+  </Step>
+</Steps>

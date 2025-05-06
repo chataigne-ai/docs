@@ -30,8 +30,8 @@ Un client adapter suit une logique structurée :
 
 Supposons que nous intégrions l'API Hubrise et que nous devions transformer une `Order` de notre système en une `HubriseOrder` et vice versa.
 
-<AccordionGroup>
-  <Accordion title="Définition des Types">
+<Steps>
+  <Step title="Définition des Types">
     ```typescript
     interface Order {
       id: string;
@@ -58,9 +58,9 @@ Supposons que nous intégrions l'API Hubrise et que nous devions transformer une
     }
     ```
 
-  </Accordion>
+  </Step>
 
-  <Accordion title="Implémentation du Client Adapter">
+  <Step title="Implémentation du Client Adapter">
     ```typescript
     class HubriseAdapter {
       static toHubriseOrder(order: Order): HubriseOrder {
@@ -89,25 +89,36 @@ Supposons que nous intégrions l'API Hubrise et que nous devions transformer une
     }
     ```
 
-  </Accordion>
-</AccordionGroup>
+  </Step>
+</Steps>
 
 ## Avantages des Client Adapters
 
-<AccordionGroup>
-  <Accordion title="Séparation des Responsabilités">
-    Les client adapters isolent la logique de transformation, rendant le code plus maintenable et modulaire.
-  </Accordion>
+<Steps>
+  <Step title="Séparation des Responsabilités">
+    • Les client adapters isolent la logique de transformation
 
-{" "}
+    • Le code devient plus maintenable et modulaire
 
-<Accordion title="Réutilisabilité">
-  Une fois définis, les client adapters seront réutilisés dans les clients pour
-  toutes les interactions avec l'API externe, assurant une cohérence dans les
-  transformations.
-</Accordion>
+    • Chaque adapter a une responsabilité unique et claire
 
-  <Accordion title="Cohérence">
-    Ils garantissent que les données sont toujours dans le bon format pour les requêtes et les réponses, minimisant ainsi les erreurs de formatage.
-  </Accordion>
-</AccordionGroup>
+  </Step>
+
+  <Step title="Réutilisabilité">
+    • Les adapters sont réutilisés dans tous les clients
+
+    • Assure une cohérence dans les transformations
+
+    • Évite la duplication de code de transformation
+
+  </Step>
+
+  <Step title="Cohérence">
+    • Garantit le bon format des données pour les requêtes
+
+    • Minimise les erreurs de formatage
+
+    • Maintient une transformation cohérente des données
+
+  </Step>
+</Steps>

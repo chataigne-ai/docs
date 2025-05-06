@@ -11,6 +11,8 @@ description: "Designing interfaces for external services"
 
 ## Purpose
 
+Client interfaces serve two critical purposes in our architecture:
+
 <AccordionGroup>
   <Accordion title="Dependency Inversion">
     They allow our application to depend on abstractions rather than concrete implementations, making it possible to swap one implementation for another without changing the consuming code.
@@ -101,6 +103,102 @@ export interface IHubriseClient {
 }
 ```
 
+## Example: Stripe Client Interface
+
+```typescript
+/**
+ * Interface for interacting with the Stripe API.
+ */
+export interface IStripeClient {
+  /**
+   * Creates a checkout session for an order.
+   *
+   * @param {Order} order - The order to create a checkout session for
+   * @returns {Promise<StripeCheckoutSessionResponse>} The created checkout session
+   * @throws {StripeIntegrationError} When the API call fails
+   */
+  createCheckoutSession(order: Order): Promise<StripeCheckoutSessionResponse>;
+
+  /**
+   * Retrieves a checkout session.
+   *
+   * @param {string} sessionId - The ID of the session to retrieve
+   * @returns {Promise<StripeCheckoutSessionResponse>} The checkout session
+   * @throws {StripeIntegrationError} When the API call fails
+   */
+  getCheckoutSession(sessionId: string): Promise<StripeCheckoutSessionResponse>;
+
+  /**
+   * Creates a payment intent.
+   *
+   * @param {number} amount - The amount to charge
+   * @param {string} currency - The currency to use
+   * @param {string} customerId - The ID of the customer
+   * @returns {Promise<StripePaymentIntentResponse>} The created payment intent
+   * @throws {StripeIntegrationError} When the API call fails
+   */
+  createPaymentIntent(
+    amount: number,
+    currency: string,
+    customerId: string
+  ): Promise<StripePaymentIntentResponse>;
+
+  /**
+   * Verifies a webhook signature.
+   *
+   * @param {string} payload - The webhook payload
+   * @param {string} signature - The webhook signature
+   * @returns {Promise<boolean>} True if the signature is valid
+   * @throws {StripeIntegrationError} When verification fails
+   */
+  verifyWebhookSignature(payload: string, signature: string): Promise<boolean>;
+}
+```
+
+## Example: Mapbox Client Interface
+
+```typescript
+/**
+ * Interface for interacting with the Mapbox API.
+ */
+export interface IMapboxClient {
+  /**
+   * Geocodes an address to get coordinates.
+   *
+   * @param {string} address - The address to geocode
+   * @returns {Promise<MapboxGeocodingResponse>} The geocoding result
+   * @throws {MapboxIntegrationError} When the API call fails
+   */
+  geocodeAddress(address: string): Promise<MapboxGeocodingResponse>;
+
+  /**
+   * Gets directions between two points.
+   *
+   * @param {Location} origin - The starting location
+   * @param {Location} destination - The destination location
+   * @returns {Promise<MapboxDirectionsResponse>} The directions
+   * @throws {MapboxIntegrationError} When the API call fails
+   */
+  getDirections(
+    origin: Location,
+    destination: Location
+  ): Promise<MapboxDirectionsResponse>;
+
+  /**
+   * Calculates the estimated time of arrival.
+   *
+   * @param {Location} origin - The starting location
+   * @param {Location} destination - The destination location
+   * @returns {Promise<number>} The estimated time in minutes
+   * @throws {MapboxIntegrationError} When the API call fails
+   */
+  getEstimatedTimeOfArrival(
+    origin: Location,
+    destination: Location
+  ): Promise<number>;
+}
+```
+
 ## Implementing Interfaces
 
 <Info>
@@ -174,6 +272,11 @@ export class MockHubriseClient implements IHubriseClient {
 
 ## Using Interfaces in Use Cases
 
+<Info>
+  In our use cases, we depend on interfaces rather than concrete
+  implementations:
+</Info>
+
 ```typescript
 export class CreateOrderUseCase {
   constructor(
@@ -191,6 +294,10 @@ export class CreateOrderUseCase {
 
 ## Dependency Injection Setup
 
+<Info>
+  We configure dependency injection to provide the correct implementations:
+</Info>
+
 ```typescript
 @Module({
   providers: [
@@ -202,6 +309,27 @@ export class CreateOrderUseCase {
   ],
 })
 export class InfrastructureModule {}
+```
+
+### Swapping Implementations
+
+<Info>
+  One of the key benefits of using interfaces is the ability to easily swap
+  implementations:
+</Info>
+
+```typescript
+// Switching from Mapbox to Google Maps
+@Module({
+  providers: [
+    CreateOrderUseCase,
+    {
+      provide: IMapboxClient,
+      useClass: GoogleMapsClientAdapter, // Implements IMapboxClient with Google Maps API
+    },
+  ],
+})
+export class OrderModule {}
 ```
 
 ## Benefits of Using Interfaces

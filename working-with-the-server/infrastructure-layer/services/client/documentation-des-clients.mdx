@@ -3,169 +3,208 @@ title: "Documentation des Clients"
 description: "Documentation des clients dans l'infrastructure"
 ---
 
-<Info icon="book">
-  Les clients sont organisés de manière à refléter fidèlement la structure des
-  API externes. Chaque client est composé d'un client principal et de
-  sous-clients, chacun correspondant à un domaine fonctionnel de l'API.
+<Info>
+  La documentation des clients est faite directement dans le code via TSDoc.
+  Cela permet d'avoir une documentation accessible directement dans l'IDE et de
+  faciliter la maintenance du code.
 </Info>
 
-## Structure
-
-### Client Principal
-
-Le client principal est responsable de l'initialisation et de la gestion des sous-clients. Il expose ces sous-clients via des getters pour une utilisation fluide.
-
-```typescript
-class HubriseClient {
-  private readonly _order: HubriseOrderClient;
-  private readonly _customer: HubriseCustomerClient;
-  private readonly _menu: HubriseMenuClient;
-
-  constructor(
-    private readonly baseUrl: string,
-    private readonly apiKey: string
-  ) {
-    this._order = new HubriseOrderClient(baseUrl, apiKey);
-    this._customer = new HubriseCustomerClient(baseUrl, apiKey);
-    this._menu = new HubriseMenuClient(baseUrl, apiKey);
-  }
-
-  get order(): HubriseOrderClient {
-    return this._order;
-  }
-
-  get customer(): HubriseCustomerClient {
-    return this._customer;
-  }
-
-  get menu(): HubriseMenuClient {
-    return this._menu;
-  }
-}
-```
-
-### Sous-Clients
-
-Les sous-clients implémentent directement les endpoints de l'API. Chaque méthode correspond à un endpoint spécifique, sans ajout de logique métier supplémentaire.
-
-```typescript
-class HubriseOrderClient {
-  constructor(
-    private readonly baseUrl: string,
-    private readonly apiKey: string
-  ) {}
-
-  // Endpoints de l'API Hubrise
-  async createOrder(order: Order): Promise<Order> {
-    const hubriseOrder = HubriseAdapter.toHubriseOrder(order);
-    const response = await fetch(`${this.baseUrl}/orders`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(hubriseOrder),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return HubriseAdapter.toDomainOrder(data);
-  }
-
-  async getOrderDetails(id: string): Promise<Order> {
-    const response = await fetch(`${this.baseUrl}/orders/${id}`, {
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return HubriseAdapter.toDomainOrder(data);
-  }
-
-  async updateOrderStatus(
-    id: string,
-    status: HubriseOrderStatus
-  ): Promise<Order> {
-    const response = await fetch(`${this.baseUrl}/orders/${id}/status`, {
-      method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${this.apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ status }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    return HubriseAdapter.toDomainOrder(data);
-  }
-}
-```
-
-## Principes
+## Structure de la Documentation
 
 <Steps>
-  <Step title="Fidélité à l'API">
-    • Les clients implémentent exactement les endpoints disponibles dans l'API
-
-    • Pas d'ajout de logique métier supplémentaire
-
-    • Respect de la structure et des conventions de l'API
-
+  <Step title="Client Principal">
+    ```typescript
+    /**
+     * Client principal pour l'API Hubrise.
+     *
+     * Ce client permet d'interagir avec l'API Hubrise en fournissant des méthodes
+     * pour chaque domaine fonctionnel (orders, customers, etc.).
+     *
+     * @example
+     * ```typescript
+     * const client = new HubriseClient({
+     *   baseUrl: "https://api.hubrise.com",
+     *   apiKey: "your-api-key"
+     * });
+     *
+     * // Accès aux sous-clients
+     * const orders = client.orders;
+     * const customers = client.customers;
+     * ```
+     */
+    export class HubriseClient {
+      // ... implementation
+    }
+    ```
   </Step>
 
-  <Step title="Organisation Logique">
-    • Les endpoints sont regroupés par domaine fonctionnel
+  <Step title="Sous-clients">
+    ```typescript
+ /**
+ * Client pour la gestion des commandes Hubrise.
+ *
+ * Ce client permet d'interagir avec l'API des commandes Hubrise.
+ * Il fournit des méthodes pour créer, récupérer et mettre à jour les commandes.
+ *
+ * @example
+ * ```typescript
+ * // Création d'une commande
+ * const order = await client.orders.create({
+ *   customerId: "123",
+ *   items: [
+ *     { name: "Pizza", quantity: 1 }
+ *   ]
+ * });
+ *
+ * // Récupération d'une commande
+ * const order = await client.orders.get("order-id");
+ * ```
+ */
+export class HubriseOrderClient {
+  /**
+   * Crée une nouvelle commande dans Hubrise.
+   *
+   * @param order - La commande à créer
+   * @returns La commande créée avec son ID Hubrise
+   * @throws {HubriseError} Si la création échoue
+   *
+   * @example
+   * ```typescript
+   * const order = await client.orders.create({
+   *   customerId: "123",
+   *   items: [
+   *     { name: "Pizza", quantity: 1 }
+   *   ]
+   * });
+   * ```
+   */
+  async createOrder(order: Order): Promise<Order> {
+    // ... implementation
+  }
 
-    • Chaque sous-client correspond à un aspect de l'API
+/\*\*
 
-    • Les noms des méthodes reflètent les endpoints de l'API
+- Récupère une commande par son ID.
+-
+- @param id - L'ID de la commande à récupérer
+- @returns La commande trouvée
+- @throws {HubriseError} Si la commande n'existe pas
+-
+- @example
+- ```typescript
 
-  </Step>
+  ```
+- const order = await client.orders.get("order-id");
+- ```
+   */
+  async getOrder(id: string): Promise<Order> {
+    // ... implementation
+  }
+  ```
 
-  <Step title="Transformation des Données">
-    • Utilisation d'adapters pour la transformation des données
+/\*\*
 
-    • Transformation des entités de domaine en types tiers pour les requêtes
+- Met à jour le statut d'une commande.
+-
+- @param id - L'ID de la commande à mettre à jour
+- @param status - Le nouveau statut
+- @returns La commande mise à jour
+- @throws {HubriseError} Si la mise à jour échoue
+-
+- @example
+- ```typescript
 
-    • Transformation des réponses en entités de domaine
+  ```
+- const updatedOrder = await client.orders.updateStatus(
+- "order-id",
+- "preparing"
+- );
+- ```
+     */
+    async updateOrderStatus(id: string, status: OrderStatus): Promise<Order> {
+      // ... implementation
+    }
+  }
+  ```
 
-  </Step>
 
-  <Step title="Utilisation Fluent">
-    • Accès aux sous-clients via des getters
-
-    • Syntaxe intuitive : `client.order.createOrder()`
-
-    • Organisation hiérarchique claire
+    ```
 
   </Step>
 </Steps>
 
-## Exemple d'Utilisation
+## Bonnes Pratiques
+
+<Steps>
+  <Step title="Documentation du Client Principal">
+    • Description générale du client et son rôle
+
+    • Exemple complet d'initialisation
+
+    • Liste des sous-clients disponibles et leur utilité
+
+  </Step>
+
+  <Step title="Documentation des Sous-clients">
+    • Description détaillée du domaine fonctionnel
+
+    • Exemples d'utilisation courante avec du code
+
+    • Liste exhaustive des méthodes disponibles
+
+  </Step>
+
+  <Step title="Documentation des Méthodes">
+    • Description claire de la fonctionnalité
+
+    • Documentation des paramètres et leur type
+
+    • Spécification du type de retour
+
+    • Liste des exceptions possibles
+
+    • Exemples d'utilisation concrets
+
+  </Step>
+
+  <Step title="Exemples de Code">
+    • Inclusion systématique d'exemples concrets
+
+    • Démonstration des cas d'utilisation courants
+
+    • Inclusion de la gestion des erreurs quand pertinent
+
+  </Step>
+</Steps>
+
+## Types et Interfaces
 
 ```typescript
-const hubrise = new HubriseClient("https://api.hubrise.com/v1", "your-api-key");
+/**
+ * Configuration du client Hubrise.
+ */
+export interface HubriseClientConfig {
+  /** URL de base de l'API Hubrise */
+  baseUrl: string;
+  /** Clé API pour l'authentification */
+  apiKey: string;
+}
 
-// Création d'une commande
-const order = await hubrise.order.createOrder(newOrder);
-
-// Mise à jour du statut
-const updatedOrder = await hubrise.order.updateOrderStatus(orderId, "accepted");
-
-// Récupération des détails d'un client
-const customer = await hubrise.customer.getCustomerDetails(customerId);
+/**
+ * Statuts possibles d'une commande Hubrise.
+ */
+export enum OrderStatus {
+  /** Commande en attente de confirmation */
+  PENDING = "pending",
+  /** Commande confirmée */
+  CONFIRMED = "confirmed",
+  /** Commande en préparation */
+  PREPARING = "preparing",
+  /** Commande prête */
+  READY = "ready",
+  /** Commande livrée */
+  DELIVERED = "delivered",
+  /** Commande annulée */
+  CANCELLED = "cancelled",
+}
 ```
-
-Cette organisation permet une intégration claire et maintenable avec les API externes, tout en respectant leur structure et leurs conventions. Elle facilite l'ajout de nouvelles fonctionnalités et la maintenance du code.

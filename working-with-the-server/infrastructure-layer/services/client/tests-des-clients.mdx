@@ -11,8 +11,8 @@ description: "Tests des clients dans l'infrastructure"
 
 ## Pourquoi Pas de Tests ?
 
-<AccordionGroup>
-  <Accordion title="Simplicité des Clients">
+<Steps>
+  <Step title="Simplicité des Clients">
     Les clients sont des composants très simples qui :
 
     • Font des appels `fetch`
@@ -21,32 +21,30 @@ description: "Tests des clients dans l'infrastructure"
 
     • Gèrent les erreurs de manière basique
 
-  </Accordion>
+  </Step>
 
-  <Accordion title="Couverture Existante">
+  <Step title="Couverture Existante">
     La logique des clients est déjà couverte par :
 
-    <Steps>
-      <Step title="TypeScript">
-        • Vérifie les types des paramètres
+    1. TypeScript
 
-        • Vérifie les types des retours
+    • Vérifie les types des paramètres
 
-        • Assure la cohérence des données
-      </Step>
+    • Vérifie les types des retours
 
-      <Step title="Tests des Adapters">
-        • Testent la transformation des données
+    • Assure la cohérence des données
 
-        • Testent la gestion des erreurs
+    2. Tests des Adapters
 
-        • Vérifient la cohérence des types
-      </Step>
-    </Steps>
+    • Testent la transformation des données
 
-  </Accordion>
+    • Testent la gestion des erreurs
 
-  <Accordion title="Complexité Inutile">
+    • Vérifient la cohérence des types
+
+  </Step>
+
+  <Step title="Complexité Inutile">
     Les tests des clients ajouteraient :
 
     • De la complexité inutile
@@ -57,8 +55,8 @@ description: "Tests des clients dans l'infrastructure"
 
     • Peu de valeur ajoutée
 
-  </Accordion>
-</AccordionGroup>
+  </Step>
+</Steps>
 
 ## Notre Approche
 

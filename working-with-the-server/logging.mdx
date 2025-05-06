@@ -12,8 +12,8 @@ description: "Configuration et bonnes pratiques pour le logging de l'application
 
 ## Configuration
 
-<AccordionGroup>
-  <Accordion title="Logger Personnalisé">
+<Steps>
+  <Step title="Logger Personnalisé">
     ```typescript
     @Injectable()
     class AxiomLogger extends Logger {
@@ -61,9 +61,9 @@ description: "Configuration et bonnes pratiques pour le logging de l'application
     }
     ```
 
-  </Accordion>
+  </Step>
 
-  <Accordion title="Middleware de Contexte">
+  <Step title="Middleware de Contexte">
     ```typescript
     @Injectable()
     class RequestContextMiddleware implements NestMiddleware {
@@ -83,13 +83,13 @@ description: "Configuration et bonnes pratiques pour le logging de l'application
     }
     ```
 
-  </Accordion>
-</AccordionGroup>
+  </Step>
+</Steps>
 
 ## Niveaux de Log
 
-<AccordionGroup>
-  <Accordion title="ERROR">
+<Steps>
+  <Step title="ERROR">
     • Erreurs critiques qui nécessitent une attention immédiate
 
     • Exemple : Échec de paiement, erreur de base de données
@@ -102,9 +102,9 @@ description: "Configuration et bonnes pratiques pour le logging de l'application
     );
     ```
 
-  </Accordion>
+  </Step>
 
-  <Accordion title="WARN">
+  <Step title="WARN">
     • Situations anormales mais non critiques
 
     • Exemple : Tentatives de connexion échouées, timeouts
@@ -113,9 +113,9 @@ description: "Configuration et bonnes pratiques pour le logging de l'application
     await logger.warn("Tentative de connexion échouée", "AuthService");
     ```
 
-  </Accordion>
+  </Step>
 
-  <Accordion title="INFO">
+  <Step title="INFO">
     • Événements importants du flux normal
 
     • Exemple : Création de commande, mise à jour de statut
@@ -124,9 +124,9 @@ description: "Configuration et bonnes pratiques pour le logging de l'application
     await logger.info("Commande créée avec succès", "OrderService");
     ```
 
-  </Accordion>
+  </Step>
 
-  <Accordion title="DEBUG">
+  <Step title="DEBUG">
     • Informations détaillées pour le développement
 
     • Exemple : Valeurs de variables, états intermédiaires
@@ -138,71 +138,90 @@ description: "Configuration et bonnes pratiques pour le logging de l'application
     );
     ```
 
-  </Accordion>
-</AccordionGroup>
+  </Step>
+</Steps>
 
 ## Bonnes Pratiques
 
-<AccordionGroup>
-  <Accordion title="Performance">
+<Steps>
+  <Step title="Performance">
     1. **Buffering**
-      • Utilisation d'un buffer en mémoire
-      • Envoi périodique des logs
-      • Taille de buffer configurable
+
+    • Utilisation d'un buffer en mémoire
+
+    • Envoi périodique des logs
+
+    • Taille de buffer configurable
 
     2. **Optimisation**
-      • Logs asynchrones
-      • Compression des données
-      • Batching des envois
 
-  </Accordion>
+    • Logs asynchrones
 
-  <Accordion title="Sécurité">
+    • Compression des données
+
+    • Batching des envois
+
+  </Step>
+
+  <Step title="Sécurité">
     1. **Données Sensibles**
-      • Ne pas logger de données personnelles
-      • Masquer les tokens et mots de passe
-      • Filtrer les informations sensibles
+
+    • Ne pas logger de données personnelles
+
+    • Masquer les tokens et mots de passe
+
+    • Filtrer les informations sensibles
 
     2. **Contexte**
-      • Ajouter le contexte de la requête
-      • Inclure les IDs de traçage
-      • Logger les actions utilisateur
 
-  </Accordion>
+    • Ajouter le contexte de la requête
 
-  <Accordion title="Production">
+    • Inclure les IDs de traçage
+
+    • Logger les actions utilisateur
+
+  </Step>
+
+  <Step title="Production">
     1. **Configuration**
-      • Désactiver les logs DEBUG
-      • Augmenter la taille du buffer
-      • Ajuster l'intervalle de flush
+
+    • Désactiver les logs DEBUG
+
+    • Augmenter la taille du buffer
+
+    • Ajuster l'intervalle de flush
 
     2. **Monitoring**
-      • Surveiller le volume de logs
-      • Vérifier les erreurs d'envoi
-      • Analyser les patterns
 
-  </Accordion>
-</AccordionGroup>
+    • Surveiller le volume de logs
+
+    • Vérifier les erreurs d'envoi
+
+    • Analyser les patterns
+
+  </Step>
+</Steps>
 
 ## Requêtes Axiom
 
-<AccordionGroup>
-  <Accordion title="Par Request ID">
+<Steps>
+  <Step title="Par Request ID">
     ```sql
     SELECT * FROM logs
     WHERE requestId = 'abc-123'
     ORDER BY timestamp ASC;
     ```
-  </Accordion>
+  </Step>
+  <Step title="Par Utilisateur">
+    ```sql
+    SELECT * FROM logs 
+    WHERE userId = 'user-456' 
+    ORDER BY timestamp DESC 
+    LIMIT 100;
+    ```
+  </Step>
 
-{" "}
-
-<Accordion title="Par Utilisateur">
-  ```sql SELECT * FROM logs WHERE userId = 'user-456' ORDER BY timestamp DESC
-  LIMIT 100; ```
-</Accordion>
-
-  <Accordion title="Analyse d'Erreurs">
+  <Step title="Analyse d'Erreurs">
     ```sql
     SELECT
       COUNT(*) as error_count,
@@ -214,14 +233,16 @@ description: "Configuration et bonnes pratiques pour le logging de l'application
     GROUP BY message, context
     ORDER BY error_count DESC;
     ```
-  </Accordion>
-</AccordionGroup>
+  </Step>
+</Steps>
 
 ## Intégration avec Sentry
 
 1. **Séparation des Responsabilités**
-   • Axiom : Logging général
-   • Sentry : Gestion des erreurs
+
+• Axiom : Logging général
+
+• Sentry : Gestion des erreurs
 
 2. **Interceptor**
 
@@ -251,50 +272,73 @@ class ErrorInterceptor implements NestInterceptor {
 
 ## Dashboards et Alertes
 
-<AccordionGroup>
-  <Accordion title="Dashboards Recommandés">
+<Steps>
+  <Step title="Dashboards Recommandés">
     1. **Monitoring Général**
-      • Volume de logs par niveau
-      • Taux d'erreurs
-      • Temps de réponse
+
+    • Volume de logs par niveau
+
+    • Taux d'erreurs
+
+    • Temps de réponse
 
     2. **Erreurs**
-      • Distribution par type
-      • Impact utilisateur
-      • Patterns temporels
 
-  </Accordion>
+    • Distribution par type
 
-  <Accordion title="Alertes">
+    • Impact utilisateur
+
+    • Patterns temporels
+
+  </Step>
+
+  <Step title="Alertes">
     1. **Critiques**
-      • Taux d'erreurs > 5%
-      • Temps de réponse > 2s
-      • Erreurs de paiement
+
+    • Taux d'erreurs > 5%
+
+    • Temps de réponse > 2s
+
+    • Erreurs de paiement
 
     2. **Warnings**
-      • Tentatives de connexion échouées
-      • Timeouts fréquents
-      • Patterns anormaux
 
-  </Accordion>
-</AccordionGroup>
+    • Tentatives de connexion échouées
+
+    • Timeouts fréquents
+
+    • Patterns anormaux
+
+  </Step>
+</Steps>
 
 ## Maintenance
 
 <Steps>
   <Step title="Nettoyage">
     • Rotation des logs
+
     • Archivage des anciennes données
+
     • Gestion des quotas
+
   </Step>
 
-<Step title="Monitoring">
-  • Volume de logs • Performance d'envoi • Qualité des données
-</Step>
+  <Step title="Monitoring">
+    • Volume de logs
+
+    • Performance d'envoi
+
+    • Qualité des données
+
+  </Step>
 
   <Step title="Documentation">
     • Mise à jour des requêtes
+
     • Ajout de nouveaux dashboards
+
     • Documentation des patterns
+
   </Step>
 </Steps>
