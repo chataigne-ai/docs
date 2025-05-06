@@ -1,33 +1,35 @@
 ---
-title: 'Introduction'
-description: 'Example section for showcasing API endpoints'
+title: Introduction
+description: Documentation complète de l'API REST de châtaigne
 ---
 
-<Note>
-  If you're not looking to build API reference documentation, you can delete
-  this section by removing the api-reference folder.
-</Note>
+<Info>
+  Cette section contient la documentation détaillée de l'API REST interne de
+  châtaigne, utilisée par nos différents services et composants.
+</Info>
 
-## Welcome
+## Vue d'ensemble
 
-There are two ways to build API documentation: [OpenAPI](https://mintlify.com/docs/api-playground/openapi/setup) and [MDX components](https://mintlify.com/docs/api-playground/mdx/configuration). For the starter kit, we are using the following OpenAPI specification.
+L'API interne de châtaigne est organisée autour des concepts REST. Elle sert d'interface de communication entre nos différents services :
 
-<Card
-  title="Plant Store Endpoints"
-  icon="leaf"
-  href="https://github.com/mintlify/starter/blob/main/api-reference/openapi.json"
->
-  View the OpenAPI specification file
-</Card>
+- Le chatbot WhatsApp
+- Le back-office de gestion
+- Les intégrations avec les services externes (Hubrise, Stripe, etc.)
+- Les webhooks et callbacks
 
 ## Authentication
 
-All API endpoints are authenticated using Bearer tokens and picked up from the specification file.
+L'authentification des requêtes internes se fait via un token Bearer dans l'en-tête HTTP :
 
-```json
-"security": [
-  {
-    "bearerAuth": []
-  }
-]
+```bash
+Authorization: Bearer votre_token_api
 ```
+
+<Note>
+  Les tokens d'API sont générés et gérés automatiquement par notre système
+  d'authentification interne.
+</Note>
+
+## Versions
+
+Les changements sont documentés dans le changelog interne.

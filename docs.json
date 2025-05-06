@@ -98,7 +98,7 @@
       },
       {
         "dropdown": "Chatbot",
-        "icon": "book",
+        "icon": "robot",
         "groups": [
           {
             "group": "Chatbot",
@@ -161,6 +161,7 @@
           {
             "group": "References",
             "pages": [
+              "api-reference/introduction",
               {
                 "group": "Orders",
                 "pages": [
@@ -217,59 +218,6 @@
                   "api-reference/locations/update-a-restaurant-location",
                   "api-reference/locations/update-payment-settings",
                   "api-reference/locations/update-location-settings"
-                ]
-              }
-            ]
-          },
-          {
-            "group": "Chatbot",
-            "pages": [
-              "chatbot/getting-started",
-              "chatbot/message-webhook",
-              "chatbot/event-webhook",
-              {
-                "group": "Types",
-                "pages": [
-                  "chatbot/types/last-message",
-                  "chatbot/types/customer",
-                  {
-                    "group": "Order",
-                    "pages": [
-                      "chatbot/types/order/introduction",
-                      "chatbot/types/order/order-items",
-                      "chatbot/types/order/delivery"
-                    ]
-                  },
-                  {
-                    "group": "Location",
-                    "pages": [
-                      "chatbot/types/location/introduction",
-                      "chatbot/types/location/catalog"
-                    ]
-                  },
-                  {
-                    "group": "Order draft",
-                    "pages": [
-                      "chatbot/types/order-draft/introduction",
-                      "chatbot/types/order-draft/applied-discount",
-                      "chatbot/types/order-draft/order-draft-item"
-                    ]
-                  },
-                  {
-                    "group": "Conversation",
-                    "pages": [
-                      "chatbot/types/conversation/introduction",
-                      "chatbot/types/conversation/assistant-message"
-                    ]
-                  },
-                  "chatbot/types/payment-method",
-                  {
-                    "group": "Common",
-                    "pages": [
-                      "chatbot/types/common/address",
-                      "chatbot/types/common/price"
-                    ]
-                  }
                 ]
               }
             ]
