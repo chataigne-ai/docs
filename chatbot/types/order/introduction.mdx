@@ -2,20 +2,21 @@
 title: Order
 ---
 
-| Name              | Type                                                | Description                                                                                           |
-| ----------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `id`              | string                                              | Unique identifier of the order                                                                        |
-| `shortId`         | string                                              | Shorter identifier of this order optimized for human-readability. May be non unique (extremely rare). |
-| `status`          | [Order Status](#order-status)                       | The current status of the order                                                                       |
-| `createdAt`       | Time                                                | Time at which the order was created in the backend                                                    |
-| `updatedAt`       | Time                                                | Time of the most recent update to the order                                                           |
-| `serviceType`     | "collection" \| "delivery"                          | How the customer wishes to receive his order                                                          |
-| `channel`         | string                                              | The channel the order was created on (Whatsapp, Uber, POS...)                                         |
-| `customerNotes`   | string (optional)                                   | Notes from the customer about this order                                                              |
-| `deliveryAddress` | [Address](/chatbot/types/common/address) (optional) | Address to which the customer wants this order to be delivered                                        |
-| `total`           | [Price](/chatbot/types/common/price)                | Order total price (With charges, discounts, etc...)                                                   |
-| `items`           | [Order Items](/chatbot/types/order/order-items)     | Items in the order                                                                                    |
-| `delivery`        |                                                     | (Optional) Information on the delivery of the delivery exists                                         |
+| Name              | Type                                                    | Description                                                                                           |
+| ----------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `id`              | string                                                  | Unique identifier of the order                                                                        |
+| `shortId`         | string                                                  | Shorter identifier of this order optimized for human-readability. May be non unique (extremely rare). |
+| `status`          | [#order-status](./#order-status "mention")              | The current status of the order                                                                       |
+| `createdAt`       | Time                                                    | Time at which the order was created in the backend                                                    |
+| `updatedAt`       | Time                                                    | Time of the most recent update to the order                                                           |
+| `serviceType`     | "collection" \| "delivery"                              | How the customer wishes to receive his order                                                          |
+| `channel`         | string                                                  | The channel the order was created on (Whatsapp, Uber, POS...)                                         |
+| `customerNotes`   | string (optional)                                       | Notes from the customer about this order                                                              |
+| `deliveryAddress` | [address.md](../common/address.md "mention") (optional) | Address to which the customer wants this order to be delivered                                        |
+| `total`           | [price.md](../common/price.md "mention")                | Order total price (With charges, discounts, etc...)                                                   |
+| `items`           | [order-items.md](order-items.md "mention")              | Items in the order                                                                                    |
+| `delivery`        | [delivery.md](delivery.md "mention") (optional)         | Information on the delivery if it exists                                                             |
+| `payment`         | [payment.mdx](payment.mdx "mention") (optional)         | Payment information for the order                                                                     |
 
 ## Order status
 
