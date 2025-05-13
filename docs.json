@@ -116,7 +116,8 @@
                     "pages": [
                       "chatbot/types/order/introduction",
                       "chatbot/types/order/order-items",
-                      "chatbot/types/order/delivery"
+                      "chatbot/types/order/delivery",
+                      "chatbot/types/order/payment"
                     ]
                   },
                   {
