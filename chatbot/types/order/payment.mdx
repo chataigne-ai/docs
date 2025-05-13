@@ -9,7 +9,7 @@ The payment object contains information about how an order was paid.
 | `id` | string | Yes | Unique identifier for the payment |
 | `amount` | [price.md](../common/price.md "mention") | Yes | Payment amount with currency information |
 | `status` | PaymentStatusDTO | Yes | Payment status ("processing", "completed", "failed", "refunded") |
-| `type` | PaymentTypeDTO | Yes | Payment type ("external", "stripe", "cash") |
+| `type` | PaymentTypeDTO | Yes | Payment type ("external", "stripe", "store") external means payment made through third party like Uber or Just eat|
 | `method` | PaymentMethodTypeDTO | No | Payment method type ("HandledByStore", "PersistentCard", "TemporaryCard", "Twint", "RevolutPay") |
 | `externalId` | string | Yes | External reference ID for the payment |
 | `paymentMethodId` | string | No | ID of the saved payment method if applicable | 
