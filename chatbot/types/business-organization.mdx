@@ -6,26 +6,27 @@ The Business Organization type represents a multi-location business entity that 
 
 ## Business Organization Object
 
-| Field      | Type                                              | Description                                         |
-| ---------- | ------------------------------------------------- | --------------------------------------------------- |
-| id         | string                                            | Unique identifier of the business organization      |
-| name       | string                                            | Name of the business organization                   |
-| timezone   | string                                            | Default timezone of the business organization      |
-| locations  | [Location](/chatbot/types/location/introduction)[] | Array of locations managed by this organization     |
+| Field     | Type                                               | Description                                     |
+| --------- | -------------------------------------------------- | ----------------------------------------------- |
+| id        | string                                             | Unique identifier of the business organization  |
+| name      | string                                             | Name of the business organization               |
+| timezone  | string                                             | Default timezone of the business organization   |
+| locations | [Location](/chatbot/types/location/introduction)[] | Array of locations managed by this organization |
 
 ## Usage in Chatbot Payload
 
 When the chatbot operates in business organization mode (`mode: "businessOrganization"`), the payload structure includes:
 
-| Field                | Type                                                     | Description                                                           |
-| -------------------- | -------------------------------------------------------- | --------------------------------------------------------------------- |
-| mode                 | string                                                   | Set to "businessOrganization" for multi-location mode                |
-| businessOrganization | [Business Organization](#business-organization-object)   | The business organization data                                        |
-| location             | [Location](/chatbot/types/location/introduction) (optional) | The currently selected location (if any)                            |
+| Field                | Type                                                        | Description                                           |
+| -------------------- | ----------------------------------------------------------- | ----------------------------------------------------- |
+| mode                 | string                                                      | Set to "businessOrganization" for multi-location mode |
+| businessOrganization | [Business Organization](#business-organization-object)      | The business organization data                        |
+| location             | [Location](/chatbot/types/location/introduction) (optional) | The currently selected location (if any)              |
 
 ## Location Selection
 
 In business organization mode:
+
 - The chatbot starts without a selected location
 - It can determine the appropriate location based on the customer's delivery address
 - The `location` field in the payload is optional and only populated after a location is selected
