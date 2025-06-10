@@ -1,0 +1,14 @@
+---
+title: "Order Draft"
+description: "Description of your new file."
+---
+
+The order draft represents an order which is not yet registered. The chatbot interacts with this object during the onboarding process by adding required fields until the order draft is valid. The chatbot can then validate the order draft in order to transform it to a new order.
+
+## Check and update order draft
+
+The chatbot can update the order draft through the check and update order draft endpoint. This endpoint edit the order draft with the incoming fields and return validation errors until the order draft is complete and ready to be processed.
+
+---
+openapi: patch /order-draft/{orderDraftId}
+---
