@@ -1,6 +1,6 @@
 ---
-title: Message Webhook
-description: This endpoint is called by the server whenever a new message is received in a conversation where the chatbot is activated.
+title: "Message Webhook"
+description: "This endpoint is called by the server whenever a new message is received in a conversation where the chatbot is activated."
 ---
 
 **`POST`** `https://${chatbotUrl}/message`
@@ -15,22 +15,13 @@ description: This endpoint is called by the server whenever a new message is rec
 
 Depending on the type of conversation the body of the message webhook can be either
 
-| Name           | Type                                        | Description                                                               |
-| -------------- | ------------------------------------------- | ------------------------------------------------------------------------- |
-| `lastMessage`  | [last-message](/chatbot/types/last-message) | The message of the customer that triggered the chatbot                    |
-| `conversation` | [conversation](/chatbot/types/conversation) | Data about the conversation between the customer and the restaurant       |
-| `location`     | [location](/chatbot/types/location)         | Data about the restaurant                                                 |
-| `customer`     | [customer](/chatbot/types/customer)         | Data about the customer                                                   |
-| `orderDraft`   | [order-draft](/chatbot/types/order-draft)   | Data about the current order draft being processed in the conversation    |
-| `orders`       | [order](/chatbot/types/order)[]             | Data about the previous orders of the customer                            |
-| `mode`         | "location"                                  | Mode of the conversation. Can be either location or business organization |
-
-| Name                   | Type                                                          | Description                                                               |
-| ---------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `lastMessage`          | [last-message](/chatbot/types/last-message)                   | The message of the customer that triggered the chatbot                    |
-| `conversation`         | [conversation](/chatbot/types/conversation)                   | Data about the conversation between the customer and the restaurant       |
-| `businessOrganization` | [Business Organization](/chatbot/types/business-organization) | Data about the chain of restaurants                                       |
-| `customer`             | [customer](/chatbot/types/customer)                           | Data about the customer                                                   |
-| `orderDraft`           | [order-draft](/chatbot/types/order-draft)                     | Data about the current order draft being processed in the conversation    |
-| `orders`               | [order](/chatbot/types/order)[]                               | Data about the previous orders of the customer                            |
-| `mode`                 | "businessOrganization"                                        | Mode of the conversation. Can be either location or business organization |
+| Name                   | Type                                                          | Description                                                                                   |
+| ---------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `lastMessage`          | [last-message](/chatbot/types/last-message)                   | The message of the customer that triggered the chatbot                                        |
+| `conversation`         | [conversation](/chatbot/types/conversation)                   | Data about the conversation between the customer and the restaurant                           |
+| `location`             | [location](/chatbot/types/location)                           | Data about the restaurant if mode is `"conversation"`                                         |
+| `businessOrganization` | [Business Organization](/chatbot/types/business-organization) | Data about the organization and the affilited restaurants if mode is `"businessOrganization"` |
+| `customer`             | [customer](/chatbot/types/customer)                           | Data about the customer                                                                       |
+| `orderDraft`           | [order-draft](/chatbot/types/order-draft)                     | Data about the current order draft being processed in the conversation                        |
+| `orders`               | [order](/chatbot/types/order)[]                               | Data about the previous orders of the customer                                                |
+| `mode`                 | `"location"` \| `"businessOrganization"`                      | Mode of the conversation. Can be either location or business organization                     |

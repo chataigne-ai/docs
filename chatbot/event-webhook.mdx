@@ -1,6 +1,6 @@
 ---
-title: Event Webhook
-description: This endpoint is called by the server whenever an event of importance for the chatbot is received.
+title: "Event Webhook"
+description: "This endpoint is called by the server whenever an event of importance for the chatbot is received."
 ---
 
 **`POST`** `https://${chatbotUrl}/nexus/event`
@@ -13,13 +13,15 @@ description: This endpoint is called by the server whenever an event of importan
 
 ## Body
 
-| Name            | Type                                                                                                                                                                        | Description                                                                                 |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `type`          | `"payment_method_registered"` \| `"payment_method_registration_failed"` \| `"payment_confirmed"` \| `"payment_failed"` \| `"order_status_changed"` \| `"nexus_instruction"` | The message of the customer that triggered the chatbot                                      |
-| `conversation`  | [conversation](/chatbot/types/conversation)                                                                                                                                 | Data about the conversation between the customer and the restaurant                         |
-| `location`      | [location](/chatbot/types/location)                                                                                                                                         | Data about the restaurant                                                                   |
-| `customer`      | [customer](/chatbot/types/customer)                                                                                                                                         | Data about the customer                                                                     |
-| `paymentMethod` | [payment-method](/chatbot/types/payment-method)                                                                                                                             | Data about the payment method that was registered. If type is `"payment_method_registered"` |
-| `failureReason` | string (optional)                                                                                                                                                           | Reason of failure if type is `"payment_method_registration_failed"` or `"payment_failed"`   |
-| `order`         | [order](/chatbot/types/order) (optional)                                                                                                                                    | Data about the order concerned by the event if type is `"order_status_changed"`             |
-| `message`       | string (optional)                                                                                                                                                           | The nexus message, present only if type is `"nexus_instruction"`                            |
+| Name                   | Type                                                                                                                                                                        | Description                                                                                     |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `type`                 | `"payment_method_registered"` \| `"payment_method_registration_failed"` \| `"payment_confirmed"` \| `"payment_failed"` \| `"order_status_changed"` \| `"nexus_instruction"` | The message of the customer that triggered the chatbot                                          |
+| `conversation`         | [conversation](/chatbot/types/conversation)                                                                                                                                 | Data about the conversation between the customer and the restaurant                             |
+| `location`             | [location](/chatbot/types/location) (optional)                                                                                                                              | Data about the restaurant. Only present if mode is `"location"`                                 |
+| `businessOrganization` | [Business Organization](/chatbot/types/business-organization)                                                                                                               | Data about the organization and its locations. Only present if mode is `"businessOrganization"` |
+| `customer`             | [customer](/chatbot/types/customer)                                                                                                                                         | Data about the customer                                                                         |
+| `paymentMethod`        | [payment-method](/chatbot/types/payment-method)                                                                                                                             | Data about the payment method that was registered. If type is `"payment_method_registered"`     |
+| `failureReason`        | string (optional)                                                                                                                                                           | Reason of failure if type is `"payment_method_registration_failed"` or `"payment_failed"`       |
+| `order`                | [order](/chatbot/types/order) (optional)                                                                                                                                    | Data about the order concerned by the event if type is `"order_status_changed"`                 |
+| `message`              | string (optional)                                                                                                                                                           | The nexus message, present only if type is `"nexus_instruction"`                                |
+| `mode`                 | `"location"` \| `"businessOrganization"`                                                                                                                                    | Whether the event is sent to a location or organizaition conversation                           |
