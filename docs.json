@@ -169,18 +169,6 @@
                 ]
             },
             {
-              "dropdown": "References",
-              "groups": [
-                {
-                  "group": "Endpoints",
-                  "openapi": {
-                    "source": "https://staging-server.chataigne.ai/api-json",
-                    "directory": "api-reference"
-                  }
-                }
-              ]
-            },
-            {
                 "dropdown": "API Reference",
                 "groups": [
                     {
