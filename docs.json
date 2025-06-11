@@ -174,7 +174,7 @@
                 {
                   "group": "Endpoints",
                   "openapi": {
-                    "source": "openapi.json",
+                    "source": "https://staging-server.chataigne.ai/api-json",
                     "directory": "api-reference"
                   }
                 }
