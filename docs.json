@@ -112,6 +112,7 @@
                             "chatbot/getting-started",
                             "chatbot/message-webhook",
                             "chatbot/event-webhook",
+                          "chatbot/order-draft",
                             {
                                 "group": "Types",
                                 "pages": [
