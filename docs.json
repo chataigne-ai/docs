@@ -169,6 +169,15 @@
                     }
                 ]
             },
+          {
+            "dropdown": "References",
+            "groups": [
+              {
+                "group": "Refs",
+                "openapi": "https://petstore3.swagger.io/api/v3/openapi.json"
+              }
+            ]
+          },
             {
                 "dropdown": "API Reference",
                 "groups": [
