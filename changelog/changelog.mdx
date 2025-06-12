@@ -6,125 +6,122 @@ description: "New features, bug fixes, and improvements"
 <Update label="2025-06-12" description="v1.4.0">
   **Order Draft**
 
-- Add `locationId` to [OrderDraft](/chatbot/types/order-draft/introduction) Object
+  - Add `locationId` to [OrderDraft](/chatbot/types/order-draft/introduction) Object
 
-**Payloads**
+  **Payloads**
 
-- Add `mode` and `locationId` to [Message](/chatbot/message-webhook)
-- Add `mode` and `locationId`to [Event](/chatbot/event-webhook) payloads
+  - Add `mode` and `locationId` to  [Message](/chatbot/message-webhook)
+  - Add `mode` and `locationId`to [Event](/chatbot/event-webhook) payloads
 
-**Update order draft**
+  **Update order draft**
 
-- Add location id to [check and update order draft](/api-reference/order-drafts/update-and-validate-an-order-draft) endpoint
-- Add `"LOCATION_ID_REQUIRED"` error in case the location id is not set.
+  - Add location id to [check and update order draft](/api-reference/order-drafts/update-and-validate-an-order-draft) endpoint
+  - Add `"LOCATION_ID_REQUIRED"` error in case the location id is not set.
 
-**Check Address**
+  **Check Address**
 
-Update to the [check address](/api-reference/chatbot/check-address) endpoint
+  Update to the [check address](/api-reference/chatbot/check-address) endpoint
 
-- **Location Mode**: Check address against a specific location
-  - Directly validates delivery/collection capability for a single location
-  - Maintains existing behavior for single-location businesses
-  - Optimal for focused address validation
-- **Business Organization Mode**: Check address against multiple locations within an organization
-  - Automatically finds the best location within a business organization
-  - Calculates distances to all locations within 20km radius
-  - Selects optimal location based on service type and availability
-  - Updates order draft with selected location ID
-- **`Delivery Service (serviceType: 'delivery')`**:
-  - Validates delivery capability for each location within range
-  - Returns up to `locationNumber` deliverable locations sorted by distance
-  - Includes delivery fee, estimated delivery time, and distance information
-  - Falls back gracefully if fewer locations can deliver than requested
-  - Updates order draft with closest deliverable location
-- **`Collection Service (serviceType: 'collection')`**:
-  - Returns up to `locationNumber` closest locations sorted by distance
-  - No delivery validation required (customer pickup)
-  - Includes distance information for route planning
-  - Updates order draft with closest location for pickup
+  - **Location Mode**: Check address against a specific location
+    - Directly validates delivery/collection capability for a single location
+    - Maintains existing behavior for single-location businesses
+    - Optimal for focused address validation
+  - **Business Organization Mode**: Check address against multiple locations within an organization
+    - Automatically finds the best location within a business organization
+    - Calculates distances to all locations within 20km radius
+    - Selects optimal location based on service type and availability
+    - Updates order draft with selected location ID
+  - **`Delivery Service (serviceType: 'delivery')`**:
+    - Validates delivery capability for each location within range
+    - Returns up to `locationNumber` deliverable locations sorted by distance
+    - Includes delivery fee, estimated delivery time, and distance information
+    - Falls back gracefully if fewer locations can deliver than requested
+    - Updates order draft with closest deliverable location
+  - **`Collection Service (serviceType: 'collection')`**:
+    - Returns up to `locationNumber` closest locations sorted by distance
+    - No delivery validation required (customer pickup)
+    - Includes distance information for route planning
+    - Updates order draft with closest location for pickup
 
-#### 📊 API Enhancements
+  #### 📊 API Enhancements
 
-**Request Parameters**
+  **Request Parameters**
 
-```json
-{
-  "mode": "businessOrganization", // or "location"
-  "serviceType": "delivery", // or "collection"
-  "locationNumber": 3, // Number of locations to consider (default: 1)
-  "businessOrganizationId": "org_123", // Required for businessOrganization mode
-  "locationId": "loc_456", // Required for location mode
-  "orderDraftId": "draft_789",
-  "address": "123 Main St, City",
-  "coordinates": { "latitude": 46.2044, "longitude": 6.1432 }
-}
-```
+  ```json
+  {
+    "mode": "businessOrganization", // or "location"
+    "serviceType": "delivery", // or "collection"
+    "locationNumber": 3, // Number of locations to consider (default: 1)
+    "businessOrganizationId": "org_123", // Required for businessOrganization mode
+    "locationId": "loc_456", // Required for location mode
+    "orderDraftId": "draft_789",
+    "address": "123 Main St, City",
+    "coordinates": { "latitude": 46.2044, "longitude": 6.1432 }
+  }
+  ```
 
-**Response Enhancements**
+  **Response Enhancements**
 
-```json
-{
-  "success": true,
-  "foundAddress": "123 Main Street, 1204 Geneva, CH",
-  "deliveryFee": 5.99, // Only for delivery service
-  "deliveryTime": "2024-07-20T10:30:00Z", // Only for delivery service
-  "distance": 2.5, // Distance in kilometers
-  "locationId": "loc_456" // Selected location ID
-}
-```
+  ```json
+  {
+    "success": true,
+    "foundAddress": "123 Main Street, 1204 Geneva, CH",
+    "deliveryFee": 5.99, // Only for delivery service
+    "deliveryTime": "2024-07-20T10:30:00Z", // Only for delivery service
+    "distance": 2.5, // Distance in kilometers
+    "locationId": "loc_456" // Selected location ID
+  }
+  ```
 
-#### 🔧 Technical Improvements
+  #### 🔧 Technical Improvements
 
-**Smart Location Selection Algorithm**
+  **Smart Location Selection Algorithm**
 
-- Haversine distance calculation for accurate location proximity
-- 20km radius filtering to ensure reasonable delivery distances
-- Parallel delivery capability checking for optimal performance
-- Graceful error handling with location-specific fallbacks
+  - Haversine distance calculation for accurate location proximity
+  - 20km radius filtering to ensure reasonable delivery distances
+  - Parallel delivery capability checking for optimal performance
+  - Graceful error handling with location-specific fallbacks
 
-**Enhanced Error Handling**
+  **Enhanced Error Handling**
 
-- `LOCATION_ID_REQUIRED`: When location ID is missing for location mode
-- `BUSINESS_ORGANIZATION_NOT_FOUND`: Invalid organization ID
-- `OUT_OF_RADIUS`: No locations within serviceable range
-- `ADDRESS_NOT_FOUND`: Invalid or ungeocoded address
-  </Update>
+  - `LOCATION_ID_REQUIRED`: When location ID is missing for location mode
+  - `BUSINESS_ORGANIZATION_NOT_FOUND`: Invalid organization ID
+  - `OUT_OF_RADIUS`: No locations within serviceable range
+  - `ADDRESS_NOT_FOUND`: Invalid or ungeocoded address
+</Update>
 
 <Update label="2025-04-29" description="v1.3.0">
   • Added the Delivery field in the order
 
-• Added the "delivery_status_changed" to Event Webhook
-
+  • Added the "delivery_status_changed" to Event Webhook
 </Update>
 
 <Update label="2025-04-23" description="v1.2.0">
   **Order Draft Endpoint Updates**
 
-• Add a new paymentMethod field in the order draft data
+  • Add a new paymentMethod field in the order draft data
 
-• Add a new validation error "NO_PAYMENT_METHOD"
+  • Add a new validation error "NO_PAYMENT_METHOD"
 
-• Add AvailablePaymentMethods if the "NO_PAYMENT_METHOD" error is present
+  • Add AvailablePaymentMethods if the "NO_PAYMENT_METHOD" error is present
 
-• Removed ReadyForInStorePayment in favor of a general "ReadyForPayment" validation type
+  • Removed ReadyForInStorePayment in favor of a general "ReadyForPayment" validation type
 
-• Add paymentType data in the validation object for ReadyForPayment: - Can be 'RegisterWithoutPayment', 'InstantPayment' or 'CheckoutPayment'
+  • Add paymentType data in the validation object for ReadyForPayment: - Can be 'RegisterWithoutPayment', 'InstantPayment' or 'CheckoutPayment'
 
-**Register Order Endpoint Changes**
+  **Register Order Endpoint Changes**
 
-• Changed the return type to showcase registration type: - Can be "orderRegistered", "orderPaid", "checkoutUrl"
+  • Changed the return type to showcase registration type: - Can be "orderRegistered", "orderPaid", "checkoutUrl"
 
-• Removed endpoints: - payOrderDraft - createCheckoutSession
+  • Removed endpoints: - payOrderDraft - createCheckoutSession
 
-• Changed the PaymentSettingsDTO in Location
-
+  • Changed the PaymentSettingsDTO in Location
 </Update>
 
 <Update label="2025-03-24" description="v1.1.0">
   • Formalized the documentation for Order Draft and conversation
 
-• Formalized the documentation of the Chatbot Webhooks and all chatbot data types
-
+  • Formalized the documentation of the Chatbot Webhooks and all chatbot data types
 </Update>
 
 <Update label="2025-03-22" description="v1.0.0">
