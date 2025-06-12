@@ -1,295 +1,275 @@
 {
-    "$schema": "https://mintlify.com/docs.json",
-    "theme": "mint",
-    "name": "châtaigne",
-    "colors": {
-        "primary": "#16A34A",
-        "light": "#07C983",
-        "dark": "#15803D"
-    },
-    "favicon": "/favicon.svg",
-    "navigation": {
-        "dropdowns": [
-            {
-                "dropdown": "Guides",
-                "icon": "book",
-                "groups": [
-                    {
-                        "group": "Introduction",
-                        "pages": [
-                            "introduction"
-                        ]
-                    },
-                    {
-                        "group": "How to",
-                        "pages": [
-                            "how-to/store-onboarding"
-                        ]
-                    },
-                    {
-                        "group": "Integrations",
-                        "pages": [
-                            "integrations/general"
-                        ]
-                    },
-                    {
-                        "group": "Working with the server",
-                        "pages": [
-                            "working-with-the-server/overview",
-                            "working-with-the-server/structure-du-projet",
-                            {
-                                "group": "Domain Layer",
-                                "icon": "layer-group",
-                                "pages": [
-                                    "working-with-the-server/domain-layer/introduction",
-                                    "working-with-the-server/domain-layer/entites-domaines",
-                                    "working-with-the-server/domain-layer/documentation-des-entites",
-                                    "working-with-the-server/domain-layer/gestion-erreur",
-                                    "working-with-the-server/domain-layer/builders-domaine",
-                                    "working-with-the-server/domain-layer/tests-domaine"
-                                ]
-                            },
-                            {
-                                "group": "Infrastructure Layer",
-                                "icon": "layer-group",
-                                "pages": [
-                                    {
-                                        "group": "Adapters",
-                                        "icon": "plug",
-                                        "pages": [
-                                            "working-with-the-server/infrastructure-layer/adapters/introduction",
-                                            "working-with-the-server/infrastructure-layer/adapters/prisma-adapters",
-                                            "working-with-the-server/infrastructure-layer/adapters/test-des-adapteurs",
-                                            "working-with-the-server/infrastructure-layer/adapters/documentation-des-adapteurs"
-                                        ]
-                                    },
-                                    "working-with-the-server/infrastructure-layer/repositories",
-                                    {
-                                        "group": "Services",
-                                        "icon": "layer-group",
-                                        "pages": [
-                                            "working-with-the-server/infrastructure-layer/services/introduction",
-                                            "working-with-the-server/infrastructure-layer/services/definition-des-types-externe",
-                                            "working-with-the-server/infrastructure-layer/services/creation-des-adapteurs",
-                                            {
-                                                "group": "Client",
-                                                "icon": "",
-                                                "pages": [
-                                                    "working-with-the-server/infrastructure-layer/services/client/introduction",
-                                                    "working-with-the-server/infrastructure-layer/services/client/organisation-des-clients",
-                                                    "working-with-the-server/infrastructure-layer/services/client/documentation-des-clients",
-                                                    "working-with-the-server/infrastructure-layer/services/client/gestion-des-erreurs-des-clients",
-                                                    "working-with-the-server/infrastructure-layer/services/client/tests-des-clients",
-                                                    "working-with-the-server/infrastructure-layer/services/client/designing-interfaces"
-                                                ]
-                                            }
-                                        ]
-                                    }
-                                ]
-                            },
-                            {
-                                "group": "Application Layer",
-                                "icon": "layer-group",
-                                "pages": [
-                                    "working-with-the-server/application-layer/use-cases",
-                                    "working-with-the-server/application-layer/error-handling",
-                                    "working-with-the-server/application-layer/unit-testing",
-                                    "working-with-the-server/application-layer/documenting"
-                                ]
-                            },
-                            "working-with-the-server/logging"
-                        ]
-                    }
-                ]
-            },
-            {
-                "dropdown": "Chatbot",
-                "icon": "robot",
-                "groups": [
-                    {
-                        "group": "Chatbot",
-                        "pages": [
-                            "chatbot/getting-started",
-                            "chatbot/message-webhook",
-                            "chatbot/event-webhook",
-                          "chatbot/order-draft",
-                            {
-                                "group": "Types",
-                                "pages": [
-                                    "chatbot/types/last-message",
-                                    "chatbot/types/customer",
-                                    {
-                                        "group": "Order",
-                                        "pages": [
-                                            "chatbot/types/order/introduction",
-                                            "chatbot/types/order/order-items",
-                                            "chatbot/types/order/delivery",
-                                            "chatbot/types/order/payment"
-                                        ]
-                                    },
-                                    {
-                                        "group": "Location",
-                                        "pages": [
-                                            "chatbot/types/location/introduction",
-                                            "chatbot/types/location/catalog"
-                                        ]
-                                    },
-                                    {
-                                        "group": "Business Organization",
-                                        "pages": [
-                                            "chatbot/types/business-organization"
-                                        ]
-                                    },
-                                    {
-                                        "group": "Order draft",
-                                        "pages": [
-                                            "chatbot/types/order-draft/introduction",
-                                            "chatbot/types/order-draft/applied-discount",
-                                            "chatbot/types/order-draft/order-draft-item"
-                                        ]
-                                    },
-                                    {
-                                        "group": "Conversation",
-                                        "pages": [
-                                            "chatbot/types/conversation/introduction",
-                                            "chatbot/types/conversation/assistant-message"
-                                        ]
-                                    },
-                                    "chatbot/types/payment-method",
-                                    {
-                                        "group": "Common",
-                                        "pages": [
-                                            "chatbot/types/common/address",
-                                            "chatbot/types/common/price"
-                                        ]
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
-            },
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "châtaigne",
+  "colors": {
+    "primary": "#16A34A",
+    "light": "#07C983",
+    "dark": "#15803D"
+  },
+  "favicon": "/favicon.svg",
+  "navigation": {
+    "dropdowns": [
+      {
+        "dropdown": "Guides",
+        "icon": "book",
+        "groups": [
           {
-            "dropdown": "References",
-            "groups": [
+            "group": "Introduction",
+            "pages": ["introduction"]
+          },
+          {
+            "group": "How to",
+            "pages": ["how-to/store-onboarding"]
+          },
+          {
+            "group": "Integrations",
+            "pages": ["integrations/general"]
+          },
+          {
+            "group": "Working with the server",
+            "pages": [
+              "working-with-the-server/overview",
+              "working-with-the-server/structure-du-projet",
               {
-                "group": "Refs",
-                "openapi": "https://staging-server.chataigne.ai/api-json"
+                "group": "Domain Layer",
+                "icon": "layer-group",
+                "pages": [
+                  "working-with-the-server/domain-layer/introduction",
+                  "working-with-the-server/domain-layer/entites-domaines",
+                  "working-with-the-server/domain-layer/documentation-des-entites",
+                  "working-with-the-server/domain-layer/gestion-erreur",
+                  "working-with-the-server/domain-layer/builders-domaine",
+                  "working-with-the-server/domain-layer/tests-domaine"
+                ]
+              },
+              {
+                "group": "Infrastructure Layer",
+                "icon": "layer-group",
+                "pages": [
+                  {
+                    "group": "Adapters",
+                    "icon": "plug",
+                    "pages": [
+                      "working-with-the-server/infrastructure-layer/adapters/introduction",
+                      "working-with-the-server/infrastructure-layer/adapters/prisma-adapters",
+                      "working-with-the-server/infrastructure-layer/adapters/test-des-adapteurs",
+                      "working-with-the-server/infrastructure-layer/adapters/documentation-des-adapteurs"
+                    ]
+                  },
+                  "working-with-the-server/infrastructure-layer/repositories",
+                  {
+                    "group": "Services",
+                    "icon": "layer-group",
+                    "pages": [
+                      "working-with-the-server/infrastructure-layer/services/introduction",
+                      "working-with-the-server/infrastructure-layer/services/definition-des-types-externe",
+                      "working-with-the-server/infrastructure-layer/services/creation-des-adapteurs",
+                      {
+                        "group": "Client",
+                        "icon": "",
+                        "pages": [
+                          "working-with-the-server/infrastructure-layer/services/client/introduction",
+                          "working-with-the-server/infrastructure-layer/services/client/organisation-des-clients",
+                          "working-with-the-server/infrastructure-layer/services/client/documentation-des-clients",
+                          "working-with-the-server/infrastructure-layer/services/client/gestion-des-erreurs-des-clients",
+                          "working-with-the-server/infrastructure-layer/services/client/tests-des-clients",
+                          "working-with-the-server/infrastructure-layer/services/client/designing-interfaces"
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "group": "Application Layer",
+                "icon": "layer-group",
+                "pages": [
+                  "working-with-the-server/application-layer/use-cases",
+                  "working-with-the-server/application-layer/error-handling",
+                  "working-with-the-server/application-layer/unit-testing",
+                  "working-with-the-server/application-layer/documenting"
+                ]
+              },
+              "working-with-the-server/logging"
+            ]
+          }
+        ]
+      },
+      {
+        "dropdown": "Chatbot",
+        "icon": "robot",
+        "groups": [
+          {
+            "group": "Chatbot",
+            "pages": [
+              "chatbot/getting-started",
+              "chatbot/message-webhook",
+              "chatbot/event-webhook",
+              "chatbot/order-draft",
+              {
+                "group": "Types",
+                "pages": [
+                  "chatbot/types/last-message",
+                  "chatbot/types/customer",
+                  {
+                    "group": "Order",
+                    "pages": [
+                      "chatbot/types/order/introduction",
+                      "chatbot/types/order/order-items",
+                      "chatbot/types/order/delivery",
+                      "chatbot/types/order/payment"
+                    ]
+                  },
+                  {
+                    "group": "Location",
+                    "pages": [
+                      "chatbot/types/location/introduction",
+                      "chatbot/types/location/catalog"
+                    ]
+                  },
+                  {
+                    "group": "Business Organization",
+                    "pages": ["chatbot/types/business-organization"]
+                  },
+                  {
+                    "group": "Order draft",
+                    "pages": [
+                      "chatbot/types/order-draft/introduction",
+                      "chatbot/types/order-draft/applied-discount",
+                      "chatbot/types/order-draft/order-draft-item"
+                    ]
+                  },
+                  {
+                    "group": "Conversation",
+                    "pages": [
+                      "chatbot/types/conversation/introduction",
+                      "chatbot/types/conversation/assistant-message"
+                    ]
+                  },
+                  "chatbot/types/payment-method",
+                  {
+                    "group": "Common",
+                    "pages": [
+                      "chatbot/types/common/address",
+                      "chatbot/types/common/price"
+                    ]
+                  }
+                ]
               }
             ]
-          },
-            {
-                "dropdown": "API Reference",
-                "groups": [
-                    {
-                        "group": "References",
-                        "pages": [
-                            "api-reference/introduction",
-                            {
-                                "group": "Orders",
-                                "pages": [
-                                    "api-reference/orders/introduction",
-                                    "api-reference/orders/create-a-new-order",
-                                    "api-reference/orders/update-order-status",
-                                    "api-reference/delivery/introduction",
-                                    "api-reference/discount/introduction",
-                                    "api-reference/payment/introduction",
-                                    "api-reference/charge/introduction"
-                                ]
-                            },
-                            {
-                                "group": "Orders draft",
-                                "pages": [
-                                    "api-reference/order-drafts/introduction",
-                                    "api-reference/order-drafts/create-order-draft",
-                                    "api-reference/order-drafts/create-a-new-order-draft",
-                                    "api-reference/order-drafts/update-order-draft",
-                                    "api-reference/order-drafts/update-and-validate-an-order-draft",
-                                    "api-reference/order-drafts/order-draft-ready",
-                                    "api-reference/order-drafts/register-an-order-draft",
-                                    "api-reference/order-drafts/payment-handling",
-                                    "api-reference/payment/get-url-for-registering-a-payment-method"
-                                ]
-                            },
-                            {
-                                "group": "Conversations",
-                                "pages": [
-                                    "api-reference/conversations/introduction",
-                                    "api-reference/messages/register-an-assistant-message",
-                                    "api-reference/messages/send-a-platform-message"
-                                ]
-                            },
-                            {
-                                "group": "Customer",
-                                "pages": [
-                                    "api-reference/customers/create-a-new-customer",
-                                    "api-reference/customers/update-a-customer",
-                                    "api-reference/customers/delete-a-customer",
-                                    {
-                                        "group": "Payment method",
-                                        "pages": [
-                                            "api-reference/payment-methods/create-a-new-payment-method",
-                                            "api-reference/payment-methods/delete-a-payment-method"
-                                        ]
-                                    }
-                                ]
-                            },
-                            {
-                                "group": "Location",
-                                "pages": [
-                                    "api-reference/locations/create-a-new-restaurant-location",
-                                    "api-reference/locations/update-a-restaurant-location",
-                                    "api-reference/locations/update-payment-settings",
-                                    "api-reference/locations/update-location-settings"
-                                ]
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "dropdown": "Changelog",
-                "icon": "clock",
-                "groups": [
-                    {
-                        "group": "Changelog",
-                        "pages": [
-                            "changelog/changelog"
-                        ]
-                    }
-                ]
-            }
-        ],
-        "global": {}
-    },
-    "logo": {
-        "light": "/logo/chataigne.svg",
-        "dark": "/logo/chataigne.svg"
-    },
-    "navbar": {
-        "links": [
-            {
-                "label": "Support",
-                "href": "mailto:hi@mintlify.com"
-            }
-        ],
-        "primary": {
-            "type": "button",
-            "label": "Dashboard",
-            "href": "https://dashboard.mintlify.com"
-        }
-    },
-    "contextual": {
-        "options": [
-            "copy",
-            "view",
-            "chatgpt",
-            "claude"
+          }
         ]
-    },
-    "footer": {
-        "socials": {
-            "linkedin": "https://www.linkedin.com/company/chataigne-ai/"
-        }
+      },
+      {
+        "dropdown": "API Reference",
+        "groups": [
+          {
+            "group": "References",
+            "pages": [
+              "api-reference/introduction",
+              {
+                "group": "Orders",
+                "pages": [
+                  "api-reference/orders/introduction",
+                  "api-reference/orders/create-a-new-order",
+                  "api-reference/orders/update-order-status",
+                  "api-reference/delivery/introduction",
+                  "api-reference/discount/introduction",
+                  "api-reference/payment/introduction",
+                  "api-reference/charge/introduction"
+                ]
+              },
+              {
+                "group": "Orders draft",
+                "pages": [
+                  "api-reference/order-drafts/introduction",
+                  "api-reference/order-drafts/create-order-draft",
+                  "api-reference/order-drafts/create-a-new-order-draft",
+                  "api-reference/order-drafts/update-order-draft",
+                  "api-reference/order-drafts/update-and-validate-an-order-draft",
+                  "api-reference/order-drafts/order-draft-ready",
+                  "api-reference/order-drafts/register-an-order-draft",
+                  "api-reference/order-drafts/payment-handling",
+                  "api-reference/payment/get-url-for-registering-a-payment-method"
+                ]
+              },
+              {
+                "group": "Conversations",
+                "pages": [
+                  "api-reference/conversations/introduction",
+                  "api-reference/messages/register-an-assistant-message",
+                  "api-reference/messages/send-a-platform-message"
+                ]
+              },
+              {
+                "group": "Chatbot",
+                "pages": ["api-reference/chatbot/check-address"]
+              },
+              {
+                "group": "Customer",
+                "pages": [
+                  "api-reference/customers/create-a-new-customer",
+                  "api-reference/customers/update-a-customer",
+                  "api-reference/customers/delete-a-customer",
+                  {
+                    "group": "Payment method",
+                    "pages": [
+                      "api-reference/payment-methods/create-a-new-payment-method",
+                      "api-reference/payment-methods/delete-a-payment-method"
+                    ]
+                  }
+                ]
+              },
+              {
+                "group": "Location",
+                "pages": [
+                  "api-reference/locations/create-a-new-restaurant-location",
+                  "api-reference/locations/update-a-restaurant-location",
+                  "api-reference/locations/update-payment-settings",
+                  "api-reference/locations/update-location-settings"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "dropdown": "Changelog",
+        "icon": "clock",
+        "groups": [
+          {
+            "group": "Changelog",
+            "pages": ["changelog/changelog"]
+          }
+        ]
+      }
+    ],
+    "global": {}
+  },
+  "logo": {
+    "light": "/logo/chataigne.svg",
+    "dark": "/logo/chataigne.svg"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Support",
+        "href": "mailto:hi@mintlify.com"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Dashboard",
+      "href": "https://dashboard.mintlify.com"
     }
+  },
+  "contextual": {
+    "options": ["copy", "view", "chatgpt", "claude"]
+  },
+  "footer": {
+    "socials": {
+      "linkedin": "https://www.linkedin.com/company/chataigne-ai/"
+    }
+  }
 }
