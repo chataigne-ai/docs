@@ -90,7 +90,9 @@
               "working-with-the-frontend/structure-du-projet",
               "working-with-the-frontend/gestion-etat",
               "working-with-the-frontend/custom-hooks",
-              "working-with-the-frontend/validation-avec-zod"
+              "working-with-the-frontend/validation-avec-zod",
+              "working-with-the-frontend/composants-ui",
+              "working-with-the-frontend/sandbox"
             ]
           }
         ]
