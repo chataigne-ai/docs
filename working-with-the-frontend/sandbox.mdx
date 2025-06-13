@@ -1,359 +1,286 @@
 ---
 title: "Système Sandbox"
-description: "Alternative révolutionnaire à Storybook avec détection automatique et playground intégré"
+description: "Environnement de test pour les composants globaux"
 icon: "play"
 ---
 
 <Info>
-  Notre système Sandbox révolutionne le développement de composants UI en
-  remplaçant Storybook par une solution intégrée, automatique et sans
-  configuration manuelle.
+  La Sandbox est accessible en développement à l'adresse
+  **localhost:3000/sandbox** quand le serveur Next.js est démarré.
 </Info>
 
-## Pourquoi pas Storybook ?
+## À quoi sert la Sandbox ?
+
+La Sandbox est un environnement de développement qui permet de :
 
 <CardGroup cols={2}>
-  <Card title="Problèmes Storybook" icon="x">
-    Configuration manuelle pour chaque composant, fichiers .stories séparés,
-    maintenance lourde
+  <Card title="Tester les composants" icon="flask">
+    Visualiser et tester tous nos composants globaux de manière isolée
   </Card>
 
-  <Card title="Solution Sandbox" icon="check">
-    Détection automatique, zéro configuration, intégration native avec notre
-    codebase
+<Card title="Explorer les variants" icon="palette">
+  Tester tous les variants CVA et props de nos composants en temps réel
+</Card>
+
+<Card title="Générer du code" icon="code">
+  Obtenir le code JSX prêt à copier-coller dans notre application
+</Card>
+
+  <Card title="Documenter" icon="book">
+    Créer une documentation vivante de notre design system
   </Card>
 </CardGroup>
+
+### Exemple concret
+
+Au lieu de créer une page temporaire pour tester notre composant `Button`, on :
+
+1. **Ouvre** `/sandbox/button`
+2. **Teste** tous les variants (primary, destructive, etc.)
+3. **Copie** le code généré : `<Button variant="primary">Mon bouton</Button>`
+4. **Colle** directement dans notre composant
 
 ## Comment ça marche ?
 
-<Steps>
-  <Step title="Détection automatique">
-    Un scanner analyse votre code et détecte automatiquement tous les composants avec un export `meta`
-    
-    ```tsx button.component.tsx
-    // Ce composant sera automatiquement détecté
-    export function Button() { /* ... */ }
-    
-    export const meta = {
-      category: "UI",
-      name: "Button", 
-      description: "Bouton interactif avec variants"
-    };
-    ```
-  </Step>
+### 1. Détection automatique
 
-{" "}
-<Step title="Génération automatique">
-  La Sandbox génère automatiquement : - Une page de preview (`/sandbox/button`)
-  - Un playground interactif avec tous les variants - La documentation basée sur
-  le meta ``` /sandbox ← Liste tous les composants /sandbox/button ← Preview +
-  Playground du Button /sandbox/input ← Preview + Playground de l'Input ```
-</Step>
+La Sandbox scanne automatiquement le dossier `/shared/components/common/` et détecte tous les composants qui ont un export `meta`.
 
-  <Step title="Playground interactif">
-    Testez en temps réel tous les variants et props :
-    
-    ```tsx
-    // Le playground génère automatiquement ces contrôles :
-    variant: "default" | "primary" | "destructive"
-    size: "sm" | "md" | "lg" 
-    disabled: boolean
-    ```
-  </Step>
-</Steps>
+```
+shared/components/common/
+├── button.component.tsx     ← Détecté si export meta
+├── input.component.tsx      ← Détecté si export meta
+├── dialog.component.tsx     ← Détecté si export meta
+└── card.component.tsx       ← Détecté si export meta
 
-## Avantages révolutionnaires
-
-<Tabs>
-  <Tab title="Zéro maintenance">
-    ```tsx
-    // Avec Storybook : fichier séparé à maintenir
-    // button.stories.tsx
-    export default {
-      title: 'UI/Button',
-      component: Button,
-      parameters: { /* config */ },
-      argTypes: { /* types */ }
-    };
-    
-    // Avec notre Sandbox : juste le meta dans le composant
-    export const meta = {
-      category: "UI",
-      name: "Button",
-      description: "Bouton interactif"
-    };
-    ```
-  </Tab>
-
-  <Tab title="Synchronisation automatique">
-    ```tsx
-    // Vous modifiez le composant...
-    const buttonVariants = cva("base-classes", {
-      variants: {
-        variant: {
-          default: "bg-gray-100",
-          primary: "bg-blue-600",
-          danger: "bg-red-600", // Nouveau variant ajouté
-        }
-      }
-    });
-    
-    // La Sandbox se met à jour automatiquement !
-    // Nouveau variant "danger" disponible dans le playground
-    ```
-  </Tab>
-
-  <Tab title="Intégration native">
-    ```tsx
-    // Vos composants utilisent directement les vrais types
-    interface ButtonProps extends VariantProps<typeof buttonVariants> {
-      children: React.ReactNode;
-    }
-    
-    // La Sandbox comprend automatiquement vos types TypeScript
-    // Pas besoin de redéfinir les props dans un fichier séparé
-    ```
-  </Tab>
-</Tabs>
-
-## Fonctionnement Technique
-
-### Le Scanner : Le Cerveau du Système
-
-<Warning>
-  **Pourquoi le meta est OBLIGATOIRE** : Sans export meta, le scanner ne peut
-  pas détecter votre composant. C'est le "contrat" qui permet à la Sandbox de
-  comprendre votre composant.
-</Warning>
-
-Le scanner fonctionne comme un détective qui analyse votre code :
-
-<Steps>
-  <Step title="Analyse des fichiers">
-    Le scanner parcourt `/components/common/` et cherche les fichiers `.tsx`
-    
-    ```typescript scanner.ts
-    // Le scanner lit chaque fichier et cherche cette signature :
-    export const meta = {
-      category: string,    // OBLIGATOIRE pour catégoriser
-      name: string,        // OBLIGATOIRE pour identifier
-      description: string, // OBLIGATOIRE pour documenter
-    };
-    ```
-  </Step>
-
-  <Step title="Extraction des métadonnées">
-    Pour chaque composant trouvé, le scanner extrait :
-    
-    ```typescript
-    // Ce que le scanner "voit" dans votre composant :
-    {
-      componentName: "Button",           // Nom de la fonction export
-      filePath: "components/common/button/button.component.tsx",
-      meta: {
-        category: "UI",
-        name: "Button",
-        description: "Bouton interactif avec variants"
-      },
-      variants: buttonVariants,          // Configuration CVA
-      hasProps: true,                    // Si interface Props existe
-      hasChildren: false                 // Si accepte children
-    }
-    ```
-  </Step>
-
-  <Step title="Génération des routes">
-    Le scanner génère automatiquement les routes Next.js :
-    
-    ```
-    /sandbox                    ← Page index avec liste des composants
-    /sandbox/button            ← Page dédiée au Button
-    /sandbox/input             ← Page dédiée à l'Input
-    /sandbox/dialog            ← Page dédiée au Dialog
-    ```
-  </Step>
-</Steps>
-
-### Configuration du Scanner
-
-```json scanner-config.json
-{
-  "scanDirectory": "components/common", // Où chercher les composants
-  "filePatterns": [".tsx"], // Types de fichiers à analyser
-  "metaExportName": "meta", // Nom de l'export à chercher
-  "componentExportPattern": "export function", // Pattern des composants
-  "excludeDirectories": ["node_modules", ".git"], // Dossiers à ignorer
-  "cacheTimeout": 1000 // Cache pour les performances
-}
+features/catalog/components/
+├── catalog-card.component.tsx  ← Ignoré (pas global)
+└── product-form.component.tsx  ← Ignoré (pas global)
 ```
 
-## Le Playground Automatique
+### 2. Export meta obligatoire
+
+Pour qu'un composant apparaisse dans la Sandbox, il doit avoir un export `meta` :
+
+```tsx button.component.tsx
+export function Button({ disabled, children }: ButtonProps) {
+  return (
+    <button
+      className={cn(buttonVariants({ variant, size }))}
+      disabled={disabled}
+    >
+      {children}
+    </button>
+  );
+}
+
+// Sans cet export, le composant n'apparaît PAS dans la Sandbox
+export const meta = {
+  category: "UI",
+  name: "Button",
+  description: "Composant bouton interactif",
+};
+```
+
+### 3. Génération automatique des pages
+
+Pour chaque composant détecté, la Sandbox génère :
+
+- **Page index** : `/sandbox` - Liste tous les composants par catégorie
+- **Page composant** : `/sandbox/button` - Playground interactif pour le Button
+
+## Configuration du meta
+
+### Propriétés obligatoires
+
+```tsx
+export const meta = {
+  category: "UI", // Catégorie pour organiser
+  name: "Button", // Nom affiché dans la Sandbox
+  description: "Composant bouton", // Description courte
+};
+```
+
+### Propriétés optionnelles
+
+```tsx
+export const meta = {
+  category: "UI",
+  name: "Button",
+  description: "Composant bouton",
+
+  // Optionnel : CVA variants pour détection automatique
+  variants: buttonVariants,
+
+  // Optionnel : Tags pour la recherche
+  tags: ["ui", "button", "form"],
+
+  // Optionnel : Si le composant accepte children
+  hasChildren: true,
+
+  // Optionnel : Props testables dans le playground
+  props: {
+    disabled: {
+      type: "boolean",
+      defaultValue: false,
+    },
+    children: {
+      type: "text",
+      defaultValue: "Mon bouton",
+    },
+  },
+};
+```
+
+## Configuration des props testables
+
+Si on veut tester des props dans le playground, on ajoute une section `props` au meta :
+
+### Types supportés
 
 <Tabs>
-  <Tab title="Génération des contrôles">
+  <Tab title="Text">
+    Pour les props de type string :
+    
     ```tsx
-    // Votre composant avec CVA :
-    const buttonVariants = cva("base", {
-      variants: {
-        variant: { default: "...", primary: "..." },
-        size: { sm: "...", md: "...", lg: "..." }
-      }
-    });
-    
-    // La Sandbox génère automatiquement :
-    <select name="variant">
-      <option value="default">default</option>
-      <option value="primary">primary</option>
-    </select>
-    
-    <select name="size">
-      <option value="sm">sm</option>
-      <option value="md">md</option>
-      <option value="lg">lg</option>
-    </select>
+    children: {
+      type: "text",
+      defaultValue: "Mon texte",
+      description: "Texte du bouton"
+    }
     ```
   </Tab>
 
-{" "}
-<Tab title="Preview en temps réel">
-  ```tsx // Quand vous changez un contrôle dans le playground : const
-  [selectedVariant, setSelectedVariant] = useState("default"); const
-  [selectedSize, setSelectedSize] = useState("md"); // La preview se met à jour
-  instantanément :
-  <Button variant={selectedVariant} size={selectedSize}>
-    Exemple de bouton
-  </Button>
-  ```
-</Tab>
-
-  <Tab title="Code généré">
-    ```tsx
-    // La Sandbox affiche le code correspondant :
-    <Button variant="primary" size="lg" disabled={false}>
-      Exemple de bouton
-    </Button>
+  <Tab title="Boolean">
+    Pour les props true/false :
     
-    // Que vous pouvez copier-coller directement !
+    ```tsx
+    disabled: {
+      type: "boolean",
+      defaultValue: false
+    }
+    ```
+  </Tab>
+
+  <Tab title="Number">
+    Pour les props numériques :
+    
+    ```tsx
+    count: {
+      type: "number",
+      defaultValue: 10
+    }
     ```
   </Tab>
 </Tabs>
 
-## Navigation et Organisation
+## Exemple complet
 
-<CardGroup cols={3}>
-  <Card title="Page Index" icon="list">
-    `/sandbox` - Vue d'ensemble de tous les composants organisés par catégorie
-  </Card>
+```tsx input.component.tsx
+const inputVariants = cva("border rounded-md px-3 py-2", {
+  variants: {
+    variant: {
+      default: "border-gray-300",
+      error: "border-red-500",
+    },
+  },
+});
 
-  <Card title="Page Composant" icon="eye">
-    `/sandbox/[nom]` - Preview et playground interactif pour un composant
-  </Card>
+interface InputProps extends VariantProps<typeof inputVariants> {
+  placeholder?: string;
+  disabled?: boolean;
+  maxLength?: number;
+}
 
-  <Card title="Recherche" icon="search">
-    Filtrage par catégorie, nom ou tags pour trouver rapidement un composant
-  </Card>
-</CardGroup>
+export function Input({
+  variant,
+  placeholder,
+  disabled,
+  maxLength,
+}: InputProps) {
+  return (
+    <input
+      className={cn(inputVariants({ variant }))}
+      placeholder={placeholder}
+      disabled={disabled}
+      maxLength={maxLength}
+    />
+  );
+}
 
-## Exemple Concret : Découvrir la Sandbox
+// Configuration complète pour la Sandbox
+export const meta = {
+  category: "Form",
+  name: "Input",
+  description: "Champ de saisie avec validation",
+  variants: inputVariants,
+  tags: ["form", "input", "field"],
+  hasChildren: false,
+  props: {
+    placeholder: {
+      type: "text",
+      defaultValue: "Tapez votre texte...",
+    },
+    disabled: {
+      type: "boolean",
+      defaultValue: false,
+    },
+    maxLength: {
+      type: "number",
+      defaultValue: 100,
+    },
+  },
+};
+```
+
+## Utilisation de la Sandbox
 
 <Steps>
-  <Step title="Vous arrivez sur /sandbox">
-    Vous voyez une interface claire avec tous vos composants organisés :
-    
-    ```
-    UI Components
-      Button - Bouton interactif avec variants
-      Input - Champ de saisie avec validation
-      Dialog - Fenêtre modale réutilisable
-    
-    Layout Components  
-      Card - Conteneur avec bordure et ombre
-      DataTable - Tableau avec tri et pagination
-    ```
+  <Step title="Accéder à la liste">
+    On se rend sur `/sandbox` pour voir tous nos composants organisés par catégorie
   </Step>
 
-{" "}
-<Step title="Vous cliquez sur 'Button'">
-  Vous arrivez sur `/sandbox/button` et découvrez : **À gauche** : Le playground
-  interactif ``` Variant: [default ▼] [primary] [destructive] Size: [sm] [md ▼]
-  [lg] Disabled: ☐ Children: [Cliquez-moi ___________] ``` **À droite** : La
-  preview en temps réel ```tsx
-  <Button variant="default" size="md">
-    Cliquez-moi
-  </Button>
-  ```
+<Step title="Ouvrir un composant">
+  On clique sur un composant pour accéder à son playground interactif
 </Step>
 
-  <Step title="Vous testez les variants">
-    Vous changez `variant` à `primary` → La preview se met à jour instantanément !
-    
-    **Code généré automatiquement** :
-    ```tsx
-    <Button variant="primary" size="md">
-      Cliquez-moi  
-    </Button>
-    ```
-    
-    **Bouton "Copy Code"** → Vous collez directement dans votre composant !
+<Step title="Tester les props">
+  On modifie les contrôles dans le playground pour voir le composant changer en
+  temps réel
+</Step>
+
+<Step title="Copier le code">
+  On utilise le bouton "Copier le code" pour obtenir le JSX correspondant à nos
+  réglages
+</Step>
+
+  <Step title="Utiliser dans l'app">
+    On colle le code copié directement dans notre composant ou page
   </Step>
 </Steps>
 
-<Tip>
-  **Magic !** Aucune configuration, aucun fichier story à écrire. Juste votre
-  composant avec son export meta et tout fonctionne automatiquement.
-</Tip>
+## Catégories recommandées
 
-## Avantages vs Storybook
+On organise nos composants avec ces catégories courantes :
 
-<Tabs>
-  <Tab title="Maintenance">
-    ```tsx
-    // Storybook : 2 fichiers à maintenir
-    // button.component.tsx
-    export function Button() { /* composant */ }
-    
-    // button.stories.tsx  
-    export default { /* config storybook */ };
-    export const Default = { /* story */ };
-    export const Primary = { /* story */ };
-    
-    // Sandbox : 1 seul fichier
-    // button.component.tsx
-    export function Button() { /* composant */ }
-    export const meta = { /* config sandbox */ };
-    ```
-  </Tab>
+```tsx
+// Interface utilisateur
+export const meta = { category: "UI", ... };        // Button, Badge, Avatar
 
-  <Tab title="Synchronisation">
-    ```tsx
-    // Avec Storybook : si vous ajoutez un variant...
-    const buttonVariants = cva("base", {
-      variants: {
-        variant: { 
-          default: "...", 
-          primary: "...",
-          danger: "..." // Nouveau variant
-        }
-      }
-    });
-    
-    // Vous devez MANUELLEMENT ajouter une story
-    export const Danger = { args: { variant: "danger" } };
-    
-    // Avec Sandbox : automatiquement disponible !
-    // Aucune action requise, le playground se met à jour
-    ```
-  </Tab>
-</Tabs>
+// Formulaires
+export const meta = { category: "Form", ... };      // Input, Select, Checkbox
 
-## Cache et Performance
+// Mise en page
+export const meta = { category: "Layout", ... };    // Card, Container, Grid
 
-- **Cache automatique** : 1 seconde
-- **Invalidation** : Changement de configuration
-- **Force refresh** : Redémarrer le dev server
+// Retours utilisateur
+export const meta = { category: "Feedback", ... };  // Alert, Toast, Loading
+
+// Navigation
+export const meta = { category: "Navigation", ... }; // Menu, Breadcrumb, Tabs
+```
 
 <Note>
-  La Sandbox transforme complètement l'expérience de développement des
-  composants UI en éliminant toute la friction de Storybook tout en offrant plus
-  de fonctionnalités.
-</Note>{" "}
+  La Sandbox se met à jour automatiquement quand vous modifiez un composant ou
+  ajoutez de nouveaux variants CVA.
+</Note>
