@@ -1,0 +1,443 @@
+---
+title: Gestion d'état
+description: "TypeScript et gestion d'état hybride pour une architecture type-safe"
+icon: database
+---
+
+<Info>
+  Notre architecture repose sur un backend client type-safe avec DTOs partagés,
+  combiné à une gestion d'état hybride claire entre données serveur et état
+  client.
+</Info>
+
+## Vue d'ensemble
+
+La gestion d'état suit une architecture en trois couches complémentaires :
+
+<CardGroup cols={3}>
+  <Card title="Backend Client" icon="code" href="#backend-client-typescript">
+    Type safety complète avec DTOs partagés entre frontend et backend
+  </Card>
+
+<Card title="TanStack Query" icon="server" href="#tanstack-query">
+  Cache intelligent et synchronisation automatique des données serveur
+</Card>
+
+  <Card title="Zustand" icon="desktop" href="#zustand">
+    État local pour l'interface utilisateur et les préférences
+  </Card>
+</CardGroup>
+
+<Warning>
+  **Principe fondamental** : Toutes les données proviennent du backend client.
+  Aucun appel direct à l'API.
+</Warning>
+
+## Backend Client
+
+### Configuration et utilisation
+
+Le `ChataigneClient` est importé depuis le package `@chataigne/client` et instancié dans chaque service avec l'authentification :
+
+<CodeGroup>
+
+```typescript
+import { ChataigneClient } from "@chataigne/client";
+import { authClient } from "@/lib/auth-client";
+
+// Instance locale dans chaque service
+const client = new ChataigneClient(authClient.$fetch);
+```
+
+</CodeGroup>
+
+### Utilisation dans les services
+
+<Tip>
+  Les services orchestrent les appels au backend client et convertissent les
+  données si nécessaire.
+</Tip>
+
+<CodeGroup>
+
+```typescript catalog.service.ts
+import { ChataigneClient, CreateCatalogDTO } from "@chataigne/client";
+import { authClient } from "@/lib/auth-client";
+
+const client = new ChataigneClient(authClient.$fetch);
+
+export const createCatalog = async (data: CreateCatalogDTO) => {
+  return client.location.catalog.create(data);
+};
+
+export const getLocationCatalogs = async (locationId: string) => {
+  return client.location.getLocationCatalogs(locationId);
+};
+```
+
+</CodeGroup>
+
+### Avantages clés
+
+<AccordionGroup>
+
+<Accordion title="Type Safety complète">
+Les DTOs sont partagés entre frontend et backend. Toute modification du contrat API provoque une erreur de compilation.
+
+```typescript
+// ✅ TypeScript vérifie automatiquement les types
+const catalog = await client.location.catalog.create({
+  name: "Menu Été",
+  locationId: "loc-123",
+});
+
+// ✅ Autocomplétion et validation des propriétés
+const catalogs = await client.location.getLocationCatalogs("loc-123");
+```
+
+</Accordion>
+
+<Accordion title="API cohérente et prévisible">
+Structure uniforme pour tous les appels :
+
+```typescript
+// Pattern cohérent pour toutes les ressources
+client.location.catalog.create(data);
+client.location.catalog.update(catalogId, name);
+client.location.catalog.delete(catalogId);
+client.location.getLocationCatalogs(locationId);
+```
+
+</Accordion>
+
+<Accordion title="Gestion d'erreurs centralisée">
+Toutes les erreurs passent par le même mécanisme, facilitant le debugging et la gestion globale :
+
+```typescript
+// Gestion des erreurs automatique et cohérente
+const catalogs = await client.location.getLocationCatalogs(locationId);
+return catalogs;
+```
+
+</Accordion>
+
+</AccordionGroup>
+
+## TanStack Query
+
+<Info>
+  TanStack Query résout les défis du cache et de la synchronisation des données
+  serveur. Il évite les appels API redondants, garde nos données fraîches
+  automatiquement, et gère les états de chargement/erreur pour nous.
+</Info>
+
+<Note>
+  TanStack Query gère le cache et la synchronisation de toutes les données
+  provenant du backend client.
+</Note>
+
+### Configuration
+
+<Steps>
+  <Step title="Configuration du QueryClient">
+    Configuration simple pour démarrer :
+
+    ```typescript
+    // config/query.config.ts
+    import { QueryClient } from "@tanstack/react-query";
+
+    export const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          staleTime: 5 * 60 * 1000, // 5 minutes
+          retry: 3,
+        },
+      },
+    });
+    ```
+
+  </Step>
+
+  <Step title="Provider dans l'application">
+    Intégration dans l'application :
+
+    ```typescript
+    // app/providers.tsx
+    export function Providers({ children }: { children: React.ReactNode }) {
+      return (
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
+      );
+    }
+    ```
+
+  </Step>
+</Steps>
+
+### Patterns de hooks
+
+<Tabs>
+  <Tab title="Lecture de données">
+    Les custom hooks encapsulent la logique TanStack Query et fournissent une interface simple pour nos composants. Ils transforment nos services en hooks réactifs avec cache automatique.
+
+    Pattern pour récupérer des données via le backend client :
+
+         ```typescript use-catalogs.hook.ts
+     import { useQuery } from "@tanstack/react-query";
+     import { getLocationCatalogs } from "../services/catalog.service";
+
+     export function useCatalogs(locationId: string) {
+       return useQuery({
+         queryKey: ["catalogs", locationId],
+         queryFn: () => getLocationCatalogs(locationId),
+       });
+     }
+     ```
+
+  </Tab>
+
+  <Tab title="Modification de données">
+    Les mutations gèrent les opérations de création, modification et suppression. Elles invalident automatiquement le cache pour maintenir la cohérence des données.
+
+    Pattern pour les mutations avec invalidation du cache :
+
+              ```typescript
+     export function useCreateCatalog() {
+       const queryClient = useQueryClient();
+
+       return useMutation({
+         mutationFn: createCatalog,
+         onSuccess: () => {
+           queryClient.invalidateQueries({ queryKey: ["catalogs"] });
+         },
+       });
+     }
+     ```
+
+  </Tab>
+</Tabs>
+
+### Utilisation dans les composants
+
+Nos composants consomment les hooks de données sans connaître les détails de TanStack Query. Ils reçoivent des données typées, des états de chargement et bénéficient automatiquement du cache.
+
+Exemple d'intégration simple :
+
+<CodeGroup>
+
+```tsx CatalogList.component.tsx
+export function CatalogList({ locationId }: { locationId: string }) {
+  const { data: catalogs, isLoading } = useCatalogs(locationId);
+
+  if (isLoading) return <CatalogListSkeleton />;
+
+  return (
+    <div className="space-y-4">
+      {catalogs?.map((catalog) => (
+        <CatalogCard key={catalog.id} catalog={catalog} />
+      ))}
+    </div>
+  );
+}
+```
+
+</CodeGroup>
+
+## Zustand
+
+<Info>
+  Zustand gère l'état client qui ne vient pas du serveur : préférences
+  utilisateur, état des interfaces (sidebar ouverte/fermée), filtres temporaires
+  et données de formulaires en cours de saisie.
+</Info>
+
+<Note>
+  Zustand ne doit **jamais** dupliquer des données serveur. Son rôle est
+  complémentaire à TanStack Query.
+</Note>
+
+### Store par feature
+
+On crée un store Zustand par feature pour isoler son état UI. Cela évite les conflits entre features et facilite la maintenance.
+
+Pattern pour l'état UI d'une feature :
+
+<CodeGroup>
+
+```typescript features/catalog/store/catalog.store.ts
+import { create } from "zustand";
+import { CatalogDTO, ProductDTO } from "@chataigne/client";
+
+interface CatalogState {
+  catalog: CatalogDTO | null;
+  selectedCatalogId: string | null;
+
+  // Actions
+  setCatalog: (catalog: CatalogDTO) => void;
+  setSelectedCatalogId: (id: string | null) => void;
+  updateProduct: (updatedProduct: ProductDTO) => void;
+  addProduct: (newProduct: ProductDTO) => void;
+}
+
+export const useCatalogStore = create<CatalogState>()((set, get) => ({
+  catalog: null,
+  selectedCatalogId: null,
+
+  setCatalog: (catalog) => set({ catalog }),
+  setSelectedCatalogId: (id) => set({ selectedCatalogId: id }),
+
+  updateProduct: (updatedProduct) =>
+    set((state) => ({
+      catalog: state.catalog
+        ? {
+            ...state.catalog,
+            products: [
+              ...state.catalog.products.filter(
+                (p) => p.id !== updatedProduct.id
+              ),
+              updatedProduct,
+            ],
+          }
+        : null,
+    })),
+
+  addProduct: (newProduct) =>
+    set((state) => ({
+      catalog: state.catalog
+        ? {
+            ...state.catalog,
+            products: [...state.catalog.products, newProduct],
+          }
+        : null,
+    })),
+}));
+```
+
+</CodeGroup>
+
+### Store global
+
+Le store global contient les préférences qui affectent toute l'application : thème, langue, paramètres utilisateur. On utilise la persistance pour conserver ces données entre les sessions.
+
+Pour l'état vraiment global de l'application :
+
+<CodeGroup>
+
+```typescript shared/store/app.store.ts
+import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
+
+interface AppState {
+  theme: "light" | "dark";
+
+  // Actions
+  toggleTheme: () => void;
+}
+
+export const useAppStore = create<AppState>()(
+  persist(
+    (set) => ({
+      theme: "light",
+
+      toggleTheme: () =>
+        set((state) => ({
+          theme: state.theme === "light" ? "dark" : "light",
+        })),
+    }),
+    {
+      name: "app-storage",
+      storage: createJSONStorage(() => localStorage),
+    }
+  )
+);
+```
+
+</CodeGroup>
+
+## Intégration complète
+
+Voici comment on fait collaborer les trois couches dans un composant réel. Les données serveur viennent de TanStack Query, l'état UI de Zustand, et la logique métier combine les deux.
+
+Exemple d'un composant utilisant les trois couches de l'architecture :
+
+<CodeGroup>
+
+```tsx CatalogDashboard.component.tsx
+export function CatalogDashboard({ locationId }: { locationId: string }) {
+  // 📊 Données serveur via TanStack Query + Backend Client
+  const { data: catalogs } = useCatalogs(locationId);
+
+  // 🎨 État client via Zustand
+  const { selectedCatalogId, setSelectedCatalogId } = useCatalogStore();
+
+  // 🔄 Logique dérivée
+  const selectedCatalog = catalogs?.find(
+    (catalog) => catalog.id === selectedCatalogId
+  );
+
+  return (
+    <div className="space-y-6">
+      <select onChange={(e) => setSelectedCatalogId(e.target.value)}>
+        {catalogs?.map((catalog) => (
+          <option key={catalog.id} value={catalog.id}>
+            {catalog.name}
+          </option>
+        ))}
+      </select>
+
+      {selectedCatalog && <CatalogDetails catalog={selectedCatalog} />}
+    </div>
+  );
+}
+```
+
+</CodeGroup>
+
+## Bonnes pratiques
+
+<Steps>
+  <Step title="Backend Client">
+    • Toujours passer par le backend client pour les appels API
+
+    • Ne jamais faire d'appels directs aux endpoints
+
+    • Utiliser les types partagés pour la type safety
+
+    • Centraliser la gestion des erreurs
+
+  </Step>
+
+  <Step title="TanStack Query">
+    • Utiliser exclusivement pour les données serveur
+
+    • Structurer les query keys de manière cohérente
+
+    • Invalider le cache après les mutations
+
+    • Gérer les états de loading et d'erreur
+
+  </Step>
+
+  <Step title="Zustand">
+    • Réserver à l'état UI local uniquement
+
+    • Ne jamais dupliquer les données serveur
+
+    • Créer un store par feature pour l'isolation
+
+    • Utiliser la persistance pour les préférences globales
+
+  </Step>
+
+  <Step title="Query Keys">
+    • Structure hiérarchique : `["resource", id, "subresource"]`
+
+    • Cohérence dans toute l'application
+
+    • Éviter les clés trop génériques
+
+    • Faciliter l'invalidation ciblée
+
+  </Step>
+</Steps>

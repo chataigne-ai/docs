@@ -88,8 +88,7 @@
             "pages": [
               "working-with-the-frontend/overview",
               "working-with-the-frontend/structure-du-projet",
-              "working-with-the-frontend/domain-layer",
-              "working-with-the-frontend/infrastructure-layer"
+              "working-with-the-frontend/gestion-etat"
             ]
           }
         ]
