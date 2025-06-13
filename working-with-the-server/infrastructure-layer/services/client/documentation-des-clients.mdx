@@ -94,6 +94,7 @@ export class HubriseOrderClient {
 - ```typescript
 
   ```
+
 - const order = await client.orders.get("order-id");
 - ```
    */
@@ -115,23 +116,24 @@ export class HubriseOrderClient {
 - ```typescript
 
   ```
+
 - const updatedOrder = await client.orders.updateStatus(
 - "order-id",
 - "preparing"
 - );
 - ```
-     */
-    async updateOrderStatus(id: string, status: OrderStatus): Promise<Order> {
-      // ... implementation
-    }
-  }
+         */
+        async updateOrderStatus(id: string, status: OrderStatus): Promise<Order> {
+          // ... implementation
+        }
+      }
   ```
 
+        ```
 
-    ```
+      </Step>
 
-  </Step>
-</Steps>
+  </Steps>
 
 ## Bonnes Pratiques
 

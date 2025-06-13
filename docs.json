@@ -80,132 +80,16 @@
                     ]
                   }
                 ]
-            },
-            {
-                "dropdown": "API Reference",
-                "groups": [
-                    {
-                        "group": "References",
-                        "pages": [
-                            "api-reference/introduction",
-                            {
-                                "group": "Orders",
-                                "pages": [
-                                    "api-reference/orders/introduction",
-                                    "api-reference/orders/create-a-new-order",
-                                    "api-reference/orders/update-order-status",
-                                    "api-reference/delivery/introduction",
-                                    "api-reference/discount/introduction",
-                                    "api-reference/payment/introduction",
-                                    "api-reference/charge/introduction"
-                                ]
-                            },
-                            {
-                                "group": "Orders draft",
-                                "pages": [
-                                    "api-reference/order-drafts/introduction",
-                                    "api-reference/order-drafts/create-order-draft",
-                                    "api-reference/order-drafts/create-a-new-order-draft",
-                                    "api-reference/order-drafts/update-order-draft",
-                                    "api-reference/order-drafts/update-and-validate-an-order-draft",
-                                    "api-reference/order-drafts/order-draft-ready",
-                                    "api-reference/order-drafts/register-an-order-draft",
-                                    "api-reference/order-drafts/payment-handling",
-                                    "api-reference/payment/get-url-for-registering-a-payment-method"
-                                ]
-                            },
-                            {
-                                "group": "Conversations",
-                                "pages": [
-                                    "api-reference/conversations/introduction",
-                                    "api-reference/messages/register-an-assistant-message",
-                                    "api-reference/messages/send-a-platform-message"
-                                ]
-                            },
-                            {
-                                "group": "Chatbot",
-                                "pages": [
-                                    "api-reference/chatbot/check-address"
-                                ]
-                            },
-                            {
-                                "group": "Customer",
-                                "pages": [
-                                    "api-reference/customers/create-a-new-customer",
-                                    "api-reference/customers/update-a-customer",
-                                    "api-reference/customers/delete-a-customer",
-                                    {
-                                        "group": "Payment method",
-                                        "pages": [
-                                            "api-reference/payment-methods/create-a-new-payment-method",
-                                            "api-reference/payment-methods/delete-a-payment-method"
-                                        ]
-                                    }
-                                ]
-                            },
-                            {
-                                "group": "Location",
-                                "pages": [
-                                    "api-reference/locations/create-a-new-restaurant-location",
-                                    "api-reference/locations/update-a-restaurant-location",
-                                    "api-reference/locations/update-payment-settings",
-                                    "api-reference/locations/update-location-settings"
-                                ]
-                            }
-                        ]
-                    }
-                ]
-              },
-              {
-                "group": "Orders draft",
-                "pages": [
-                  "api-reference/order-drafts/introduction",
-                  "api-reference/order-drafts/create-order-draft",
-                  "api-reference/order-drafts/create-a-new-order-draft",
-                  "api-reference/order-drafts/update-order-draft",
-                  "api-reference/order-drafts/update-and-validate-an-order-draft",
-                  "api-reference/order-drafts/order-draft-ready",
-                  "api-reference/order-drafts/register-an-order-draft",
-                  "api-reference/order-drafts/payment-handling",
-                  "api-reference/payment/get-url-for-registering-a-payment-method"
-                ]
-              },
-              {
-                "group": "Conversations",
-                "pages": [
-                  "api-reference/conversations/introduction",
-                  "api-reference/messages/register-an-assistant-message",
-                  "api-reference/messages/send-a-platform-message"
-                ]
-              },
-              {
-                "group": "Chatbot",
-                "pages": ["api-reference/chatbot/check-address"]
-              },
-              {
-                "group": "Customer",
-                "pages": [
-                  "api-reference/customers/create-a-new-customer",
-                  "api-reference/customers/update-a-customer",
-                  "api-reference/customers/delete-a-customer",
-                  {
-                    "group": "Payment method",
-                    "pages": [
-                      "api-reference/payment-methods/create-a-new-payment-method",
-                      "api-reference/payment-methods/delete-a-payment-method"
-                    ]
-                  }
-                ]
-              },
-              {
-                "group": "Location",
-                "pages": [
-                  "api-reference/locations/create-a-new-restaurant-location",
-                  "api-reference/locations/update-a-restaurant-location",
-                  "api-reference/locations/update-payment-settings",
-                  "api-reference/locations/update-location-settings"
-                ]
               }
+            ]
+          },
+          {
+            "group": "Working with the Frontend",
+            "pages": [
+              "working-with-the-frontend/overview",
+              "working-with-the-frontend/structure-du-projet",
+              "working-with-the-frontend/domain-layer",
+              "working-with-the-frontend/infrastructure-layer"
             ]
           }
         ]

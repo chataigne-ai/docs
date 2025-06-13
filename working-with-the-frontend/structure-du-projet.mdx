@@ -1,0 +1,249 @@
+---
+title: Structure du projet Frontend
+description: "Organisation et architecture du frontend Next.js avec une approche feature-based"
+icon: diagram-project
+---
+
+<Info>
+  Cette page décrit l'architecture feature-based du frontend Châtaigne, conçue
+  pour être modulaire, maintenable et évolutive avec Next.js 14.
+</Info>
+
+## Organisation Générale
+
+Le frontend utilise une architecture **feature-based** plutôt que page-based, permettant une meilleure scalabilité et maintenabilité du code.
+
+```bash
+src/
+├── app/               # Next.js App Router (routing uniquement)
+├── features/          # Modules métier autonomes
+├── shared/            # Ressources partagées
+├── styles/            # Styles globaux
+└── config/            # Configuration
+```
+
+## Stack Technique
+
+<CardGroup cols={2}>
+<Card title="Framework & Language" icon="react">
+• **Next.js 14** - Framework React avec App Router
+
+• **TypeScript** - Type safety et meilleure DX
+
+</Card>
+
+<Card title="State Management" icon="database">
+• **TanStack Query** - Gestion du cache et des requêtes API
+
+• **Zustand** - State management léger pour l'état client
+
+</Card>
+
+<Card title="UI & Styling" icon="paintbrush">
+• **Tailwind CSS** - Styling utility-first
+
+• **shadcn/ui** - Composants UI réutilisables
+
+</Card>
+
+<Card title="Validation & Forms" icon="check-circle">
+• **Zod** - Validation de schémas runtime
+
+• **React Hook Form** - Gestion des formulaires performante
+
+</Card>
+</CardGroup>
+
+## Couches Principales
+
+<Steps>
+  <Step title="App Directory (Routing)">
+    Gestion du routing uniquement :
+
+    - Fichiers extrêmement légers
+    - Import direct des vues depuis les features
+    - Aucune logique métier
+
+  </Step>
+
+  <Step title="Features (Modules métier)">
+    Modules autonomes et complets :
+
+    - **Views** : Composition visuelle uniquement
+    - **Hooks** : Toute la logique métier et TanStack Query
+    - **Services** : Communication avec les APIs
+    - **Store** : État client local (Zustand)
+    - **Components** : Éléments UI spécifiques
+
+  </Step>
+
+  <Step title="Shared (Ressources partagées)">
+    Éléments réutilisables :
+
+    - **Components** : shadcn/ui et composants communs
+    - **Hooks** : Hooks partagés et requêtes communes
+    - **Services** : API client et services globaux
+    - **Store** : État global de l'application
+
+  </Step>
+</Steps>
+
+```bash
+src/
+├── app/                      # Next.js App Router
+│   ├── (auth)/              # Route groups
+│   │   ├── login/
+│   │   │   └── page.tsx     # export default () => <LoginView />
+│   │   └── register/
+│   │       └── page.tsx
+│   ├── dashboard/
+│   │   └── page.tsx
+│   └── layout.tsx
+│
+├── features/                 # Modules métier autonomes
+│   ├── auth/
+│   │   ├── components/      # Composants spécifiques à auth
+│   │   │   ├── login-form.component.tsx
+│   │   │   └── auth-guard.component.tsx
+│   │   ├── views/          # Pages exportées par la feature
+│   │   │   ├── login.view.tsx
+│   │   │   └── register.view.tsx
+│   │   ├── hooks/          # Logique métier et TanStack Query
+│   │   │   ├── use-auth.hook.ts
+│   │   │   └── use-auth-form.hook.ts
+│   │   ├── services/       # Appels API
+│   │   │   └── auth.service.ts
+│   │   ├── store/          # État Zustand (UI uniquement)
+│   │   │   └── auth.store.ts
+│   │   ├── validations/    # Schémas Zod
+│   │   │   └── auth.schema.ts
+│   │   └── types/          # Types TypeScript
+│   │       └── auth.type.ts
+│   │
+│   └── dashboard/
+│       ├── components/
+│       ├── views/
+│       ├── hooks/
+│       ├── services/
+│       ├── store/
+│       └── types/
+│
+├── shared/                  # Ressources partagées
+│   ├── components/         # Composants réutilisables
+│   │   ├── ui/            # shadcn/ui components
+│   │   └── common/        # Composants métier partagés
+│   ├── hooks/             # Hooks partagés
+│   │   ├── queries/       # Hooks TanStack Query partagés
+│   │   └── mutations/     # Mutations TanStack Query
+│   ├── services/          # Services communs
+│   │   └── api.client.ts
+│   ├── store/             # État global
+│   ├── utils/             # Utilitaires communs
+│   └── types/             # Types globaux
+│
+├── styles/                 # Styles globaux
+└── config/                # Configuration
+    ├── query.config.ts    # Configuration TanStack Query
+    └── env.config.ts
+```
+
+## Conventions de Nommage
+
+<Note>
+  Nous utilisons des conventions strictes avec kebab-case et des suffixes
+  spécifiques.
+</Note>
+
+### Fichiers
+
+Tous les fichiers suivent le format kebab-case avec des suffixes spécifiques selon leur type :
+
+<CardGroup cols={2}>
+<Card title="Components & Views" icon="file-code">
+• `.component.tsx` - Composants UI
+
+• `.view.tsx` - Pages/vues principales
+
+</Card>
+
+<Card title="Logique & Services" icon="file-lines">
+• `.hook.ts` - Hooks custom
+
+• `.service.ts` - Services API
+
+</Card>
+
+<Card title="État & Validation" icon="gear">
+• `.store.ts` - Stores Zustand
+
+• `.schema.ts` - Schémas Zod
+
+</Card>
+
+<Card title="Configuration" icon="wrench">
+• `.type.ts` - Types TypeScript
+
+• `.config.ts` - Configuration
+
+</Card>
+</CardGroup>
+
+### Exports TypeScript
+
+- **PascalCase** pour les interfaces/types
+- **camelCase** pour les schémas Zod
+
+## Gestion d'État Hybride
+
+<Warning>
+  Principe fondamental : Séparation claire entre état serveur et état client.
+</Warning>
+
+Le frontend utilise une approche hybride pour la gestion d'état :
+
+- **TanStack Query** : Pour tout l'état serveur (data fetching, cache, synchronisation)
+- **Zustand** : Pour l'état client uniquement (UI state, préférences utilisateur)
+
+## Points d'Attention
+
+<CardGroup cols={2}>
+<Card title="Séparation des responsabilités" icon="arrow-down">
+• **Views** : Composition et orchestration des composants
+
+• **Hooks** : Logique métier et gestion d'état
+
+• **Services** : Communication avec les APIs externes
+
+• **Components** : Composants présentationnels réutilisables
+
+</Card>
+
+<Card title="État hybride" icon="database">
+• TanStack Query pour l'état serveur
+
+• Zustand pour l'état client uniquement
+
+• Jamais de duplication entre les deux
+
+</Card>
+
+<Card title="Feature autonome" icon="cube">
+• Chaque feature est indépendante
+
+• Minimisation des dépendances inter-features
+
+• Facilite le code splitting
+
+</Card>
+
+<Card title="Type safety" icon="shield">
+• TypeScript partout
+
+• Validation avec Zod
+
+• Inférence de types maximale
+
+</Card>
+</CardGroup>
+
+Cette architecture feature-based permet une séparation claire des responsabilités, une meilleure performance grâce au cache intelligent de TanStack Query, et une scalabilité optimale pour l'évolution du projet.
