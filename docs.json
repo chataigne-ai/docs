@@ -209,16 +209,6 @@
             ]
           }
         ]
-      },
-      {
-        "dropdown": "Changelog",
-        "icon": "clock",
-        "groups": [
-          {
-            "group": "Changelog",
-            "pages": ["changelog/changelog"]
-          }
-        ]
       }
     ],
     "global": {}
