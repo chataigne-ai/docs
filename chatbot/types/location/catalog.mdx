@@ -11,6 +11,7 @@ title: Catalog
 | `skus`        | [Skus](#skus)                 | Skus of the catalog              |
 | `optionLists` | [Option Lists](#option-lists) | Option Lists of the catalog      |
 | `options`     | [Options](#options)           | Options of the catalog           |
+| `discounts`   | [Discounts](#discounts)       | Discounts of the catalog         |
 
 ## Categories
 
@@ -55,3 +56,71 @@ title: Catalog
 | `optionListInternalId` | string                               | Internal id of the option list this option is part of                   |
 | `optionListName`       | string                               | Name of the option list this option is part of                          |
 | `price`                | [Price](/chatbot/types/common/price) | Price of this option                                                    |
+
+## Discounts
+
+| Name                | Type                                      | Description                                           |
+| ------------------- | ----------------------------------------- | ----------------------------------------------------- |
+| `id`                | string                                    | Unique identifier of the discount                     |
+| `name`              | string                                    | Name of the discount                                  |
+| `description`       | string (optional)                         | Description of the discount                           |
+| `imageId`           | string (optional)                         | Image identifier for the discount                     |
+| `isActive`          | boolean                                   | Whether the discount is currently active              |
+| `discountCondition` | [Discount Condition](#discount-condition) | Conditions that must be met for the discount to apply |
+| `discountType`      | [Discount Type](#discount-type)           | Type of discount                                      |
+| `discountData`      | [Discount Data](#discount-data)           | Specific data for the discount based on its type      |
+
+### Discount Condition
+
+| Name                        | Type                | Description                                              |
+| --------------------------- | ------------------- | -------------------------------------------------------- |
+| `startDate`                 | Date (optional)     | Start date for the discount validity period              |
+| `endDate`                   | Date (optional)     | End date for the discount validity period                |
+| `minOrderAmount`            | number (optional)   | Minimum order amount required to apply the discount      |
+| `maxNumberOfCustomerOrders` | number (optional)   | Maximum number of times a customer can use this discount |
+| `promotionCode`             | string (optional)   | Promotion code required to apply the discount            |
+| `productIds`                | string[] (optional) | List of product IDs the discount applies to              |
+| `customerIds`               | string[] (optional) | List of customer IDs eligible for this discount          |
+
+### Discount Type
+
+The discount type can be one of the following values:
+
+- `"percentage"` - Percentage-based discount
+- `"fixed"` - Fixed amount discount
+- `"free_product"` - Free product discount
+- `"bogo"` - Buy One Get One discount
+- `"free_shipping"` - Free shipping discount
+
+### Discount Data
+
+The discount data structure varies based on the discount type:
+
+#### Percentage Discount
+
+| Name                | Type              | Description                                 |
+| ------------------- | ----------------- | ------------------------------------------- |
+| `percentage`        | number            | Percentage value of the discount (0-100)    |
+| `maxDiscountAmount` | number (optional) | Maximum discount amount that can be applied |
+
+#### Fixed Discount
+
+| Name     | Type   | Description              |
+| -------- | ------ | ------------------------ |
+| `amount` | number | Fixed amount to discount |
+
+#### Free Product Discount
+
+| Name        | Type   | Description                         |
+| ----------- | ------ | ----------------------------------- |
+| `productId` | string | ID of the product that will be free |
+
+#### BOGO Discount
+
+| Name         | Type     | Description                                    |
+| ------------ | -------- | ---------------------------------------------- |
+| `productIds` | string[] | List of product IDs eligible for BOGO discount |
+
+#### Free Shipping Discount
+
+This discount type has no additional data fields.
