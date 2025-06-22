@@ -1,0 +1,145 @@
+# Translation System Implementation Guide
+
+## Overview
+
+This guide explains how to use the translation system to replace hardcoded French text in agent.py.
+
+## Translation System Components
+
+1. **translations.json** - Contains all translations organized by context
+2. **translations.py** - Translation manager and helper functions
+3. **t_customer()** - Helper function to get translations with customer language preference
+
+## Usage Examples
+
+### 1. Simple Translation (with access to payload and store_info)
+
+```python
+# Get customer language
+lang = self._get_customer_language(payload, store_info)
+default_lang = store_info.get('main_language', 'fr')
+
+# Use translation
+message = t_customer(
+    "errors.technical_difficulty",
+    customer_language=lang,
+    default_language=default_lang
+)
+```
+
+### 2. Translation with Parameters
+
+```python
+# Translation with placeholders
+message = t_customer(
+    "payment.verify_order_payment_disclaimer",
+    customer_language=lang,
+    default_language=default_lang,
+    brand="Visa",
+    last4="1234"
+)
+```
+
+### 3. When payload/store_info not available
+
+For methods that don't have direct access to payload or store_info, you'll need to:
+
+1. Pass language as a parameter to the method:
+```python
+async def _generate_order_summary(
+    self,
+    order_draft: OrderDraftDTO,
+    menu: CatalogDTO,
+    customer_language: str = "fr",  # Add this parameter
+    default_language: str = "fr",    # Add this parameter
+    # ... other parameters
+) -> str:
+```
+
+2. Use the translation with passed language:
+```python
+summary_lines = [t_customer(
+    "order.order_summary",
+    customer_language=customer_language,
+    default_language=default_language
+)]
+```
+
+## Remaining Hardcoded Text to Replace
+
+### Payment Messages
+- Line 1751: "Votre commande est prête pour le paiement."
+- Line 1767: "Vous allez être redirigé vers Twint..."
+- Line 1770: "Vous allez être redirigé vers Revolut..."
+- Line 1773: "Cliquez sur le lien ci-dessous pour procéder au paiement sécurisé par carte."
+
+### Order Messages
+- Line 1822: "*⚠️ Certains détails de votre commande ont changé :*\n"
+- Line 1824: "\n\nVoici le résumé mis à jour de votre commande :"
+- Line 2572: "*Résumé de commande :*\n  ```"
+- Line 2591: "Aucun article dans la commande, veuillez faire un choix."
+
+### Delivery Messages
+- Line 2704: "Livraison prévue {friendly_time}"
+- Line 2711: "À récupérer en magasin {friendly_time}"
+- Line 2720: "Commande au nom de {name}"
+- Line 2723: "Notes de livraison : {notes}"
+- Line 2727: "Notes générale : {notes}"
+- Line 2783: "Frais de livraison : {amount}"
+
+### Button Labels
+- Line 1842: "Je confirme ✅"
+- Line 1846: "Payer autrement 💰"
+- Line 3946: "Je confirme ✅"
+- Line 3980: "Payer ✅"
+- Line 3984: "Changer de carte 🔄"
+- Line 3988: "Payer autrement 💰"
+
+### Delivery Status Messages
+- Line 5247: "Votre commande est en attente d'un livreur."
+- Line 5250: "Un livreur a été assigné à votre commande! 🛵"
+- Line 5254: "Code de livraison: *{code}*"
+- Line 5257: "Votre livreur arrive au restaurant..."
+- Line 5262: "Votre commande est en route! 🛵"
+- Line 5276: "Votre commande a été livrée! Bon appétit! 😋"
+
+## Step-by-Step Process
+
+1. **Identify the context** - Determine where in the code the hardcoded text appears
+2. **Check available variables** - See if payload and store_info are available
+3. **Get language preference** - Use `_get_customer_language()` if possible
+4. **Replace with translation** - Use `t_customer()` with appropriate key
+5. **Test** - Ensure the translation works correctly
+
+## Adding New Translations
+
+1. Add to translations.json:
+```json
+"new_category": {
+  "new_key": {
+    "fr": "French text",
+    "en": "English text",
+    "de": "German text",
+    "it": "Italian text",
+    "es": "Spanish text",
+    "description": "Where this is used"
+  }
+}
+```
+
+2. Use in code:
+```python
+message = t_customer(
+    "new_category.new_key",
+    customer_language=lang,
+    default_language=default_lang
+)
+```
+
+## Best Practices
+
+1. **Always provide fallback** - Use default_language parameter
+2. **Group related translations** - Keep translations organized by context
+3. **Include descriptions** - Document where each translation is used
+4. **Test all languages** - Ensure translations work for all supported languages
+5. **Handle missing translations gracefully** - The system returns the key if translation not found

@@ -107,6 +107,7 @@
               "chatbot/message-webhook",
               "chatbot/event-webhook",
               "chatbot/order-draft",
+              "chatbot/translation",
               {
                 "group": "Types",
                 "pages": [
@@ -158,15 +159,6 @@
                 ]
               }
             ]
-          }
-        ]
-      },
-      {
-        "dropdown": "References",
-        "groups": [
-          {
-            "group": "Refs",
-            "openapi": "https://staging-server.chataigne.ai/api-json"
           }
         ]
       },
