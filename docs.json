@@ -182,6 +182,10 @@
                 ]
               },
               {
+                "group": "Chatbot",
+                "pages": ["api-reference/chatbot/check-address"]
+              },
+              {
                 "group": "Orders draft",
                 "pages": [
                   "api-reference/order-drafts/introduction",
