@@ -22,12 +22,38 @@ title: Catalog
 
 ## Products
 
-| Name           | Type              | Description                                                              |
-| -------------- | ----------------- | ------------------------------------------------------------------------ |
-| `internalId`   | string            | Unique internal identifier of the product, optimized for LLM readability |
-| `name`         | string            | Name of the product                                                      |
-| `categoryName` | string            | Name of the category this product is part of                             |
-| `description`  | string (optional) | Description of this product                                              |
+| Name           | Type                                   | Description                                                              |
+| -------------- | -------------------------------------- | ------------------------------------------------------------------------ |
+| `internalId`   | string                                 | Unique internal identifier of the product, optimized for LLM readability |
+| `name`         | string                                 | Name of the product                                                      |
+| `categoryName` | string                                 | Name of the category this product is part of                             |
+| `description`  | string (optional)                      | Description of this product                                              |
+| `isAvailable`  | boolean                                | Whether the product is currently available for ordering                  |
+| `restriction`  | [Restriction](#restriction) (optional) | Availability restrictions for this product                               |
+
+## Restriction
+
+| Name                   | Type                      | Description                                          |
+| ---------------------- | ------------------------- | ---------------------------------------------------- |
+| `dow`                  | [DaysOfWeek](#daysofweek) | Days of the week when the product is available       |
+| `startTime`            | string (optional)         | Start time for availability (HH:MM format, 24-hour)  |
+| `endTime`              | string (optional)         | End time for availability (HH:MM format, 24-hour)    |
+| `startDate`            | string (optional)         | Start date for availability (ISO 8601 date string)   |
+| `endDate`              | string (optional)         | End date for availability (ISO 8601 date string)     |
+| `availableForDelivery` | boolean                   | Whether the product is available for delivery orders |
+| `availableForPickup`   | boolean                   | Whether the product is available for pickup orders   |
+
+## DaysOfWeek
+
+| Name        | Type    | Description            |
+| ----------- | ------- | ---------------------- |
+| `monday`    | boolean | Available on Monday    |
+| `tuesday`   | boolean | Available on Tuesday   |
+| `wednesday` | boolean | Available on Wednesday |
+| `thursday`  | boolean | Available on Thursday  |
+| `friday`    | boolean | Available on Friday    |
+| `saturday`  | boolean | Available on Saturday  |
+| `sunday`    | boolean | Available on Sunday    |
 
 ## Skus
 
