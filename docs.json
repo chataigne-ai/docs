@@ -106,6 +106,7 @@
               "chatbot/getting-started",
               "chatbot/message-webhook",
               "chatbot/event-webhook",
+              "chatbot/commands",
               "chatbot/order-draft",
               "chatbot/translation",
               {

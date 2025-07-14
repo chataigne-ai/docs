@@ -1,0 +1,106 @@
+---
+title: Available Commands
+description: Special commands available for debugging and testing the chatbot integration
+---
+
+The chatbot supports several special commands that can be sent via WhatsApp to perform administrative actions. These commands are primarily intended for debugging and testing purposes.
+
+<Warning>
+  These commands permanently delete data and should be used with caution. They
+  are typically used during development and testing phases.
+</Warning>
+
+## Available Commands
+
+### Reset Command
+
+**Command:** `reset`
+
+**Description:** Clears the chatbot's conversation memory by deleting all assistant messages from the current conversation.
+
+**What it does:**
+
+- Deletes all assistant messages associated with the conversation
+- Preserves the customer data and conversation record
+- Resets the chatbot's context, making it start fresh
+
+**Use case:** When you want to reset the chatbot's memory of the conversation without affecting customer or conversation data.
+
+```
+reset
+```
+
+### Reset Conversation Command
+
+**Command:** `reset-conversation`
+
+**Description:** Completely deletes the entire conversation and all its related properties while preserving the customer data.
+
+**What it does:**
+
+- Deletes the conversation record entirely
+- Removes all associated messages (both assistant and platform messages)
+- Preserves the customer record and data
+- Forces creation of a new conversation on next interaction
+
+**Use case:** When you want to start completely fresh with a customer but keep their profile information.
+
+```
+reset-conversation
+```
+
+### Reset Customer Command
+
+**Command:** `reset-customer`
+
+**Description:** Completely removes the customer and all their associated data from the database.
+
+**What it does:**
+
+- Deletes all assistant messages from the conversation
+- Completely removes the customer record
+- Deletes all customer-related data (orders, conversations, etc.)
+- Forces creation of a new customer record on next interaction
+
+**Use case:** When you want to completely remove all traces of a customer from the system.
+
+```
+reset-customer
+```
+
+## Command Behavior
+
+<Info>
+  All commands are case-insensitive and should be sent as a regular text message
+  via WhatsApp.
+</Info>
+
+### Processing Flow
+
+1. The command is received through the Dialog webhook
+2. The system identifies it as a special command
+3. The appropriate action is executed immediately
+4. The command processing stops (no response is sent to the chatbot)
+5. No message is registered in the database for these commands
+
+### Security Considerations
+
+- Commands only work within the conversation context
+- No authentication beyond the WhatsApp number association
+- Commands cannot be executed by unauthorized users
+- All command executions are logged for auditing purposes
+
+## Implementation Details
+
+These commands are handled in the `HandleDialogMessageUsecase` before any other message processing occurs. When a command is detected:
+
+1. The system extracts the message content
+2. Compares it against known commands (case-insensitive)
+3. Executes the appropriate repository method
+4. Returns early without further processing
+
+The commands use the following repository methods:
+
+- `reset`: `assistantMessageRepository.deleteAllAssistantMessages()`
+- `reset-conversation`: `conversationRepository.deleteConversation()`
+- `reset-customer`: `assistantMessageRepository.deleteAllAssistantMessages()` + `customerRepository.deleteCustomer()`
