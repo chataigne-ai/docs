@@ -70,37 +70,4 @@ reset-customer
 
 ## Command Behavior
 
-<Info>
-  All commands are case-insensitive and should be sent as a regular text message
-  via WhatsApp.
-</Info>
-
-### Processing Flow
-
-1. The command is received through the Dialog webhook
-2. The system identifies it as a special command
-3. The appropriate action is executed immediately
-4. The command processing stops (no response is sent to the chatbot)
-5. No message is registered in the database for these commands
-
-### Security Considerations
-
-- Commands only work within the conversation context
-- No authentication beyond the WhatsApp number association
-- Commands cannot be executed by unauthorized users
-- All command executions are logged for auditing purposes
-
-## Implementation Details
-
-These commands are handled in the `HandleDialogMessageUsecase` before any other message processing occurs. When a command is detected:
-
-1. The system extracts the message content
-2. Compares it against known commands (case-insensitive)
-3. Executes the appropriate repository method
-4. Returns early without further processing
-
-The commands use the following repository methods:
-
-- `reset`: `assistantMessageRepository.deleteAllAssistantMessages()`
-- `reset-conversation`: `conversationRepository.deleteConversation()`
-- `reset-customer`: `assistantMessageRepository.deleteAllAssistantMessages()` + `customerRepository.deleteCustomer()`
+<Info>All commands be sent as a regular text message via WhatsApp.</Info>
