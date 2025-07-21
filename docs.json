@@ -110,6 +110,15 @@
               "chatbot/order-draft",
               "chatbot/translation",
               {
+                "group": "Features",
+                "pages": [
+                  {
+                    "group": "Memory",
+                    "pages": ["chatbot/features/memory"]
+                  }
+                ]
+              },
+              {
                 "group": "Types",
                 "pages": [
                   "chatbot/types/last-message",
@@ -119,6 +128,7 @@
                     "pages": [
                       "chatbot/types/order/introduction",
                       "chatbot/types/order/order-items",
+                      "chatbot/types/order/order-deals",
                       "chatbot/types/order/delivery",
                       "chatbot/types/order/payment"
                     ]
@@ -139,7 +149,8 @@
                     "pages": [
                       "chatbot/types/order-draft/introduction",
                       "chatbot/types/order-draft/applied-discount",
-                      "chatbot/types/order-draft/order-draft-item"
+                      "chatbot/types/order-draft/order-draft-item",
+                      "chatbot/types/order-draft/order-draft-deal"
                     ]
                   },
                   {
