@@ -97,6 +97,16 @@
         ]
       },
       {
+        "dropdown": "Server",
+        "icon": "server",
+        "groups": [
+          {
+            "group": "Whatsapp",
+            "pages": ["server/whatsapp/whatsapp-flow-state-machine"]
+          }
+        ]
+      },
+      {
         "dropdown": "Chatbot",
         "icon": "robot",
         "groups": [

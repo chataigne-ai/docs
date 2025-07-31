@@ -1,0 +1,663 @@
+# WhatsApp Flow State Machine Documentation
+
+## Overview
+
+The WhatsApp Flow is a conversational form system that guides customers through the food ordering process on WhatsApp. It uses a state machine pattern where each screen represents a state, and user interactions trigger transitions between states. The flow is managed by a central use case (`HandleFlowEventUsecase`) that orchestrates the entire conversation.
+
+## Architecture Components
+
+### 1. Flow Configuration (`flow.json`)
+
+- Defines the visual layout and data structure for each screen
+- Specifies the routing model that determines valid transitions between screens
+- Contains UI components and their configurations
+
+### 2. Flow Event Handler (`handle-flow-event.usecase.ts`)
+
+- Central orchestrator that processes all flow events
+- Manages encryption/decryption of WhatsApp communication
+- Routes events to appropriate page handlers
+- Maintains flow state through `FlowDraft` entity
+
+### 3. Page Handlers
+
+- Individual handlers for each screen that manage:
+  - Forward navigation (next screen logic)
+  - Backward navigation (previous screen logic)
+  - State updates in `FlowDraft`
+  - Data validation and processing
+
+### 4. Flow Draft Entity
+
+- Persistent state object that tracks:
+  - Current position in the flow
+  - Selected products and options
+  - Customer information
+  - Delivery/pickup preferences
+
+## State Machine Flow Diagram
+
+```
+INIT
+ ├─→ DELIVERY_TYPE (location mode)
+ └─→ ENTRY_CATEGORIES (businessOrganization mode)
+
+DELIVERY_TYPE
+ ├─→ CATEGORIES (if no special information needed)
+ └─→ INFORMATIONS (if cash-only payment or other notices)
+
+INFORMATIONS
+ └─→ CATEGORIES
+
+ENTRY_CATEGORIES / CATEGORIES
+ ├─→ PRODUCTS (when category selected)
+ └─→ OTHER_CATEGORIES (when "other categories" selected)
+
+OTHER_CATEGORIES
+ └─→ PRODUCTS
+
+PRODUCTS
+ ├─→ OPTIONS (if product has options)
+ ├─→ PRODUCTS_IN_DEAL (if deal product selected)
+ └─→ ANYTHING_ELSE (if no options)
+
+PRODUCTS_IN_DEAL
+ ├─→ OPTIONS (after product selection)
+ └─→ ANYTHING_ELSE (if no options)
+
+OPTIONS / OPTIONSTWO / OPTIONSTHREE
+ ├─→ Next option page (if more option lists)
+ ├─→ PRODUCTS_IN_DEAL (if in deal context)
+ └─→ ANYTHING_ELSE (when options complete)
+
+ANYTHING_ELSE
+ ├─→ CATEGORIES (if user wants more items)
+ ├─→ UPSELL (if upsell enabled)
+ ├─→ NAME (if name collection enabled)
+ ├─→ ADDRESS (if address needed and name not required)
+ ├─→ TIME (if time selection enabled)
+ └─→ SUCCESS (complete order)
+
+UPSELL
+ └─→ Continue to NAME/ADDRESS/TIME/SUCCESS
+
+NAME
+ ├─→ ADDRESS (if address collection enabled)
+ ├─→ TIME (if time selection enabled)
+ └─→ SUCCESS
+
+ADDRESS
+ ├─→ TIME (if time selection enabled)
+ └─→ SUCCESS
+
+TIME
+ ├─→ PROGRAMMED_TIME (if scheduled time selected)
+ └─→ SUCCESS (if ASAP selected)
+
+PROGRAMMED_TIME
+ └─→ SUCCESS
+```
+
+## Page Descriptions and State Modifications
+
+### 1. **DELIVERY_TYPE**
+
+- **Purpose**: Initial screen for location mode to choose delivery or pickup
+- **State Changes**:
+  - Sets `flowDraft.serviceType` to 'delivery' or 'collection'
+- **Transitions**:
+  - → CATEGORIES: Standard flow
+  - → INFORMATIONS: If location requires special notices
+
+### 2. **ENTRY_CATEGORIES**
+
+- **Purpose**: Initial screen for business organization mode showing primary categories
+- **State Changes**:
+  - Initializes flow with selected location from business organization
+- **Transitions**:
+  - → PRODUCTS: When a category is selected
+  - → OTHER_CATEGORIES: When "other categories" is selected
+
+### 3. **INFORMATIONS**
+
+- **Purpose**: Display important information (e.g., cash-only payments)
+- **State Changes**:
+  - No direct state changes, informational only
+- **Transitions**:
+  - → CATEGORIES: After acknowledgment
+
+### 4. **CATEGORIES**
+
+- **Purpose**: Display product categories for additional items
+- **State Changes**:
+  - Increments `flowDraft.currentProductIndex`
+- **Transitions**:
+  - → PRODUCTS: When a category is selected
+  - → OTHER_CATEGORIES: When "other categories" is selected
+
+### 5. **OTHER_CATEGORIES**
+
+- **Purpose**: Display secondary/non-primary categories
+- **State Changes**:
+  - No direct state changes
+- **Transitions**:
+  - → PRODUCTS: When a category is selected
+
+### 6. **PRODUCTS**
+
+- **Purpose**: Display products within selected category
+- **State Changes**:
+  - Adds new product to `flowDraft.products[]`
+  - Sets product type ('regular' or 'deal')
+  - Updates `currentLineIndex` for deals
+- **Transitions**:
+  - → OPTIONS: If product has option lists
+  - → PRODUCTS_IN_DEAL: If deal product needs selection
+  - → ANYTHING_ELSE: If no options required
+
+### 7. **PRODUCTS_IN_DEAL**
+
+- **Purpose**: Select specific product within a deal
+- **State Changes**:
+  - Updates deal line with selected product
+  - Increments `currentLineIndex` if more lines in deal
+- **Transitions**:
+  - → OPTIONS: If selected product has options
+  - → ANYTHING_ELSE: If no options or deal complete
+
+### 8. **OPTIONS / OPTIONSTWO / OPTIONSTHREE**
+
+- **Purpose**: Select product customizations (sauces, drinks, sides)
+- **State Changes**:
+  - Adds selected options to current product
+  - Increments `currentOptionListIndex`
+- **Transitions**:
+  - → Next OPTIONS page: If more option lists exist
+  - → PRODUCTS_IN_DEAL: If in deal and more lines to fill
+  - → ANYTHING_ELSE: When all options selected
+
+### 9. **ANYTHING_ELSE**
+
+- **Purpose**: Ask if customer wants to add more items
+- **State Changes**:
+  - Resets navigation indices if continuing
+  - Prepares for checkout if finishing
+- **Transitions**:
+  - → CATEGORIES: If "yes" (add more items)
+  - → UPSELL: If upsell enabled
+  - → NAME/ADDRESS/TIME: Based on flow settings
+  - → SUCCESS: Complete order
+
+### 10. **UPSELL**
+
+- **Purpose**: Suggest additional products before checkout
+- **State Changes**:
+  - May add upsell products to order
+- **Transitions**:
+  - → NAME/ADDRESS/TIME/SUCCESS: Continue checkout flow
+
+### 11. **NAME**
+
+- **Purpose**: Collect customer name information
+- **State Changes**:
+  - Sets `flowDraft.customerFirstName`
+  - Sets `flowDraft.customerLastName`
+- **Transitions**:
+  - → ADDRESS: If address collection enabled
+  - → TIME: If time selection enabled
+  - → SUCCESS: Complete order
+
+### 12. **ADDRESS**
+
+- **Purpose**: Collect delivery address
+- **State Changes**:
+  - Sets `flowDraft.street`
+  - Sets `flowDraft.postalCode`
+  - Sets `flowDraft.city`
+- **Transitions**:
+  - → TIME: If time selection enabled
+  - → SUCCESS: Complete order
+
+### 13. **TIME**
+
+- **Purpose**: Choose ASAP or scheduled delivery/pickup
+- **State Changes**:
+  - Sets delivery time preference
+- **Transitions**:
+  - → PROGRAMMED_TIME: If scheduled time selected
+  - → SUCCESS: If ASAP selected
+
+### 14. **PROGRAMMED_TIME**
+
+- **Purpose**: Select specific delivery/pickup time
+- **State Changes**:
+  - Sets `flowDraft.requestedTime` with hour and minute
+- **Transitions**:
+  - → SUCCESS: Complete order
+
+## Flow Draft State Structure
+
+```typescript
+FlowDraft {
+  id: string                    // Unique flow identifier
+  serviceType: 'delivery' | 'pickup'
+  inDeal: boolean              // Currently selecting deal items
+  currentLineIndex: number     // Current position in deal
+  currentOptionListIndex: number
+  currentProductIndex: number
+  products: Array<{
+    type: 'regular' | 'deal'
+    productId?: string
+    dealId?: string
+    lines?: DealLine[]
+    selectedOptions: Option[]
+  }>
+  customerFirstName: string | null
+  customerLastName: string | null
+  city: string | null
+  postalCode: string | null
+  street: string | null
+  requestedTime: string | null
+}
+```
+
+## Key Behaviors
+
+### 1. **Navigation**
+
+- **Forward**: Triggered by form submission with `data_exchange` action
+- **Backward**: Triggered by `BACK` action, maintains state but changes screen
+
+### 2. **Mode Differentiation**
+
+- **Location Mode**: Direct restaurant selection, starts with DELIVERY_TYPE
+- **Business Organization Mode**: Multi-location businesses, starts with ENTRY_CATEGORIES
+
+### 3. **Deal Product Handling**
+
+- Deals contain multiple "lines" (e.g., main + side + drink)
+- Each line requires product selection
+- Options are applied per selected product within the deal
+
+### 4. **State Persistence**
+
+- FlowDraft is persisted to database after each interaction
+- Allows resuming interrupted flows
+- Linked to customer WhatsApp number and flow token
+
+### 5. **Dynamic Screen Content**
+
+- Screen data is generated based on:
+  - Current catalog state
+  - Product availability
+  - Location settings
+  - Customer history
+
+## Error Handling
+
+1. **Client Errors**: Acknowledged without processing
+2. **Missing Flow Draft**: Creates new draft or throws error
+3. **Invalid Transitions**: Logged but gracefully handled
+4. **Encryption Failures**: Prevent flow progression
+
+## Integration Points
+
+1. **WhatsApp Business API**: Handles encrypted flow communication
+2. **Location Repository**: Retrieves restaurant data and catalogs
+3. **Customer Repository**: Manages customer information
+4. **Conversation Repository**: Links flows to chat conversations
+5. **Flow Draft Repository**: Persists flow state
+
+## Configuration Options
+
+Flow behavior can be customized through:
+
+- `whatsappIntegration.flowSettings`:
+  - `showFlowNameInputPage`
+  - `showFlowAddressInputPage`
+  - `showFlowTimeInputPage`
+  - `enableUpsell`
+- `location.deliverySettings.mode`
+- `catalog.settings.primaryCategories`
+
+This state machine ensures a guided, consistent ordering experience while maintaining flexibility for different restaurant configurations and customer preferences.
+
+## Detailed Page Navigation and State Changes
+
+This section provides an in-depth analysis of each page handler, documenting the forward/backward navigation logic and state modifications.
+
+### 1. DELIVERY_TYPE Page
+
+**File**: `handle-delivery-page.ts`
+
+#### Forward Navigation (handleDeliveryPageNextScreen)
+
+- **Input**: `serviceType` ('delivery' or 'pickup')
+- **State Changes**:
+  - Sets `flowDraft.serviceType` to the selected value
+- **Navigation Logic**:
+  - If `showFlowInformationPage` is false → Goes to CATEGORIES
+  - If `showFlowInformationPage` is true → Goes to INFORMATIONS
+- **No backward handler** (this is the initial page for location mode)
+
+### 2. ENTRY_CATEGORIES Page
+
+**File**: `handle-entry-category-page.ts`
+
+#### Forward Navigation (handleEntryCategoryPageNextScreen)
+
+- **Input**: `categoryId` and `productIndex`
+- **State Changes**: None directly
+- **Navigation Logic**:
+  - If `categoryId === 'OTHER_CATEGORIES'` → Goes to OTHER_CATEGORIES
+  - Otherwise → Goes to PRODUCTS page for the selected category
+- **No backward handler** (this is the initial page for business organization mode)
+
+### 3. INFORMATIONS Page
+
+**File**: `handle-information-page.ts`
+
+#### Forward Navigation (handleInformationPageNextScreen)
+
+- **State Changes**: None (informational only)
+- **Navigation**: Always goes to CATEGORIES
+
+#### Backward Navigation (handleInformationPagePreviousScreen)
+
+- **State Changes**: None
+- **Navigation**: Always goes back to DELIVERY_TYPE
+
+### 4. CATEGORIES Page
+
+**File**: `handle-category-page.ts`
+
+#### Forward Navigation (handleCategoryPageNextScreen)
+
+- **Input**: `categoryId` and `productIndex`
+- **State Changes**: None directly
+- **Navigation Logic**:
+  - If `categoryId === 'OTHER_CATEGORIES'` → Goes to OTHER_CATEGORIES
+  - Otherwise → Goes to PRODUCTS page for the selected category
+
+#### Backward Navigation (handleCategoryPagePreviousScreen)
+
+- **Complex logic based on flow state**:
+  - If `flowDraft.products.length === 0` (first category selection):
+    - If `showFlowInformationPage` → Goes to INFORMATIONS
+    - Otherwise → Goes to DELIVERY_TYPE
+  - If products exist:
+    - Updates indices based on last product type
+    - For deals: Sets `currentLineIndex` and `currentOptionListIndex` appropriately
+    - For regular products: Sets `currentOptionListIndex` to last option
+    - Navigation → Goes to ANYTHING_ELSE
+
+### 5. OTHER_CATEGORIES Page
+
+**File**: `handle-other-categories-page.ts`
+
+#### Forward Navigation (handleOtherCategoriesPageNextScreen)
+
+- **Input**: `categoryId`
+- **State Changes**: None
+- **Navigation**: Always goes to PRODUCTS page for selected category
+
+#### Backward Navigation (handleOtherCategoriesPagePreviousScreen)
+
+- **Navigation Logic**:
+  - If `currentProductIndex === 0` and mode is 'businessOrganization' → Goes to ENTRY_CATEGORIES
+  - Otherwise → Goes to CATEGORIES
+
+### 6. PRODUCTS Page
+
+**File**: `handle-product-page.ts`
+
+#### Forward Navigation (handleProductPageNextScreen)
+
+- **Input**: `productId`
+- **Complex logic for regular products vs deals**:
+
+**For Regular Products**:
+
+- **State Changes**:
+  - Creates new `FlowProduct` with option lists
+  - Adds to `flowDraft.products`
+  - Sets `currentProductIndex = products.length - 1`
+  - Sets `currentOptionListIndex = 0`
+  - Resets `currentLineIndex = 0`
+- **Navigation**:
+  - If product has options → Goes to OPTIONS
+  - If no options → Goes to ANYTHING_ELSE
+
+**For Deals**:
+
+- **State Changes**:
+  - Creates new `FlowDeal` with empty lines
+  - Adds to `flowDraft.products`
+  - Sets `currentProductIndex = products.length - 1`
+  - Sets `currentLineIndex = 0`
+  - Sets `currentOptionListIndex = 0`
+- **Navigation**: Calls `processDealLine()` which:
+  - If line has multiple SKUs → Goes to PRODUCTS_IN_DEAL
+  - If line has one SKU → Auto-selects and checks for options
+  - If no SKUs → Moves to next line or ANYTHING_ELSE
+
+#### Backward Navigation (handleProductPagePreviousScreen)
+
+- **Navigation Logic**:
+  - If no products and mode is 'businessOrganization' → Goes to ENTRY_CATEGORIES
+  - Otherwise → Goes to CATEGORIES
+
+### 7. PRODUCTS_IN_DEAL Page
+
+**File**: `handle-deal-product-selection.ts`
+
+#### Forward Navigation (handleDealProductSelection)
+
+- **Input**: `productId` (selected product within deal)
+- **State Changes**:
+  - Creates `FlowProduct` for selected item
+  - Sets `currentLine.product` to the created FlowProduct
+  - Resets `currentOptionListIndex = 0`
+- **Navigation**:
+  - If selected product has options → Goes to OPTIONS
+  - If no options → Calls `moveToNextDealLineOrFinish()`
+
+#### Backward Navigation (handleDealProductSelectionPreviousScreen)
+
+- **Complex logic**:
+  - If `currentLineIndex === 0`:
+    - Removes entire deal from products
+    - Resets all indices
+    - Goes to PRODUCTS page
+  - If `currentLineIndex > 0`:
+    - Decrements `currentLineIndex`
+    - If previous line had options → Shows last OPTIONS page
+    - If previous line had product selection → Shows PRODUCTS_IN_DEAL
+    - Otherwise → Recursive call to go back further
+
+### 8. OPTIONS / OPTIONSTWO / OPTIONSTHREE Pages
+
+**File**: `handle-option-page.ts`
+
+#### Forward Navigation (handleOptionSelection)
+
+- **Input**: Selected option IDs
+- **State Changes**:
+  - Creates `FlowProductOption` entities
+  - Sets options on current option list
+  - Increments `currentOptionListIndex` if more lists exist
+- **Navigation Logic**:
+  - If more option lists → Goes to next OPTIONS page (cycles through 3 screens)
+  - If no more option lists:
+    - Resets `currentOptionListIndex = 0`
+    - For deals → Calls `moveToNextDealLineOrFinish()`
+    - For regular products → Goes to ANYTHING_ELSE
+
+#### Backward Navigation (handleOptionPagePreviousScreen)
+
+- **Very complex logic handling multiple scenarios**:
+- If at first option list (`currentOptionListIndex === 0`):
+  - **For deals**:
+    - Clears current line's product
+    - Complex navigation through deal lines
+    - May go to previous line's OPTIONS, PRODUCTS_IN_DEAL, or PRODUCTS
+  - **For regular products**:
+    - Removes product from flow
+    - Goes back to PRODUCTS
+- If not at first option list:
+  - Clears current option list's options
+  - Decrements `currentOptionListIndex`
+  - Shows previous OPTIONS page
+
+### 9. ANYTHING_ELSE Page
+
+**File**: `handle-anything-else-page.ts`
+
+#### Forward Navigation (handleAnythingElsePageNextScreen)
+
+- **Input**: `anythingElse` ('yes' or 'no')
+- **State Changes**:
+  - If 'yes': Resets `currentOptionListIndex = 0`
+- **Navigation Logic**:
+  - If 'yes' → Goes to CATEGORIES
+  - If 'no' → Checks flow settings:
+    - If `showFlowNameInputPage` → Goes to NAME
+    - Else if `showFlowAddressInputPage` and delivery → Goes to ADDRESS
+    - Else if `showFlowTimeInputPage` → Goes to TIME
+    - Otherwise → SUCCESS
+
+#### Backward Navigation (handleAnythingElsePagePreviousScreen)
+
+- **Complex logic based on last product type**:
+- **For deals**:
+  - Finds last option list of last line
+  - Clears its options
+  - Goes to appropriate OPTIONS page
+- **For regular products**:
+  - Clears last option list's options
+  - Goes to last OPTIONS page
+
+### 10. UPSELL Page
+
+**File**: `handle-upsell-page.ts`
+
+#### Forward Navigation (handleUpsellPageNextScreen)
+
+- **Input**: Array of upsell product IDs
+- **State Changes**:
+  - Creates `FlowProduct` entries for each upsell (with `isUpsell: true`)
+  - Adds all to `flowDraft.products`
+  - Updates `currentProductIndex` to first upsell if any added
+- **Navigation**: Same logic as ANYTHING_ELSE 'no' path
+
+#### Backward Navigation (handleUpsellPageBackScreen)
+
+- **State Changes**: None
+- **Navigation**: Always goes to ANYTHING_ELSE
+
+### 11. NAME Page
+
+**File**: `handle-name-input-page.ts`
+
+#### Forward Navigation (handleNameInputPageNextScreen)
+
+- **Input**: `firstName` and `lastName`
+- **State Changes**:
+  - Sets `flowDraft.customerFirstName`
+  - Sets `flowDraft.customerLastName`
+- **Navigation Logic**:
+  - If `showFlowAddressInputPage` and delivery → Goes to ADDRESS
+  - Else if `showFlowTimeInputPage` → Goes to TIME
+  - Otherwise → SUCCESS
+
+#### Backward Navigation (handleNameInputPagePreviousScreen)
+
+- **State Changes**: None
+- **Navigation**: Always goes to ANYTHING_ELSE
+
+### 12. ADDRESS Page
+
+**File**: `handle-address-input.ts`
+
+#### Forward Navigation (handleAddressInputPageNextScreen)
+
+- **Input**: `street`, `postalCode`, `city`
+- **State Changes**:
+  - Sets `flowDraft.street`
+  - Sets `flowDraft.postalCode`
+  - Sets `flowDraft.city`
+- **Navigation Logic**:
+  - If `showFlowTimeInputPage` → Goes to TIME
+  - Otherwise → SUCCESS
+
+#### Backward Navigation (handleAddressInputPagePreviousScreen)
+
+- **State Changes**: None
+- **Navigation Logic**:
+  - If `showFlowNameInputPage` → Goes to NAME
+  - Otherwise → Goes to ANYTHING_ELSE
+
+### 13. TIME Page
+
+**File**: `handle-time-input-page.ts`
+
+#### Forward Navigation (handleTimeInputPageNextScreen)
+
+- **Input**: `time` ('asap' or 'programmed')
+- **State Changes**:
+  - If 'asap': Sets `flowDraft.requestedTime = 'ASAP'`
+- **Navigation Logic**:
+  - If 'asap' → SUCCESS
+  - If 'programmed' → Goes to PROGRAMMED_TIME (with calculated hour/minute options)
+
+#### Backward Navigation (handleTimeInputPagePreviousScreen)
+
+- **State Changes**: None
+- **Navigation Logic**:
+  - If `showFlowAddressInputPage` and delivery → Goes to ADDRESS
+  - Else if `showFlowNameInputPage` → Goes to NAME
+  - Otherwise → Goes to ANYTHING_ELSE
+
+### 14. PROGRAMMED_TIME Page
+
+**File**: `handle-time-input-page.ts`
+
+#### Forward Navigation (handleProgrammedTimeInputPageNextScreen)
+
+- **Input**: `hour`, `minute`, `done` flag
+- **State Changes**:
+  - If `done`: Sets `flowDraft.requestedTime = hour:minute`
+- **Navigation Logic**:
+  - If not `done` → Refreshes PROGRAMMED_TIME with updated minute options
+  - If `done` → SUCCESS
+
+#### Backward Navigation (handleProgrammedTimeInputPagePreviousScreen)
+
+- **State Changes**: None
+- **Navigation**: Always goes back to TIME
+
+## Key State Management Patterns
+
+### Index Management
+
+- `currentProductIndex`: Points to the active product/deal being configured
+- `currentLineIndex`: For deals, tracks which line is being filled
+- `currentOptionListIndex`: Tracks which option list is being displayed
+
+### State Persistence
+
+- FlowDraft is persisted after every significant state change
+- Allows resuming interrupted flows
+- Linked to flow token and customer WhatsApp number
+
+### Navigation Complexity
+
+- Backward navigation is significantly more complex than forward
+- Must properly restore state when going back
+- Deal products require special handling due to nested structure
+
+### Error Handling
+
+- Each handler validates data before proceeding
+- Throws descriptive errors for missing entities
+- Main use case handles encryption/decryption errors
