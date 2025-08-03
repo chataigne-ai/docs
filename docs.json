@@ -91,7 +91,14 @@
                   "working-with-the-server/application-layer/documenting"
                 ]
               },
-              "working-with-the-server/logging"
+              "working-with-the-server/logging",
+              {
+                "group": "Features",
+                "icon": "puzzle-piece",
+                "pages": [
+                  "working-with-the-server/features/marketing-campaigns"
+                ]
+              }
             ]
           }
         ]
@@ -254,6 +261,16 @@
                 ]
               }
             ]
+          }
+        ]
+      },
+      {
+        "dropdown": "Guides utilisateurs",
+        "icon": "users",
+        "groups": [
+          {
+            "group": "Marketing WhatsApp",
+            "pages": ["guides-utilisateurs/campagnes-marketing-whatsapp"]
           }
         ]
       },

@@ -1,0 +1,248 @@
+---
+title: "Campagnes Marketing WhatsApp"
+description: "Guide complet pour créer et gérer des campagnes marketing WhatsApp"
+icon: "message"
+---
+
+# Campagnes Marketing WhatsApp
+
+Ce guide vous explique comment créer et gérer des campagnes marketing via WhatsApp pour votre restaurant.
+
+## Vue d'ensemble du processus
+
+Le système de campagnes marketing WhatsApp se déroule en 3 étapes principales :
+
+1. **Création d'un message modèle** - Vous créez un modèle de message qui sera approuvé par Meta (WhatsApp)
+2. **Création de la campagne** - Vous configurez votre campagne en utilisant le modèle approuvé
+3. **Envoi des messages** - Vous sélectionnez les destinataires et envoyez votre campagne
+
+<Note>
+  Les messages marketing WhatsApp nécessitent l'utilisation de modèles
+  pré-approuvés par Meta pour garantir la qualité et éviter le spam.
+</Note>
+
+## Étape 1 : Créer un message modèle
+
+### Qu'est-ce qu'un message modèle ?
+
+Un message modèle est un format de message pré-défini qui doit être approuvé par Meta avant utilisation. Cette approbation garantit que vos messages respectent les politiques de WhatsApp et offrent une bonne expérience aux utilisateurs.
+
+### Comment créer un message modèle
+
+1. Accédez à la section **Messages WhatsApp** dans votre tableau de bord
+2. Cliquez sur **Créer un message modèle**
+3. Remplissez les éléments suivants :
+
+#### En-tête (Header) - Optionel
+
+- **Type** : Texte, Image ou Document
+- **Contenu** : Le titre principal de votre message
+- Exemple : "🎉 Offre Spéciale du Week-end !"
+
+#### Corps du message (Body)
+
+- Le contenu principal de votre message
+- Peut contenir des **variables** pour personnaliser le message
+- Exemple : "Bonjour {{1}}, profitez de {{2}}% de réduction ce week-end !"
+
+#### Pied de page (Footer) - Optionnel
+
+- Information complémentaire courte
+- Exemple : "Valable jusqu'au dimanche soir"
+
+#### Boutons (Buttons) - Optionnel
+
+- **Boutons d'action rapide** : Appeler, Site web
+- **Boutons de réponse** : Réponses prédéfinies
+
+### Les variables dans les messages modèles
+
+Les variables permettent de personnaliser chaque message envoyé. Elles sont représentées par des numéros entre accolades : `{{1}}`, `{{2}}`, etc.
+
+<Info>
+**Important** : Dans les messages modèles, les variables sont toujours numérotées ({{1}}, {{2}}, etc.). C'est lors de la création de la campagne que vous définirez ce que représente chaque variable.
+</Info>
+
+### Temps d'approbation
+
+- L'approbation par Meta prend généralement **1 à 2 minutes**
+- Dans de rare cas, ce délai peut prendre jusqu'à 24 heures
+- Une fois approuvé par Meta le message aura le statut "approuvé" dans le dashboard
+
+## Étape 2 : Créer une campagne marketing
+
+Une fois votre message modèle approuvé, vous pouvez créer une campagne marketing.
+
+### Configuration de base
+
+1. Accédez à **Campagnes Marketing**
+2. Cliquez sur **Nouvelle campagne**
+3. Configurez :
+   - **Nom de la campagne** : Un nom descriptif pour votre usage interne
+   - **Description de la campagne** : Une description pour votre usage interne (optionel)
+   - **Instructions au chatbot** : Une description de la campagne pour le chatbot, voir la section dédiée pour plus d'informations (optionel)
+   - **Message modèle** : Sélectionnez le modèle approuvé à utiliser
+
+### Définition des variables
+
+C'est ici que vous donnez du sens aux variables numérotées de votre modèle.
+
+#### Types de variables
+
+1. **Variables réservées (base de données)** 🔵
+
+   - Automatiquement remplies depuis la base de données clients de châtaigne. Ces variables ne seront remplies que si le client existe dans notre base de donnée, en général si il a déjà interargit avec le chatbot ou bien si il a passer commande sur une autre plateforme à laquelle nous sommes connecté.
+   - Exemples :
+     - `customerFirstName` : Prénom du client
+     - `customerLastName` : Nom du client
+
+2. **Variables personnalisées** ✏️
+   - À définir manuellement ou via fichier CSV/Excel
+   - Exemples :
+     - `discount` : Pourcentage de réduction
+     - `promoCode` : Code promotionnel
+     - `productName` : Nom du produit en promotion
+
+<Tip>
+  **Astuce** : Nommez vos variables selon les colonnes de votre fichier
+  Excel/CSV pour un mapping automatique lors de l'envoi.
+</Tip>
+
+### Instructions au chatbot
+
+Les instructions au chatbot permettent de définir le comportement de votre assistant IA lorsqu'un client répond au message de la campagne.
+
+Exemple d'instructions :
+
+```
+Lorsqu'un client répond à cette campagne de promotion:
+1. Remerciez-le pour son intérêt
+2. Présentez les plats en promotion
+3. Proposez de prendre sa commande immédiatement
+4. Appliquez automatiquement la réduction promise
+```
+
+Vous pouvez également définir des variables dans les instructions au chatbot afin de customiser les instructions en fonction de l'utilisateur. En nommant cette variable comme la colonne d'un fichier excel vous pourrez automatiquement les remplir à partir de votre base de donnée.
+
+Exemple :
+Si vous connaissez le restaurant de préférence de votre client. Ajoutez une variable {{preferedLocation}}. L'instruction envoyée au chatbot sera alors personnalisée en fonction du client par exemple.
+
+```
+Lorsqu'un client répond à cette campagne de promotion:
+1. Remercie-le pour son intérêt
+2. Demande lui si il souhaite commander dans son restaurant habituel à **Créteil**
+3. Propose de prendre sa commande immédiatement et applique automatiquement la réduction promise
+```
+
+### Préparation des données pour l'envoi
+
+#### Format Excel/CSV recommandé
+
+Créez un fichier avec les colonnes suivantes :
+
+- `phoneNumber` : Numéro de téléphone (format international : +41791234567)
+- Les noms de vos variables personnalisées
+
+Exemple de fichier CSV :
+
+```csv
+phoneNumber,discount,promoCode
++41791234567,20,WEEKEND20
++41791234568,15,WEEKEND15
++41791234569,25,VIP25
+```
+
+<Warning>
+  **Important** : Les noms de colonnes doivent correspondre exactement aux noms
+  de variables définis dans votre campagne.
+</Warning>
+
+### Validation par un administrateur
+
+- Afin de respecté les contraintes imposées par Meta les campagnes créées nécessitent une validation par châtaigne.
+- L'administrateur vérifiera la conformité et la pertinence de la campagne
+- Une fois la campagne approuvée son statut passera en "Acceptée" sur le dashboard
+
+## Étape 3 : Envoyer la campagne
+
+Une fois votre campagne approuvée, vous pouvez procéder à l'envoi.
+
+### Processus d'envoi
+
+1. Ouvrez la campagne approuvée
+2. Cliquez sur **Envoyer la campagne**
+3. Choisissez votre méthode d'ajout de destinataires :
+
+#### Option 1 : Import de fichier
+
+- Formats supportés : CSV, Excel (.xlsx, .xls)
+- Le système détectera automatiquement les colonnes correspondant à vos variables
+- Les variables réservées (base de données) seront automatiquement remplies
+
+#### Option 2 : Ajout manuel
+
+- Entrez les numéros de téléphone un par un
+- Définissez manuellement les valeurs des variables pour chaque destinataire
+
+### Aperçu avant envoi
+
+Avant l'envoi final, vous verrez :
+
+- La liste complète des destinataires
+- Les valeurs de toutes les variables pour chaque destinataire
+- Les indicateurs de source des données :
+  - 🔵 Valeur de la base de données
+  - 📄 Valeur du fichier importé
+  - ✏️ Valeur définie manuellement
+
+### Envoi immédiat ou programmé
+
+- **Envoi immédiat** : Les messages partent instantanément
+- **Envoi programmé** : Définissez une date et heure futures
+
+<Info>
+  Les messages sont envoyés par lots pour respecter les limites de WhatsApp et
+  garantir une livraison optimale. L'envoi de grosse campagne peut ainsi prendre
+  quelques minutes.
+</Info>
+
+## Suivi et statistiques
+
+Une fois la campagne envoyée, accédez aux statistiques pour suivre :
+
+- **Messages envoyés** : Nombre total de messages partis
+- **Messages délivrés** : Messages reçus par les destinataires
+- **Messages lus** : Messages ouverts par les destinataires
+- **Réponses** : Nombre de clients ayant répondu
+- **Taux d'engagement** : Pourcentage d'interaction
+- **Nombre de commande passées**: Combien d'utilisateurs ont passé une commande en réponse à la campagne
+
+## Conseils et bonnes pratiques
+
+1. **Personnalisation** : Utilisez les variables réservées pour personnaliser vos messages
+2. **Timing** : Envoyez vos campagnes aux heures de forte activité (10h30-11h30, 17h30-19h)
+3. **Fréquence** : Limitez-vous à 1-2 campagnes par semaine pour garder un bon score de numéro
+4. **Call-to-action** : Incluez toujours une action claire (commander, réserver, etc.)
+5. **Test** : Testez d'abord sur un petit groupe avant l'envoi général
+
+## Résolution des problèmes courants
+
+### Message modèle rejeté
+
+- Vérifiez qu'il ne contient pas de contenu promotionnel agressif
+- Évitez les majuscules excessives et les émojis en excès
+- Assurez-vous que le contenu est clair et professionnel
+
+### Variables non reconnues
+
+- Vérifiez l'orthographe exacte (sensible à la casse)
+- Assurez-vous que les colonnes du CSV correspondent aux noms de variables
+- Les espaces dans les noms sont significatifs
+
+### Échec d'envoi
+
+- Vérifiez le format des numéros de téléphone (+41...)
+- Assurez-vous que le destinataire n'a pas bloqué votre numéro
+- Vérifiez votre solde de messages WhatsApp
+
+Pour toute assistance supplémentaire, contactez notre support technique.
