@@ -326,7 +326,6 @@ The campaign acceptance feature ensures compliance with WhatsApp Business polici
      - Template message content
      - Variable definitions
      - Nexus instructions
-     - Target audience size estimate
 
 3. **Review Actions**:
 
@@ -340,9 +339,6 @@ The campaign acceptance feature ensures compliance with WhatsApp Business polici
 
      // 2. Update campaign status
      await this.campaignRepository.updateStatus(campaignId, 'accepted');
-
-     // 3. Notify campaign creator
-     await this.notificationService.notifyCampaignApproved(campaignId);
    }
    ```
 
@@ -357,9 +353,6 @@ The campaign acceptance feature ensures compliance with WhatsApp Business polici
        rejectedAt: new Date(),
        rejectedBy: request.user.id,
      });
-
-     // 2. Notify creator with feedback
-     await this.notificationService.notifyCampaignRejected(campaignId, reason);
    }
    ```
 
@@ -367,8 +360,6 @@ The campaign acceptance feature ensures compliance with WhatsApp Business polici
 
    - Template content appropriateness
    - Variable usage correctness
-   - Target audience size limits
-   - Frequency caps per location
 
 5. **Status Transitions**:
    ```
@@ -495,6 +486,19 @@ Time 10s-60s: Message jobs processing
 └── 60s: All messages sent
 ```
 
+## Queue Processing Details
+
+### Rate Limiting
+
+The system implements rate limiting to comply with WhatsApp Business API limits:
+
+```typescript
+// Configuration
+const MESSAGES_PER_SECOND = 80;
+const BATCH_SIZE = 5;
+const DELAY_BETWEEN_BATCHES = 1000 / (MESSAGES_PER_SECOND / BATCH_SIZE);
+```
+
 ### Error Handling Strategy
 
 **Campaign Job Failures**:
@@ -528,18 +532,228 @@ The system supports automatic variable resolution from the database:
 3. **Data Extraction**: Retrieves values from customer record
 4. **Fallback**: Uses default or empty string if not found
 
-## Queue Processing Details
+## CSV and Excel File Import System
 
-### Rate Limiting
+The marketing campaign system supports importing recipient data from CSV and Excel files with automatic column matching and variable mapping.
 
-The system implements rate limiting to comply with WhatsApp Business API limits:
+### File Processing Architecture
+
+#### Supported Formats
+
+- **CSV**: Comma, semicolon, or tab-separated values
+- **Excel**: .xlsx and .xls formats (via `xlsx` library)
+
+#### File Parser Implementation
+
+Located at: `src/features/whatsapp/utils/file-parser.ts`
+
+**Core Functions**:
+
+1. **`parseFile(file: File)`**: Main entry point
+
+   ```typescript
+   export async function parseFile(file: File): Promise<ParsedData> {
+     const fileExtension = file.name.split(".").pop()?.toLowerCase();
+
+     if (fileExtension === "csv") {
+       return parseCSV(file);
+     } else if (["xlsx", "xls"].includes(fileExtension || "")) {
+       return parseExcel(file);
+     } else {
+       throw new Error(
+         "Format de fichier non supporté. Utilisez CSV ou Excel."
+       );
+     }
+   }
+   ```
+
+2. **CSV Parsing**:
+
+   - Supports multiple delimiters: comma, semicolon, tab
+   - First row is always treated as headers
+   - Empty lines are automatically filtered out
+
+3. **Excel Parsing**:
+   - Uses the first sheet only
+   - Converts to JSON array format
+   - Empty cells are converted to empty strings
+
+### Column Matching Logic
+
+The system uses intelligent column matching to automatically map file columns to campaign variables:
+
+#### 1. Phone Number Detection
 
 ```typescript
-// Configuration
-const MESSAGES_PER_SECOND = 80;
-const BATCH_SIZE = 5;
-const DELAY_BETWEEN_BATCHES = 1000 / (MESSAGES_PER_SECOND / BATCH_SIZE);
+export function findPhoneColumn(headers: string[]): PhoneColumnInfo | null {
+  const phonePatterns = ["phone", "numero", "numéro", "tel", "mobile"];
+
+  // Case-insensitive partial matching
+  const phoneColumnIndex = headers.findIndex((h) =>
+    phonePatterns.some((pattern) => h.toLowerCase().includes(pattern))
+  );
+}
 ```
+
+**Supported column names**:
+
+- `phone`, `phoneNumber`, `phone_number`
+- `numero`, `numéro`, `numeroTelephone`
+- `tel`, `telephone`, `mobile`
+
+#### 2. Variable Column Matching
+
+```typescript
+export function findVariableColumns(
+  headers: string[],
+  variableNames: string[]
+): VariableColumnMapping[] {
+  // Case-insensitive matching with normalization
+  headers.findIndex(
+    (h) =>
+      h.toLowerCase() === varName.toLowerCase() ||
+      h.toLowerCase().replace(/[_\s-]/g, "") ===
+        varName.toLowerCase().replace(/[_\s-]/g, "")
+  );
+}
+```
+
+**Matching Rules**:
+
+- Case-insensitive comparison
+- Ignores underscores, spaces, and hyphens
+- Example: `customer_first_name` matches `customerFirstName`
+
+#### 3. Template Variable Override Matching
+
+The system can also match columns to template message variables (header, body, button) based on the actual variable values defined in the campaign.
+
+### Import Flow in Send Campaign Modal
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Modal
+    participant Parser
+    participant Validator
+    participant State
+
+    User->>Modal: Upload CSV/Excel file
+    Modal->>Parser: parseFile(file)
+    Parser-->>Modal: {headers, rows}
+
+    Modal->>Parser: findPhoneColumn(headers)
+    Parser-->>Modal: Phone column info
+
+    Modal->>Parser: findVariableColumns(headers, variableNames)
+    Parser-->>Modal: Variable mappings
+
+    Modal->>Parser: findTemplateColumns(headers, templateInfo)
+    Parser-->>Modal: Template mappings
+
+    Modal->>Modal: Show matched columns feedback
+
+    loop For each row
+        Modal->>Parser: extractDataFromRow(row, mappings)
+        Parser-->>Modal: {phone, variables, overrides}
+        Modal->>Validator: Validate phone number
+        Modal->>State: Add to recipient list
+    end
+
+    Modal->>User: Display import summary
+```
+
+### Data Processing Pipeline
+
+1. **File Upload Handling**:
+
+   ```typescript
+   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+     const file = e.target.files?.[0];
+     if (!file) return;
+
+     // Parse file
+     const { headers, rows } = await parseFile(file);
+
+     // Find columns
+     const phoneColumn = findPhoneColumn(headers);
+     const variableColumns = findVariableColumns(headers, variableNames);
+     const templateColumns = findTemplateColumns(headers, templateVariableInfo);
+   };
+   ```
+
+2. **Row Processing**:
+
+   - Each row is processed individually
+   - Phone numbers are normalized and validated
+   - Variables are extracted based on column mappings
+   - Template overrides are applied if matching columns found
+
+3. **Duplicate Handling**:
+   - Phone numbers are deduplicated automatically
+   - Existing recipients are updated with new variable values
+   - User receives feedback on duplicates
+
+### Variable Priority System
+
+When sending a campaign, variables are resolved in this priority order:
+
+1. **File Import Values** (highest priority)
+   - Values from CSV/Excel columns that match variable names
+2. **Manual Overrides**
+   - Values manually edited in the UI after import
+3. **Reserved Variables**
+   - Database values (e.g., customerFirstName)
+4. **Default Values** (lowest priority)
+   - Values defined during campaign creation
+
+### Import Validation and Feedback
+
+The system provides comprehensive feedback during import:
+
+```typescript
+// Success feedback with matched columns
+toast.success(
+  <div>
+    <div>✓ {result.added} numéros ajoutés</div>
+    <div className="text-xs mt-1 opacity-90">
+      Colonnes trouvées: Variables: discount, promoCode • Template: headerText
+    </div>
+  </div>
+);
+```
+
+**Validation Checks**:
+
+- Phone number format validation
+- Required variable presence
+- Data type compatibility
+- File size limits (10MB)
+- Row count limits (50,000 rows)
+
+### Error Handling
+
+Common import errors and their handling:
+
+1. **Missing Phone Column**:
+
+   - Error: "Aucune colonne de numéro de téléphone trouvée"
+   - Solution: Ensure file has a column with phone-related name
+
+2. **Invalid File Format**:
+
+   - Error: "Format de fichier non supporté"
+   - Solution: Use CSV or Excel formats only
+
+3. **Empty File**:
+
+   - Error: "Le fichier est vide"
+   - Solution: Ensure file contains headers and data
+
+4. **Large Files**:
+   - Files are processed in memory
+   - Progress feedback for files > 1000 rows
+   - Chunked processing to prevent UI freezing
 
 ### Error Handling
 

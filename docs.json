@@ -23,10 +23,6 @@
             "pages": ["how-to/store-onboarding"]
           },
           {
-            "group": "Marketing WhatsApp",
-            "pages": ["guides/campagnes-marketing-whatsapp"]
-          },
-          {
             "group": "Integrations",
             "pages": ["integrations/general"]
           },
@@ -100,7 +96,8 @@
                 "group": "Features",
                 "icon": "puzzle-piece",
                 "pages": [
-                  "working-with-the-server/features/marketing-campaigns"
+                  "working-with-the-server/features/marketing-campaigns",
+                  "guides/campagnes-marketing-whatsapp"
                 ]
               }
             ]
