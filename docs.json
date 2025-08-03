@@ -24,7 +24,7 @@
           },
           {
             "group": "Marketing WhatsApp",
-            "pages": ["guides-utilisateurs/campagnes-marketing-whatsapp"]
+            "pages": ["guides/campagnes-marketing-whatsapp"]
           },
           {
             "group": "Integrations",

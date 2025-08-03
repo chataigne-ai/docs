@@ -166,29 +166,95 @@ Located at: `src/infrastructure/queues/marketing.queue.ts`
 
 **Job Types**:
 
-1. `send-campaign`: Processes entire campaign
-2. `send-message`: Sends individual message
+1. **`send-campaign` Job**: Entry point for campaign processing
+
+   - Receives the entire campaign data with all recipients
+   - Creates MarketingMessage records in the database
+   - Splits recipients into batches for processing
+   - Enqueues individual `send-message` jobs for each recipient
+   - This job doesn't send any messages directly
+
+2. **`send-message` Job**: Handles individual message sending
+   - Receives a single MarketingMessage ID
+   - Loads message and related data from database
+   - Resolves all variables (reserved and custom)
+   - Calls 360dialog API to send the actual WhatsApp message
+   - Updates message status (sent, failed, etc.)
+   - Handles retries on failure
 
 #### MarketingProcessor
 
 Located at: `src/infrastructure/queues/processors/marketing.processor.ts`
 
-**Responsibilities**:
+**Detailed Processing Flow**:
 
-1. Processes campaign jobs from queue
-2. Creates MarketingMessage records in batches
-3. Enqueues individual message jobs
-4. Handles rate limiting and retries
-5. Updates campaign statistics
+1. **Campaign Job Processing** (`processSendCampaign`):
 
-**Batch Processing**:
+   ```typescript
+   async processSendCampaign(job: Job) {
+     const { campaignId, recipientNumbers, recipientVariables, recipientTemplateOverrides } = job.data;
+
+     // 1. Load campaign with template message
+     const campaign = await this.campaignRepository.findById(campaignId, true);
+
+     // 2. Process recipients in batches to avoid memory issues
+     const BATCH_SIZE = 100;
+     for (let i = 0; i < recipientNumbers.length; i += BATCH_SIZE) {
+       const batch = recipientNumbers.slice(i, i + BATCH_SIZE);
+
+       // 3. Create MarketingMessage records for this batch
+       const messages = await this.createMessagesForBatch(batch, campaign, recipientVariables);
+
+       // 4. Enqueue individual send-message jobs
+       for (const message of messages) {
+         await this.marketingQueue.enqueueSendMessage({
+           messageId: message.id,
+           delay: calculateDelay(i), // Rate limiting
+         });
+       }
+     }
+
+     // 5. Update campaign status
+     await this.campaignRepository.updateStatus(campaignId, 'sending');
+   }
+   ```
+
+2. **Message Job Processing** (`processSendMessage`):
+
+   ```typescript
+   async processSendMessage(job: Job) {
+     const { messageId } = job.data;
+
+     try {
+       // 1. Load message with all relations
+       const message = await this.messageRepository.findById(messageId);
+
+       // 2. Initialize conversation data if needed
+       await this.initializeConversationData(message.recipientNumber);
+
+       // 3. Send via SendMarketingMessageUsecase
+       await this.sendMarketingMessageUsecase.execute({
+         marketingMessageId: messageId,
+         // Variable resolution happens inside the usecase
+       });
+
+       // 4. Message status is updated by the usecase
+     } catch (error) {
+       // 5. Handle failures - job will be retried by BullMQ
+       throw error;
+     }
+   }
+   ```
+
+**Rate Limiting Strategy**:
 
 ```typescript
-// Process recipients in batches
-const BATCH_SIZE = 100;
-for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
-  const batch = recipients.slice(i, i + BATCH_SIZE);
-  await this.processBatch(batch, campaign);
+// Spread messages over time to respect WhatsApp limits
+const MESSAGES_PER_SECOND = 80;
+const DELAY_PER_MESSAGE = 1000 / MESSAGES_PER_SECOND; // ~12.5ms per message
+
+function calculateDelay(messageIndex: number): number {
+  return messageIndex * DELAY_PER_MESSAGE;
 }
 ```
 
@@ -238,6 +304,94 @@ Located at: `src/infrastructure/services/dialog/client/dialog.client.ts`
    - Three types: reserved, file-sourced, manual
    - Inline editing capabilities
    - Clear visual differentiation
+
+## Campaign Acceptance Workflow
+
+### Admin Dashboard Integration
+
+The campaign acceptance feature ensures compliance with WhatsApp Business policies and maintains quality standards.
+
+#### Acceptance Flow
+
+1. **Campaign Creation**:
+
+   - Regular users create campaigns with status `draft`
+   - Admin users' campaigns are auto-accepted with status `accepted`
+
+2. **Admin Review Dashboard**:
+
+   - Located at `/admin/campaigns`
+   - Shows all campaigns pending approval
+   - Displays campaign details:
+     - Template message content
+     - Variable definitions
+     - Nexus instructions
+     - Target audience size estimate
+
+3. **Review Actions**:
+
+   **Approve Campaign** (`POST /campaign/:id/approve`):
+
+   ```typescript
+   async approveCampaign(campaignId: string): Promise<void> {
+     // 1. Verify admin permissions
+     const isAdmin = request.user.role === 'admin';
+     if (!isAdmin) throw new ForbiddenException();
+
+     // 2. Update campaign status
+     await this.campaignRepository.updateStatus(campaignId, 'accepted');
+
+     // 3. Notify campaign creator
+     await this.notificationService.notifyCampaignApproved(campaignId);
+   }
+   ```
+
+   **Reject Campaign** (`POST /campaign/:id/reject`):
+
+   ```typescript
+   async rejectCampaign(campaignId: string, reason: string): Promise<void> {
+     // 1. Update status with rejection reason
+     await this.campaignRepository.reject(campaignId, {
+       status: 'rejected',
+       rejectionReason: reason,
+       rejectedAt: new Date(),
+       rejectedBy: request.user.id,
+     });
+
+     // 2. Notify creator with feedback
+     await this.notificationService.notifyCampaignRejected(campaignId, reason);
+   }
+   ```
+
+4. **Compliance Checks**:
+
+   - Template content appropriateness
+   - Variable usage correctness
+   - Target audience size limits
+   - Frequency caps per location
+
+5. **Status Transitions**:
+   ```
+   draft → pending → accepted → sent → closed
+              ↓
+           rejected
+   ```
+
+### Admin Dashboard UI Components
+
+**Campaign Review Card**:
+
+- Preview of template message with resolved variables
+- Variable mapping visualization
+- Nexus instructions preview
+- Quick approve/reject buttons
+- Rejection reason modal
+
+**Bulk Actions**:
+
+- Approve multiple campaigns
+- Apply consistent rejection reasons
+- Filter by location/organization
 
 ## Data Flow Diagrams
 
@@ -295,20 +449,77 @@ sequenceDiagram
     Processor->>Processor: Update stats
 ```
 
+## Queue Processing Architecture
+
+### Why Two Separate Job Types?
+
+The separation between `send-campaign` and `send-message` jobs provides several architectural benefits:
+
+1. **Scalability**:
+
+   - Campaign jobs are lightweight - they only create database records
+   - Message jobs can be distributed across multiple workers
+   - Failed messages don't block the entire campaign
+
+2. **Reliability**:
+
+   - Individual message failures can be retried independently
+   - Campaign progress is trackable at the message level
+   - Partial campaign completion is possible
+
+3. **Rate Limiting**:
+
+   - Messages are spread over time to respect API limits
+   - Each message has its own delay calculation
+   - Prevents overwhelming the WhatsApp API
+
+4. **Observability**:
+   - Clear separation of concerns for monitoring
+   - Individual message status tracking
+   - Detailed error reporting per recipient
+
+### Queue Processing Timeline
+
+```
+Time 0s: Campaign job received
+├── 0-2s: Load campaign data
+├── 2-5s: Create 1000 MarketingMessage records
+├── 5-10s: Enqueue 1000 send-message jobs with delays
+└── 10s: Campaign job complete
+
+Time 10s-60s: Message jobs processing
+├── 10.000s: Message 1 sent
+├── 10.012s: Message 2 sent (12.5ms delay)
+├── 10.025s: Message 3 sent
+├── ...continuing at ~80 messages/second
+└── 60s: All messages sent
+```
+
+### Error Handling Strategy
+
+**Campaign Job Failures**:
+
+- Retry entire campaign creation
+- Idempotent operation (won't duplicate messages)
+- Maximum 3 retries with exponential backoff
+
+**Message Job Failures**:
+
+- Individual retry per message
+- Failed messages marked with error status
+- After 3 retries, moved to dead letter queue
+- Campaign continues for other recipients
+
 ## Reserved Variables System
 
 The system supports automatic variable resolution from the database:
 
 ### Supported Reserved Variables
 
-| Variable Name            | Database Field       | Description           |
-| ------------------------ | -------------------- | --------------------- |
-| `customerFirstName`      | `customer.firstName` | Customer's first name |
-| `customerLastName`       | `customer.lastName`  | Customer's last name  |
-| `{{customer.firstName}}` | `customer.firstName` | Alternative syntax    |
-| `{{customer.lastName}}`  | `customer.lastName`  | Alternative syntax    |
-| `{{customer.name}}`      | `customer.name`      | Full name             |
-| `{{customer.phone}}`     | `customer.phone`     | Phone number          |
+| Variable Name       | Database Field       | Description           |
+| ------------------- | -------------------- | --------------------- |
+| `customerFirstName` | `customer.firstName` | Customer's first name |
+| `customerLastName`  | `customer.lastName`  | Customer's last name  |
 
 ### Resolution Process
 
@@ -346,157 +557,3 @@ const DELAY_BETWEEN_BATCHES = 1000 / (MESSAGES_PER_SECOND / BATCH_SIZE);
 3. **Status Updates**:
    - Real-time status via WebSocket events
    - Campaign statistics updated after each batch
-
-## Testing Strategy
-
-### Unit Tests
-
-Located in `*.spec.ts` files alongside implementation:
-
-1. **Domain Entity Tests**:
-
-   - Validation logic
-   - Status transitions
-   - Variable management
-
-2. **Use Case Tests**:
-
-   - Business logic validation
-   - Error scenarios
-   - Integration points mocking
-
-3. **Infrastructure Tests**:
-   - Queue processing
-   - External API mocking
-   - Database operations
-
-### Integration Tests
-
-1. **End-to-End Campaign Flow**:
-
-   - Template creation
-   - Campaign configuration
-   - Message sending
-   - Status tracking
-
-2. **File Processing**:
-   - CSV parsing
-   - Excel parsing
-   - Column matching
-   - Variable resolution
-
-## Performance Considerations
-
-### Scalability
-
-1. **Queue-Based Processing**:
-
-   - Handles thousands of recipients
-   - Prevents API timeout issues
-   - Allows horizontal scaling
-
-2. **Batch Operations**:
-   - Database inserts in batches
-   - API calls with rate limiting
-   - Memory-efficient processing
-
-### Optimization Tips
-
-1. **Database Queries**:
-
-   - Use indexes on phone numbers
-   - Batch customer lookups
-   - Cache frequently accessed data
-
-2. **File Processing**:
-   - Stream large files
-   - Process in chunks
-   - Validate before processing
-
-## Security Considerations
-
-1. **API Key Management**:
-
-   - Stored encrypted in database
-   - Per-location/organization isolation
-   - Audit trail for usage
-
-2. **Data Privacy**:
-
-   - Phone number validation
-   - PII handling compliance
-   - Secure variable storage
-
-3. **Access Control**:
-   - Role-based permissions
-   - Campaign approval workflow
-   - Audit logging
-
-## Monitoring and Debugging
-
-### Key Metrics
-
-1. **Queue Metrics**:
-
-   - Job processing rate
-   - Failure rate
-   - Queue depth
-
-2. **Campaign Metrics**:
-
-   - Delivery rate
-   - Read rate
-   - Response rate
-
-3. **System Health**:
-   - API response times
-   - Database query performance
-   - Memory usage
-
-### Debugging Tools
-
-1. **BullMQ Dashboard**: Monitor queue status
-2. **Application Logs**: Detailed processing logs
-3. **Database Queries**: Campaign and message status
-4. **WebSocket Events**: Real-time status updates
-
-## Common Issues and Solutions
-
-### Template Approval Delays
-
-- **Issue**: Templates stuck in pending
-- **Solution**: Check 360dialog webhook configuration
-
-### Variable Resolution Failures
-
-- **Issue**: Variables showing as undefined
-- **Solution**: Verify customer data exists and column names match
-
-### Queue Processing Delays
-
-- **Issue**: Messages sending slowly
-- **Solution**: Adjust concurrency and batch size settings
-
-### File Upload Errors
-
-- **Issue**: Excel files not parsing
-- **Solution**: Ensure proper file format and encoding
-
-## Future Enhancements
-
-1. **Advanced Targeting**:
-
-   - Segment-based campaigns
-   - Behavioral triggers
-   - A/B testing
-
-2. **Analytics**:
-
-   - Conversion tracking
-   - ROI calculation
-   - Cohort analysis
-
-3. **Automation**:
-   - Scheduled campaigns
-   - Trigger-based sends
-   - Follow-up sequences
