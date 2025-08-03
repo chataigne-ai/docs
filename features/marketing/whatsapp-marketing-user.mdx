@@ -43,7 +43,7 @@ Un message modèle est un format de message pré-défini qui doit être approuv�
 
 - Le contenu principal de votre message
 - Peut contenir des **variables** pour personnaliser le message
-- Exemple : "Bonjour {{1}}, profitez de {{2}}% de réduction ce week-end !"
+- Exemple : "Bonjour \{\{1\}\}, profitez de \{\{2\}\}% de réduction ce week-end !"
 
 #### Pied de page (Footer) - Optionnel
 
@@ -57,10 +57,10 @@ Un message modèle est un format de message pré-défini qui doit être approuv�
 
 ### Les variables dans les messages modèles
 
-Les variables permettent de personnaliser chaque message envoyé. Elles sont représentées par des numéros entre accolades : `{{1}}`, `{{2}}`, etc.
+Les variables permettent de personnaliser chaque message envoyé. Elles sont représentées par des numéros entre accolades : `\{\{1\}\}`, `\{\{2\}\}`, etc.
 
 <Info>
-**Important** : Dans les messages modèles, les variables sont toujours numérotées ({{1}}, {{2}}, etc.). C'est lors de la création de la campagne que vous définirez ce que représente chaque variable.
+**Important** : Dans les messages modèles, les variables sont toujours numérotées (\{\{1\}\}, \{\{2\}\}, etc.). C'est lors de la création de la campagne que vous définirez ce que représente chaque variable.
 </Info>
 
 ### Temps d'approbation
@@ -125,7 +125,7 @@ Lorsqu'un client répond à cette campagne de promotion:
 Vous pouvez également définir des variables dans les instructions au chatbot afin de customiser les instructions en fonction de l'utilisateur. En nommant cette variable comme la colonne d'un fichier excel vous pourrez automatiquement les remplir à partir de votre base de donnée.
 
 Exemple :
-Si vous connaissez le restaurant de préférence de votre client. Ajoutez une variable {{preferedLocation}}. L'instruction envoyée au chatbot sera alors personnalisée en fonction du client par exemple.
+Si vous connaissez le restaurant de préférence de votre client. Ajoutez une variable \{\{preferedLocation\}\}. L'instruction envoyée au chatbot sera alors personnalisée en fonction du client par exemple.
 
 ```
 Lorsqu'un client répond à cette campagne de promotion:
