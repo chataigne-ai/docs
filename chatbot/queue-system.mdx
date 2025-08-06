@@ -1,0 +1,337 @@
+---
+title: "Message Queue System"
+description: "Reliable message and event processing with Redis queues"
+icon: "layer-group"
+---
+
+The LeClerk chatbot uses a Redis-based queue system to ensure reliable message processing and prevent data loss during high-volume conversations. This system queues incoming messages and events per conversation, processes them serially, and allows the AI to check for new messages at critical decision points.
+
+## Overview
+
+The queue system provides:
+
+- **Separate queues** for messages and events per conversation
+- **Atomic processing locks** to prevent concurrent processing
+- **Automatic recovery** from crashes with 2-minute TTL
+- **Message aggregation** capabilities during processing
+- **Event integration** with selective processing
+
+## Architecture
+
+### Queue Structure
+
+Each conversation has two separate Redis queues:
+
+```
+conv:{conversation_id}:messages  → Customer messages
+conv:{conversation_id}:events    → System events (payments, orders, etc.)
+conv:{conversation_id}:processing → Processing lock with TTL
+```
+
+### Processing Flow
+
+<Frame>
+  <img src="/images/queue-flow.png" alt="Queue Processing Flow" />
+</Frame>
+
+1. **Message/Event arrives** via HTTP endpoint
+2. **Check processing state** - is conversation already being processed?
+3. **If not processing**: Acquire lock and start processing
+4. **If processing**: Add to appropriate queue
+5. **Process messages first**, then events
+6. **Continue until queues empty** (max 10 iterations, 2-minute timeout)
+
+## Configuration
+
+### Environment Variables
+
+```bash
+# Redis connection URL
+REDIS_URL=redis://localhost:6379
+
+# For Railway deployment
+REDIS_URL=${{Redis.REDIS_PRIVATE_URL}}
+```
+
+### Initialization
+
+The queue system initializes automatically on startup:
+
+```python
+# main.py startup event
+redis_client = redis.from_url(settings.redis_url)
+queue_manager = ConversationQueueManager(redis_client)
+conversation_processor = ConversationProcessor(queue_manager)
+
+# Recover any stuck conversations
+await conversation_processor.recover_stuck_conversations()
+```
+
+## Queue Manager API
+
+### Message Queue Operations
+
+```python
+# Add message to queue
+await queue_manager.add_message_to_queue(conversation_id, message_data)
+
+# Pop single message
+message = await queue_manager.pop_message_from_queue(conversation_id)
+
+# Pop multiple messages
+messages = await queue_manager.pop_multiple_messages_from_queue(conversation_id, count=5)
+
+# Peek without removing
+messages = await queue_manager.peek_message_queue(conversation_id, count=10)
+
+# Check if empty
+is_empty = await queue_manager.is_message_queue_empty(conversation_id)
+```
+
+### Event Queue Operations
+
+```python
+# Add event to queue
+await queue_manager.add_event_to_queue(conversation_id, event_data)
+
+# Pop single event
+event = await queue_manager.pop_event_from_queue(conversation_id)
+
+# Pop all events
+events = await queue_manager.pop_all_events_from_queue(conversation_id)
+
+# Peek events
+events = await queue_manager.peek_event_queue(conversation_id)
+```
+
+### Processing State Management
+
+```python
+# Check if processing
+is_processing = await queue_manager.is_processing(conversation_id)
+
+# Try to acquire lock (atomic)
+success = await queue_manager.try_acquire_processing_lock(conversation_id)
+
+# Release lock
+await queue_manager.release_processing_lock(conversation_id)
+
+# Check if stuck
+is_stuck = await queue_manager.is_processing_stuck(conversation_id)
+```
+
+## AI Agent Integration
+
+The AI agent can check for new messages and events during conversation processing:
+
+### Check for New Messages
+
+```python
+async def process_message(self, payload: ChatbotPayloadDTO):
+    # Before creating an order, check for new messages
+    context = await self.handle_new_messages_during_execution(
+        payload.conversation.id,
+        current_context
+    )
+
+    if context.get('has_modification_request'):
+        # User sent additional messages - handle modifications
+        return self._ask_for_confirmation()
+```
+
+### Check Events Before Actions
+
+```python
+# Before sending confirmation, check if payment failed
+if await self.check_for_events_before_action(
+    conversation_id,
+    "send_confirmation"
+):
+    # Safe to proceed
+    await nexus.send_platform_message(...)
+else:
+    # Event indicates action should be cancelled
+    return self._handle_payment_failure()
+```
+
+### Selective Event Processing
+
+```python
+# Pull specific event types into context
+events = await self.queue_helpers.pop_specific_event_types(
+    conversation_id,
+    ["payment_completed", "order_updated"]
+)
+
+# Process all pending events
+event_context = await self.aggregate_events_into_context(
+    conversation_id,
+    process_all=True
+)
+```
+
+## Implementation Examples
+
+### Custom Message Aggregation
+
+```python
+async def handle_new_messages_during_execution(
+    self,
+    conversation_id: str,
+    current_context: dict
+) -> dict:
+    """Check for and aggregate new messages during execution."""
+
+    new_messages = await self.queue_helpers.check_and_get_new_messages(conversation_id)
+
+    if new_messages:
+        # Aggregate messages into context
+        for msg in new_messages:
+            current_context['all_messages'].append(msg.message.content)
+
+            # Check for order modifications
+            if 'modifier' in msg.message.content.lower():
+                current_context['has_modification_request'] = True
+
+    return current_context
+```
+
+### Event-Driven Actions
+
+```python
+async def check_for_events_before_action(
+    self,
+    conversation_id: str,
+    action_type: str
+) -> bool:
+    """Check events before performing actions."""
+
+    events = await self.queue_helpers.check_event_queue(conversation_id)
+
+    for event in events:
+        # Cancel order creation if payment failed
+        if action_type == "create_order" and event.type == "payment_failed":
+            await self.queue_helpers.pop_specific_event_types(
+                conversation_id,
+                ["payment_failed"]
+            )
+            return False
+
+    return True
+```
+
+## Error Handling
+
+### Redis Connection Failure
+
+If Redis is unavailable, the system falls back to synchronous processing:
+
+```python
+if queue_manager and conversation_processor:
+    # Use queue system
+    await conversation_processor.handle_new_message(...)
+else:
+    # Fallback to legacy synchronous processing
+    response = await chat_agent.process_message(payload)
+```
+
+### Processing Timeouts
+
+- Individual conversation processing: 2-minute timeout
+- Maximum iterations per conversation: 10
+- Automatic recovery on startup for stuck conversations
+
+### Race Conditions
+
+The system uses Redis atomic operations to prevent race conditions:
+
+- `SET NX` for acquiring processing locks
+- TTL-based automatic lock expiration
+- Single processor per conversation guaranteed
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Check at Decision Points" icon="code-branch">
+    Check for new messages before critical actions like order creation or
+    payment processing
+  </Card>
+
+  <Card title="Selective Event Processing" icon="filter">
+    Only pull events relevant to current processing context to avoid complexity
+  </Card>
+
+  <Card title="Aggregate Wisely" icon="layer-group">
+    Create context-aware aggregation logic that preserves message intent
+  </Card>
+
+  <Card title="Handle Queue Failures" icon="shield-halved">
+    Always provide fallback behavior when queue system is unavailable
+  </Card>
+</CardGroup>
+
+## Monitoring
+
+### Queue Metrics
+
+Monitor these key metrics:
+
+- Queue depth per conversation
+- Processing duration
+- Stuck conversation count
+- Message/event processing rate
+
+### Logging
+
+The system logs key events:
+
+```
+INFO: Added message to queue for conversation {id}
+INFO: Starting processing for conversation {id}
+INFO: Processing batch of {n} messages
+WARNING: Conversation {id} processing exceeded timeout
+INFO: Recovery complete. Found {n} conversations with pending items
+```
+
+## Deployment Considerations
+
+### Railway Configuration
+
+```yaml
+# config_ngrok.yml
+services:
+  - name: redis
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+```
+
+### Production Settings
+
+- Use persistent Redis storage
+- Configure appropriate memory limits
+- Set up Redis replicas for high availability
+- Monitor queue depth and processing times
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Messages not being processed">
+    1. Check Redis connection: `redis-cli ping` 2. Verify processing locks:
+    `redis-cli keys "conv:*:processing"` 3. Check for stuck conversations in
+    logs 4. Manually clear stuck locks if needed
+  </Accordion>
+
+  <Accordion title="High queue depth">
+    1. Check processing timeout settings 2. Verify AI response times 3. Consider
+    increasing max iterations 4. Monitor for error loops
+  </Accordion>
+
+  <Accordion title="Events not being handled">
+    1. Verify event queue has items 2. Check event type filtering logic 3.
+    Ensure events are being popped after processing 4. Review event aggregation
+    logic
+  </Accordion>
+</AccordionGroup>

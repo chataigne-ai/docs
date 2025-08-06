@@ -133,6 +133,7 @@
               "chatbot/commands",
               "chatbot/order-draft",
               "chatbot/translation",
+              "chatbot/queue-system",
               {
                 "group": "Features",
                 "pages": [
