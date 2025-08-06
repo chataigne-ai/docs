@@ -1,337 +1,517 @@
 ---
-title: "Message Queue System"
-description: "Reliable message and event processing with Redis queues"
+title: "Queue System Developer Guide"
+description: "Implementing queue-aware chatbot logic with dual message/event queues"
 icon: "layer-group"
 ---
 
-The LeClerk chatbot uses a Redis-based queue system to ensure reliable message processing and prevent data loss during high-volume conversations. This system queues incoming messages and events per conversation, processes them serially, and allows the AI to check for new messages at critical decision points.
+This guide explains how to implement queue-aware logic in your chatbot's `agent.py`. The queue system ensures messages are processed sequentially per conversation while allowing the AI to check for new messages and events during execution.
 
-## Overview
+## System Architecture
 
-The queue system provides:
+### Dual Queue Design
 
-- **Separate queues** for messages and events per conversation
-- **Atomic processing locks** to prevent concurrent processing
-- **Automatic recovery** from crashes with 2-minute TTL
-- **Message aggregation** capabilities during processing
-- **Event integration** with selective processing
-
-## Architecture
-
-### Queue Structure
-
-Each conversation has two separate Redis queues:
+Each conversation maintains two separate Redis queues:
 
 ```
-conv:{conversation_id}:messages  → Customer messages
-conv:{conversation_id}:events    → System events (payments, orders, etc.)
-conv:{conversation_id}:processing → Processing lock with TTL
+conv:{conversation_id}:messages    → User messages (WhatsApp)
+conv:{conversation_id}:events      → System events (payments, orders)
+conv:{conversation_id}:processing  → Processing lock (TTL: 2 minutes)
 ```
 
-### Processing Flow
+### Control Flow Diagram
 
-<Frame>
-  <img src="/images/queue-flow.png" alt="Queue Processing Flow" />
-</Frame>
+```mermaid
+graph TD
+    A[HTTP Request] --> B{Is Processing?}
+    B -->|No| C[Acquire Lock]
+    B -->|Yes| D[Add to Queue]
 
-1. **Message/Event arrives** via HTTP endpoint
-2. **Check processing state** - is conversation already being processed?
-3. **If not processing**: Acquire lock and start processing
-4. **If processing**: Add to appropriate queue
-5. **Process messages first**, then events
-6. **Continue until queues empty** (max 10 iterations, 2-minute timeout)
+    C --> E[Process Initial Request]
+    E --> F{Check Queues}
+    F -->|Messages Exist| G[Pop & Process Messages]
+    F -->|No Messages| H{Events Exist?}
 
-## Configuration
+    G --> I[AI Processes Batch]
+    I --> F
 
-### Environment Variables
+    H -->|Yes| J[Process Events]
+    H -->|No| K[Release Lock]
+
+    J --> K
+
+    style E fill:#f9f,stroke:#333,stroke-width:4px
+    style I fill:#f9f,stroke:#333,stroke-width:4px
+    style J fill:#f9f,stroke:#333,stroke-width:4px
+```
+
+### Processing Priority
+
+1. **Messages always process first** - User intent takes priority
+2. **Events process after messages** - System updates handled secondarily
+3. **AI can peek/pop events during message processing** - Optional integration
+4. **Maximum 10 iterations, 2-minute timeout** - Prevents infinite loops
+
+## Environment Variables
 
 ```bash
-# Redis connection URL
-REDIS_URL=redis://localhost:6379
-
-# For Railway deployment
-REDIS_URL=${{Redis.REDIS_PRIVATE_URL}}
+REDIS_URL=redis://localhost:6379  # Redis connection URL
 ```
 
-### Initialization
+## How It Works: Step by Step
 
-The queue system initializes automatically on startup:
+### 1. Message Arrival
+
+When a message arrives at `/message` endpoint:
 
 ```python
-# main.py startup event
-redis_client = redis.from_url(settings.redis_url)
-queue_manager = ConversationQueueManager(redis_client)
-conversation_processor = ConversationProcessor(queue_manager)
+# main.py - FastAPI endpoint
+@app.post("/message")
+async def handle_message(payload: ChatbotPayloadDTO):
+    # Check if conversation is already processing
+    if await queue_manager.is_processing(payload.conversation.id):
+        # Add to message queue
+        await queue_manager.add_message_to_queue(
+            payload.conversation.id,
+            payload
+        )
+        return {"status": "queued"}
 
-# Recover any stuck conversations
-await conversation_processor.recover_stuck_conversations()
+    # Not processing - start new processing
+    await conversation_processor.handle_new_message(
+        payload.conversation.id,
+        process_conversation_messages
+    )
+    return {"status": "processing"}
 ```
 
-## Queue Manager API
+### 2. Event Arrival
 
-### Message Queue Operations
+When an event arrives at `/nexus/event` endpoint:
 
 ```python
-# Add message to queue
-await queue_manager.add_message_to_queue(conversation_id, message_data)
+# main.py - FastAPI endpoint
+@app.post("/nexus/event")
+async def handle_event(event: NexusEvent):
+    # Events always queue if messages are processing
+    if await queue_manager.is_processing(event.conversation.id):
+        await queue_manager.add_event_to_queue(
+            event.conversation.id,
+            event
+        )
+        return {"status": "queued"}
 
-# Pop single message
-message = await queue_manager.pop_message_from_queue(conversation_id)
-
-# Pop multiple messages
-messages = await queue_manager.pop_multiple_messages_from_queue(conversation_id, count=5)
-
-# Peek without removing
-messages = await queue_manager.peek_message_queue(conversation_id, count=10)
-
-# Check if empty
-is_empty = await queue_manager.is_message_queue_empty(conversation_id)
+    # Process immediately if no messages
+    await conversation_processor.handle_new_event(
+        event.conversation.id,
+        process_conversation_events
+    )
+    return {"status": "processing"}
 ```
 
-### Event Queue Operations
+### 3. Processing Logic
 
 ```python
-# Add event to queue
-await queue_manager.add_event_to_queue(conversation_id, event_data)
+# Simplified processing flow
+async def process_conversation_messages(conversation_id: str):
+    # Pop all queued messages
+    messages = await queue_manager.pop_all_messages_from_queue(conversation_id)
 
-# Pop single event
-event = await queue_manager.pop_event_from_queue(conversation_id)
+    for batch in messages:
+        # Create agent with queue helpers
+        agent = ChatAgent()
+        agent.set_queue_helpers(AgentQueueHelpers(queue_manager))
+
+        # Process the message batch
+        await agent.process_message(batch.get_payload())
+```
+
+## Agent.py Integration Guide
+
+### Setting Up Queue Helpers
+
+In your `agent.py`, the queue helpers are automatically injected:
+
+```python
+class ChatAgent:
+    def __init__(self):
+        self.queue_helpers = None  # Injected by main.py
+
+    def set_queue_helpers(self, queue_helpers: AgentQueueHelpers):
+        self.queue_helpers = queue_helpers
+```
+
+### Available Queue Methods
+
+```python
+# Check for new messages (non-destructive peek)
+new_messages = await self.queue_helpers.check_message_queue(conversation_id)
+
+# Get and remove new messages from queue
+messages = await self.queue_helpers.get_new_messages(conversation_id)
+
+# Check if events exist
+has_events = await self.queue_helpers.has_pending_events(conversation_id)
+
+# Peek at events without removing
+events = await self.queue_helpers.peek_events(conversation_id)
+
+# Pop specific event types
+payment_events = await self.queue_helpers.pop_matching_events(
+    conversation_id,
+    lambda e: e.type in ["payment_completed", "payment_failed"]
+)
 
 # Pop all events
-events = await queue_manager.pop_all_events_from_queue(conversation_id)
-
-# Peek events
-events = await queue_manager.peek_event_queue(conversation_id)
+all_events = await self.queue_helpers.pop_all_events(conversation_id)
 ```
 
-### Processing State Management
+## Real-World Scenarios
+
+### Scenario 1: Order Modification During Processing
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant Q as Queue System
+    participant A as Agent
+    participant N as Nexus
+
+    U->>Q: "I want a pizza"
+    Q->>A: Process message
+    A->>N: Start creating order
+    U->>Q: "Actually, make it large"
+    Note over Q: Message queued
+    A->>A: Check for new messages
+    A->>Q: Pop new messages
+    Q-->>A: ["Actually, make it large"]
+    A->>A: Aggregate context
+    A->>N: Update order to large
+    A->>U: "Updated to large pizza!"
+```
+
+**Implementation in agent.py:**
 
 ```python
-# Check if processing
-is_processing = await queue_manager.is_processing(conversation_id)
+async def handle_order_creation(self, context):
+    # Start order creation
+    order_details = self.extract_order_details(context)
 
-# Try to acquire lock (atomic)
-success = await queue_manager.try_acquire_processing_lock(conversation_id)
+    # Before finalizing, check for modifications
+    new_messages = await self.queue_helpers.get_new_messages(
+        context.conversation_id
+    )
 
-# Release lock
-await queue_manager.release_processing_lock(conversation_id)
+    if new_messages:
+        # Aggregate all messages
+        all_messages = context.messages + [m.get_payload() for m in new_messages]
 
-# Check if stuck
-is_stuck = await queue_manager.is_processing_stuck(conversation_id)
+        # Re-extract order with modifications
+        order_details = self.extract_order_details({
+            'messages': all_messages,
+            'original_order': order_details
+        })
+
+        # Acknowledge the modification
+        await self.send_message(
+            "I've updated your order based on your latest message!"
+        )
+
+    # Create the final order
+    return await self.nexus.create_order(order_details)
 ```
 
-## AI Agent Integration
+### Scenario 2: Payment Event During Confirmation
 
-The AI agent can check for new messages and events during conversation processing:
+```mermaid
+sequenceDiagram
+    participant E as External System
+    participant Q as Queue System
+    participant A as Agent
+    participant U as User
 
-### Check for New Messages
+    A->>U: "Confirming your order..."
+    E->>Q: Event: payment_failed
+    Note over Q: Event queued
+    A->>A: Check events before confirm
+    A->>Q: Peek events
+    Q-->>A: [payment_failed]
+    A->>Q: Pop payment event
+    A->>U: "Payment failed, please update card"
+```
+
+**Implementation in agent.py:**
+
+```python
+async def send_order_confirmation(self, context):
+    # Check for payment events before confirming
+    payment_events = await self.queue_helpers.pop_matching_events(
+        context.conversation_id,
+        lambda e: e.type in ["payment_completed", "payment_failed"]
+    )
+
+    if payment_events:
+        latest_payment = payment_events[-1].get_payload()
+
+        if latest_payment.type == "payment_failed":
+            return await self.handle_payment_failure(
+                context,
+                latest_payment.failureReason
+            )
+        elif latest_payment.type == "payment_completed":
+            # Payment succeeded after initial attempt
+            context.payment_confirmed = True
+
+    # Proceed with confirmation
+    return await self.nexus.send_order_confirmation(context.order_id)
+```
+
+### Scenario 3: Multiple Messages While Processing
+
+```mermaid
+graph LR
+    A[User: "Pizza"] --> B[Processing]
+    C[User: "Large"] --> D[Queue]
+    E[User: "Extra cheese"] --> D
+    F[User: "Deliver at 8pm"] --> D
+
+    B --> G[Check Queue]
+    D --> G
+    G --> H[Process All: Pizza + Large + Extra cheese + 8pm delivery]
+```
+
+**Implementation in agent.py:**
 
 ```python
 async def process_message(self, payload: ChatbotPayloadDTO):
-    # Before creating an order, check for new messages
-    context = await self.handle_new_messages_during_execution(
-        payload.conversation.id,
-        current_context
+    conversation_id = payload.conversation.id
+
+    # Your main processing logic
+    response = await self.generate_response(payload)
+
+    # Critical decision point - check for additional context
+    if self.is_about_to_create_order(response):
+        additional_messages = await self.queue_helpers.get_new_messages(
+            conversation_id
+        )
+
+        if additional_messages:
+            # Build complete context
+            full_context = self.merge_contexts(
+                original=payload,
+                new_messages=[m.get_payload() for m in additional_messages]
+            )
+
+            # Regenerate response with full context
+            response = await self.generate_response(full_context)
+
+            # Acknowledge all messages
+            message_count = len(additional_messages)
+            await self.send_message(
+                f"I've included your {message_count} additional messages!"
+            )
+
+    return response
+```
+
+## Decision Points for Queue Checks
+
+### When to Check for New Messages
+
+```python
+# 1. Before finalizing any order
+if self.is_creating_order():
+    new_msgs = await self.queue_helpers.get_new_messages(conversation_id)
+
+# 2. Before sending confirmations
+if self.is_sending_confirmation():
+    new_msgs = await self.queue_helpers.check_message_queue(conversation_id)
+
+# 3. Before payment processing
+if self.is_processing_payment():
+    # Check both messages and payment events
+    new_msgs = await self.queue_helpers.check_message_queue(conversation_id)
+    payment_events = await self.queue_helpers.peek_events(conversation_id)
+
+# 4. After any long-running operation
+after_api_call = await self.some_slow_operation()
+new_context = await self.check_for_updates(conversation_id)
+```
+
+### Event Processing Patterns
+
+```python
+# Pattern 1: Check-and-consume specific events
+async def before_order_confirmation(self, conversation_id):
+    # Only consume events that affect this action
+    relevant_events = await self.queue_helpers.pop_matching_events(
+        conversation_id,
+        lambda e: e.type in ["payment_failed", "order_cancelled", "address_updated"]
     )
 
-    if context.get('has_modification_request'):
-        # User sent additional messages - handle modifications
-        return self._ask_for_confirmation()
+    for event in relevant_events:
+        payload = event.get_payload()
+        if payload.type == "payment_failed":
+            raise PaymentFailedException(payload.failureReason)
+        elif payload.type == "order_cancelled":
+            raise OrderCancelledException()
+        elif payload.type == "address_updated":
+            self.context.delivery_address = payload.address
+
+# Pattern 2: Peek without consuming
+async def should_show_payment_options(self, conversation_id):
+    events = await self.queue_helpers.peek_events(conversation_id)
+
+    # Check if payment method was recently added
+    has_recent_payment = any(
+        e.type == "payment_method_added"
+        for e in events
+        if e.timestamp > datetime.now() - timedelta(minutes=5)
+    )
+
+    return not has_recent_payment
+
+# Pattern 3: Process all events after messages
+async def process_conversation_events(self, conversation_id):
+    all_events = await self.queue_helpers.pop_all_events(conversation_id)
+
+    # Group by type for batch processing
+    events_by_type = defaultdict(list)
+    for event in all_events:
+        events_by_type[event.get_payload().type].append(event)
+
+    # Process each type
+    for event_type, events in events_by_type.items():
+        await self.handle_event_batch(event_type, events)
 ```
 
-### Check Events Before Actions
+## Complete Flow Example
 
-```python
-# Before sending confirmation, check if payment failed
-if await self.check_for_events_before_action(
-    conversation_id,
-    "send_confirmation"
-):
-    # Safe to proceed
-    await nexus.send_platform_message(...)
-else:
-    # Event indicates action should be cancelled
-    return self._handle_payment_failure()
+Here's a complete example showing how messages and events interact:
+
+```mermaid
+graph TD
+    subgraph "Time 0: Initial State"
+        A1[Empty Queues]
+    end
+
+    subgraph "Time 1: User starts order"
+        B1[Message: "I want pizza"] --> B2[Process & Lock acquired]
+        B3[Agent processing...]
+    end
+
+    subgraph "Time 2: Multiple inputs arrive"
+        C1[Message: "Large please"] --> C2[→ Message Queue]
+        C3[Event: payment_method_added] --> C4[→ Event Queue]
+        C5[Message: "Extra cheese"] --> C6[→ Message Queue]
+        C7[Still processing initial message...]
+    end
+
+    subgraph "Time 3: Agent checks queues"
+        D1[Agent: Check for updates] --> D2[Pop 2 messages]
+        D3[Aggregate: Pizza + Large + Extra cheese]
+        D4[Event still in queue]
+    end
+
+    subgraph "Time 4: Order creation"
+        E1[Create order with aggregated details]
+        E2[Check payment events] --> E3[Pop payment_method_added]
+        E4[Skip payment form - already has method]
+    end
+
+    subgraph "Time 5: Complete"
+        F1[Send confirmation]
+        F2[Release lock]
+        F3[Queues empty]
+    end
 ```
 
-### Selective Event Processing
+## Advanced Patterns
+
+### Pattern: Transactional Event Processing
 
 ```python
-# Pull specific event types into context
-events = await self.queue_helpers.pop_specific_event_types(
-    conversation_id,
-    ["payment_completed", "order_updated"]
-)
+async def process_with_event_transaction(self, conversation_id, action):
+    """Process action with event rollback capability"""
 
-# Process all pending events
-event_context = await self.aggregate_events_into_context(
-    conversation_id,
-    process_all=True
-)
+    # Peek at all events first
+    events_snapshot = await self.queue_helpers.peek_events(conversation_id)
+
+    try:
+        # Perform the action
+        result = await action()
+
+        # If successful, consume the events we processed
+        processed_event_ids = [e.id for e in events_snapshot]
+        await self.queue_helpers.pop_events_by_ids(conversation_id, processed_event_ids)
+
+        return result
+
+    except Exception as e:
+        # On failure, events remain in queue for retry
+        self.logger.error(f"Action failed, events remain queued: {e}")
+        raise
 ```
 
-## Implementation Examples
-
-### Custom Message Aggregation
+### Pattern: Priority Message Handling
 
 ```python
-async def handle_new_messages_during_execution(
-    self,
-    conversation_id: str,
-    current_context: dict
-) -> dict:
-    """Check for and aggregate new messages during execution."""
+async def get_prioritized_messages(self, conversation_id):
+    """Get messages with priority detection"""
 
-    new_messages = await self.queue_helpers.check_and_get_new_messages(conversation_id)
+    messages = await self.queue_helpers.get_new_messages(conversation_id)
 
-    if new_messages:
-        # Aggregate messages into context
-        for msg in new_messages:
-            current_context['all_messages'].append(msg.message.content)
+    # Separate urgent vs normal messages
+    urgent = []
+    normal = []
 
-            # Check for order modifications
-            if 'modifier' in msg.message.content.lower():
-                current_context['has_modification_request'] = True
+    for msg in messages:
+        payload = msg.get_payload()
+        content = payload.lastMessage.content.lower()
 
-    return current_context
+        if any(word in content for word in ['cancel', 'stop', 'urgent', 'help']):
+            urgent.append(msg)
+        else:
+            normal.append(msg)
+
+    # Process urgent first
+    return urgent + normal
 ```
 
-### Event-Driven Actions
+### Pattern: Event-Driven State Machine
 
 ```python
-async def check_for_events_before_action(
-    self,
-    conversation_id: str,
-    action_type: str
-) -> bool:
-    """Check events before performing actions."""
+class OrderStateMachine:
+    def __init__(self, queue_helpers):
+        self.queue_helpers = queue_helpers
+        self.state = "initial"
 
-    events = await self.queue_helpers.check_event_queue(conversation_id)
-
-    for event in events:
-        # Cancel order creation if payment failed
-        if action_type == "create_order" and event.type == "payment_failed":
-            await self.queue_helpers.pop_specific_event_types(
+    async def process_with_events(self, conversation_id):
+        while True:
+            # Check for state-changing events
+            events = await self.queue_helpers.pop_matching_events(
                 conversation_id,
-                ["payment_failed"]
+                lambda e: e.type in self.get_valid_events_for_state()
             )
-            return False
 
-    return True
+            if not events:
+                break
+
+            for event in events:
+                self.transition(event.get_payload())
+
+    def get_valid_events_for_state(self):
+        return {
+            "initial": ["order_started"],
+            "ordering": ["item_added", "item_removed", "order_confirmed"],
+            "payment": ["payment_completed", "payment_failed"],
+            "complete": ["order_delivered", "order_cancelled"]
+        }.get(self.state, [])
 ```
 
-## Error Handling
+## Key Takeaways
 
-### Redis Connection Failure
-
-If Redis is unavailable, the system falls back to synchronous processing:
-
-```python
-if queue_manager and conversation_processor:
-    # Use queue system
-    await conversation_processor.handle_new_message(...)
-else:
-    # Fallback to legacy synchronous processing
-    response = await chat_agent.process_message(payload)
-```
-
-### Processing Timeouts
-
-- Individual conversation processing: 2-minute timeout
-- Maximum iterations per conversation: 10
-- Automatic recovery on startup for stuck conversations
-
-### Race Conditions
-
-The system uses Redis atomic operations to prevent race conditions:
-
-- `SET NX` for acquiring processing locks
-- TTL-based automatic lock expiration
-- Single processor per conversation guaranteed
-
-## Best Practices
-
-<CardGroup cols={2}>
-  <Card title="Check at Decision Points" icon="code-branch">
-    Check for new messages before critical actions like order creation or
-    payment processing
-  </Card>
-
-  <Card title="Selective Event Processing" icon="filter">
-    Only pull events relevant to current processing context to avoid complexity
-  </Card>
-
-  <Card title="Aggregate Wisely" icon="layer-group">
-    Create context-aware aggregation logic that preserves message intent
-  </Card>
-
-  <Card title="Handle Queue Failures" icon="shield-halved">
-    Always provide fallback behavior when queue system is unavailable
-  </Card>
-</CardGroup>
-
-## Monitoring
-
-### Queue Metrics
-
-Monitor these key metrics:
-
-- Queue depth per conversation
-- Processing duration
-- Stuck conversation count
-- Message/event processing rate
-
-### Logging
-
-The system logs key events:
-
-```
-INFO: Added message to queue for conversation {id}
-INFO: Starting processing for conversation {id}
-INFO: Processing batch of {n} messages
-WARNING: Conversation {id} processing exceeded timeout
-INFO: Recovery complete. Found {n} conversations with pending items
-```
-
-## Deployment Considerations
-
-### Railway Configuration
-
-```yaml
-# config_ngrok.yml
-services:
-  - name: redis
-    image: redis:7-alpine
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-```
-
-### Production Settings
-
-- Use persistent Redis storage
-- Configure appropriate memory limits
-- Set up Redis replicas for high availability
-- Monitor queue depth and processing times
-
-## Troubleshooting
-
-<AccordionGroup>
-  <Accordion title="Messages not being processed">
-    1. Check Redis connection: `redis-cli ping` 2. Verify processing locks:
-    `redis-cli keys "conv:*:processing"` 3. Check for stuck conversations in
-    logs 4. Manually clear stuck locks if needed
-  </Accordion>
-
-  <Accordion title="High queue depth">
-    1. Check processing timeout settings 2. Verify AI response times 3. Consider
-    increasing max iterations 4. Monitor for error loops
-  </Accordion>
-
-  <Accordion title="Events not being handled">
-    1. Verify event queue has items 2. Check event type filtering logic 3.
-    Ensure events are being popped after processing 4. Review event aggregation
-    logic
-  </Accordion>
-</AccordionGroup>
+1. **Messages have priority** - Always process user messages before system events
+2. **Check at decision points** - Before orders, payments, confirmations
+3. **Selective event consumption** - Only pop events you'll process immediately
+4. **Aggregate intelligently** - Merge messages while preserving intent
+5. **Fail safely** - Queue system unavailability should not break the bot
