@@ -1,97 +1,195 @@
 ## LeClerk Chatbot – Architecture & Developer Guide
 
-This document explains the overall architecture, core modules, and runtime flows of the LeClerk chatbot. It’s designed to help a new developer quickly understand how the system is organized and where to make changes.
+Welcome to the LeClerk chatbot documentation! This guide will help you understand how our AI-powered restaurant assistant works and how to contribute to its development.
 
-### High-level Overview
+### What is LeClerk?
 
-- **Purpose**: LeClerk processes WhatsApp conversations for restaurants: answering questions, guiding ordering, validating addresses, building order drafts, and sending structured messages via the Nexus backend.
-- **Core Pattern**: A FastAPI app exposes endpoints that receive either customer messages or system events. Both paths prepare a structured payload and delegate to the `ChatAgent` that orchestrates prompt construction, tool calls (via the Nexus API), and message responses.
-- **Observability**: Tracing via Langfuse, structured/beautiful logs via Rich, and notifications to Discord/Linear for incidents.
+LeClerk is an intelligent chatbot that handles WhatsApp conversations for restaurants. Think of it as a digital assistant that can:
+
+- Answer customer questions about menus, hours, and services
+- Help customers place orders step by step
+- Validate delivery addresses and suggest the nearest location
+- Handle payment processes and order tracking
+- Provide personalized recommendations based on customer history
+
+The chatbot integrates seamlessly with the Châtaigne platform, acting as the conversational layer between customers and the restaurant's backend systems.
+
+### How It Works (High Level)
+
+LeClerk follows a simple but powerful pattern:
+
+1. **Input**: Customers send messages via WhatsApp, which reach our Nexus backend
+2. **Processing**: Nexus forwards these messages to LeClerk's FastAPI application
+3. **Intelligence**: LeClerk uses an LLM (Large Language Model) with specialized tools to understand and respond
+4. **Action**: The system can query menus, update orders, check addresses, and more through the Nexus API
+5. **Output**: Responses are sent back to customers via WhatsApp
+
+The system also handles automated events like payment confirmations, delivery updates, and order status changes.
 
 ```mermaid
 flowchart LR
-    subgraph Channels
+    subgraph "Customer Channel"
       WA["WhatsApp"]
     end
 
-    subgraph Backend
-      NX["Nexus (Châtaigne server)"]
-      LC["LeClerk FastAPI (main.py)"]
-      AG["ChatAgent (bot/agent.py)"]
-      LLM["LLM (OpenAI/OpenRouter)"]
-      TOOLS["Tools (bot/tool_definitions.py)\nexecuted via NexusClient"]
-      NXC["NexusClient (nexus.py)"]
+    subgraph "Châtaigne Platform"
+      NX["Nexus Backend<br/>(Main Server)"]
+      LC["LeClerk<br/>(FastAPI Chatbot)"]
+      AG["ChatAgent<br/>(Core Logic)"]
+      LLM["Language Model<br/>(OpenAI/OpenRouter)"]
     end
 
-    WA --> NX
-    NX -- POST /message --> LC
-    NX -- POST /nexus/event --> LC
+    WA -->|"Customer messages"| NX
+    NX -->|"POST /message"| LC
+    NX -->|"POST /nexus/event"| LC
     LC --> AG
-    AG --> LLM
-    AG <--> NXC
-    NXC <--> NX
-    AG -->|send_platform_message| NXC
+    AG <-->|"Prompts & responses"| LLM
+    AG <-->|"Tool calls & data"| NX
 ```
 
-### Key Responsibilities by Module
+### System Architecture
 
-- `LeClerk/src/chataigne_clerk/main.py`
-  - FastAPI app, CORS, authentication middleware, startup/shutdown hooks.
-  - Endpoints: `/health`, `/debug/*`, `/message`, `/nexus/event`.
-  - Initializes `NexusClient`, `ChatAgent`, notifications, optional Linear client, and Langfuse.
-- `LeClerk/src/chataigne_clerk/bot/agent.py`
-  - The orchestrator. Builds prompts, manages tool calls, integrates results, and returns final messages (XML-tagged segments like `<response_for_customer>`).
-  - Handles location mode vs organization mode; tracks effective location; batches and sequences tool use.
-- `LeClerk/src/chataigne_clerk/bot/prompts.py`
-  - Builds system prompts and guidelines, with dynamic customer/menu/store info.
-- `LeClerk/src/chataigne_clerk/bot/tool_definitions.py`
-  - Defines the tool catalog exposed to the LLM (address checks, menu lookup, update order draft, feedback, scheduling, etc.). For a complete, in-depth reference of every tool, see [LeClerk Tools Reference](/working-with-the-chatbot/leclerk-tools).
-- `LeClerk/src/chataigne_clerk/nexus.py`
-  - HTTP client to the Nexus backend with retry and tracing. Implements operations like `send_platform_message`, `update_order_draft`, `check_address`, `create_feedback`, etc.
-- `LeClerk/src/chataigne_clerk/models.py`
-  - Pydantic DTOs for conversation, orders, payments, locations, catalog, events.
-- `LeClerk/src/chataigne_clerk/bot/*` (supporting)
-  - `store_info.py`: extracts store/menu/customer summary for prompts.
-  - `fuzzy_menu_search.py`, `menu_query_system.py`, `menu_formatter.py`: menu search and formatting utilities.
-  - `nexus_instructions.py`: standardized injection/extraction of `<nexus_instructions>`.
-- `LeClerk/src/chataigne_clerk/sse_client.py`
-  - Optional SSE client for real-time interruption (e.g., new incoming messages mid-processing).
-- `LeClerk/src/chataigne_clerk/services/*`
-  - `notifications.py`: Discord notifications; `linear.py`: creates Linear issues.
-- Cross-cutting: `logger_config.py`, `log_utils.py`, `auth.py`, `utils.py`.
+LeClerk is built as a modular system where each component has a specific responsibility. Let's explore each layer:
 
-### Runtime Flows
+## Authentication & Security
 
-#### 1) Customer message flow (POST /message)
+LeClerk uses a simple but secure authentication model. The system validates requests using **Bearer token authentication** with a shared API key between the Nexus backend and the LeClerk service.
+
+When Nexus sends a request to LeClerk (either for message processing or event notifications), it includes an `Authorization: Bearer <API_KEY>` header. LeClerk validates this against the `NEXUS_API_KEY` environment variable. This ensures that only trusted systems can trigger chatbot responses.
+
+The authentication is handled by middleware in `main.py` that checks every incoming request, providing a secure foundation for all chatbot operations.
+
+## Core Components
+
+### 1. FastAPI Application (`main.py`)
+
+This is the entry point of LeClerk. It's a FastAPI web application that:
+
+- Exposes HTTP endpoints for receiving messages and events from Nexus
+- Handles authentication using Bearer tokens
+- Manages application lifecycle (startup, shutdown, health checks)
+- Initializes all other components like the ChatAgent, logging, and monitoring
+
+### 2. ChatAgent (`bot/agent.py`)
+
+The brain of the operation. The ChatAgent:
+
+- Receives conversation data and decides how to respond
+- Builds prompts for the language model using customer context and conversation history
+- Manages tool calls (like checking addresses or updating orders)
+- Handles both single-location restaurants and multi-location organizations
+- Returns structured responses that get sent back to customers
+
+### 3. NexusClient (`nexus.py`)
+
+This is the bridge between LeClerk and the main Châtaigne backend. It:
+
+- Makes HTTP requests to Nexus API endpoints
+- Handles retries and error recovery
+- Provides typed methods for all backend operations (orders, payments, addresses, etc.)
+- Includes observability tracing for debugging
+
+### 4. Language Model Integration
+
+LeClerk uses either OpenAI or OpenRouter APIs to power its conversations. The LLM:
+
+- Receives carefully crafted prompts with restaurant and customer context
+- Has access to a set of tools it can call to perform actions
+- Generates natural language responses for customers
+- Can reason about complex ordering scenarios and provide helpful assistance
+
+### 5. Tool System (`bot/tool_definitions.py`)
+
+Tools are special functions the LLM can call to interact with the restaurant's systems:
+
+- **Menu tools**: Search products, check availability, get pricing
+- **Order tools**: Create and update order drafts, apply discounts
+- **Address tools**: Validate delivery addresses, suggest nearest locations
+- **Customer tools**: Access order history, manage preferences
+- **Communication tools**: Send messages, schedule follow-ups
+
+For complete details on all available tools, see our [Tools Reference Guide](/working-with-the-chatbot/leclerk-tools).
+
+### 6. Supporting Systems
+
+- **Logging**: Rich, colorful logs with structured data for debugging
+- **Monitoring**: Langfuse integration for tracing AI interactions
+- **Notifications**: Discord alerts and Linear issue creation for problems
+- **Models**: Pydantic data structures that define how information flows through the system
+
+## How LeClerk Processes Conversations
+
+LeClerk handles two main types of interactions: customer messages and system events. Let's see how each works:
+
+### Customer Message Flow
+
+When a customer sends a message via WhatsApp, here's what happens:
 
 ```mermaid
 sequenceDiagram
-  participant WA as WhatsApp User
-  participant NX as Nexus (server)
-  participant LC as LeClerk (FastAPI)
-  participant AG as ChatAgent
-  participant LLM as LLM
+ participant Customer as Customer
+ participant WhatsApp as WhatsApp
+ participant Nexus as Nexus Backend
+ participant LeClerk as LeClerk
+ participant LLM as Language Model
 
-  WA->>NX: Message
-  NX->>LC: POST /message (ChatbotPayloadDTO)
-  LC->>AG: process_message(payload)
-  AG->>LLM: system prompt + messages + tool schema
-  alt LLM needs tools
-    LLM-->>AG: tool_calls
-    AG->>NX: Execute tools via NexusClient
-    NX-->>AG: Tool results
-    AG->>LLM: Tool results (follow-up)
-  end
-  LLM-->>AG: Final content with <response_for_customer>
-  AG->>NX: send_platform_message(...)
-  LC-->>NX: 200 + assistant_message summary
+ Customer->>WhatsApp: "I'd like to order pizza"
+ WhatsApp->>Nexus: Message received
+ Nexus->>LeClerk: POST /message (with context)
+ LeClerk->>LeClerk: Authenticate request
+ LeClerk->>LLM: Process with restaurant context
+ alt LLM needs more information
+   LLM-->>LeClerk: Call tools (menu lookup, etc.)
+   LeClerk->>Nexus: Execute tool calls
+   Nexus-->>LeClerk: Return results
+   LeClerk->>LLM: Continue with new data
+ end
+ LLM-->>LeClerk: Generate response
+ LeClerk->>Nexus: Send response to customer
+ Nexus->>WhatsApp: Deliver message
+ WhatsApp->>Customer: "Here's our pizza menu..."
 ```
 
-Highlights
+The key insight is that LeClerk receives rich context about the customer, their location, conversation history, and current orders. This allows it to provide personalized, contextual responses.
 
-- `main.py` logs receipt, sets Langfuse tags (store/org, user id), injects closing-time instructions if relevant, and calls `ChatAgent.process_message`.
-- `ChatAgent` builds a system prompt using `prompts.py` and attaches `tool_definitions` dynamically (location/org mode aware).
-- LLM responses are XML-normalized (`AssistantMessage` extracts `<response_for_customer>` and strips nested `<thinking>/<scratchpad>` before sending outbound messages).
+For detailed information about message processing, see [Message Webhook Processing](/working-with-the-chatbot/message-webhook).
+
+### Event Processing Flow
+
+LeClerk also handles system events like payment confirmations, delivery updates, and order status changes. These events trigger proactive customer communication.
+
+For complete details about event handling, see [Event Webhook Processing](/working-with-the-chatbot/event-webhook).
+
+## Detailed Component Guides
+
+This architecture overview provides the foundation, but each component has dedicated documentation:
+
+### Core Processing
+
+- **[Message Webhook Processing](/working-with-the-chatbot/message-webhook)**: How customer messages are received and processed
+- **[Event Webhook Processing](/working-with-the-chatbot/event-webhook)**: How system events trigger customer communication
+- **[Message Processing Logic](/working-with-the-chatbot/message-processing)**: Internal XML tag system and response generation
+
+### Key Operations
+
+- **[Check Address Functionality](/working-with-the-chatbot/check-address)**: Address validation and location selection
+- **[Update Order Draft](/working-with-the-chatbot/update-order-draft)**: Order management and cart operations
+- **[Multi-Location Management](/working-with-the-chatbot/multi-location-management)**: How restaurant chains are handled
+
+### Tools & Integration
+
+- **[Complete Tools Reference](/working-with-the-chatbot/all-tools-reference)**: Every tool available to the AI agent
+
+## Getting Started
+
+For new developers joining the LeClerk project:
+
+1. **Start here**: Read this architecture overview to understand the big picture
+2. **Message Flow**: Review [Message Webhook Processing](/working-with-the-chatbot/message-webhook) to understand customer interactions
+3. **Core Logic**: Study [Message Processing Logic](/working-with-the-chatbot/message-processing) to understand the AI reasoning system
+4. **Key Operations**: Deep dive into [Check Address](/working-with-the-chatbot/check-address) and [Update Order Draft](/working-with-the-chatbot/update-order-draft)
+5. **Advanced Features**: Learn about [Multi-Location Management](/working-with-the-chatbot/multi-location-management) for enterprise scenarios
+6. **Reference**: Keep the [Tools Reference](/working-with-the-chatbot/all-tools-reference) handy while developing
 
 #### 2) System event flow (POST /nexus/event)
 
@@ -192,16 +290,6 @@ Tool Usage Principles (enforced by prompts)
   - Discord: `NotificationsService.send_discord_notification` with direct links to conversation, Langfuse trace, and logs.
   - Linear: `services/linear.py` for issue creation and attachments.
 
-### SSE Client (Optional)
-
-- `sse_client.ConversationSSEClient`: connects to `NEXUS_URL/sse/conversations/{id}/messages` for real-time interruption.
-- Maintains connection status, buffers pending messages, and supports interruption callbacks.
-
-### Security & Auth
-
-- Middleware in `main.py` validates `Authorization: Bearer ...` against `NEXUS_API_KEY` via `auth.get_api_key`.
-- CORS is permissive by default; tighten for production.
-
 ### Configuration
 
 Environment variables (subset; see `main.Settings` and `.env`):
@@ -216,18 +304,6 @@ Environment variables (subset; see `main.Settings` and `.env`):
 - API returns proper HTTP errors on failures during processing.
 - Validation and business logic errors are surfaced via `<nexus_instructions>` for the agent to act on.
 - Technical incidents should be reported via the `report` tool (Linear + Discord), guided by prompt guidelines.
-
-### Extending the System
-
-- Add a tool:
-  1. Define schema in `bot/tool_definitions.py`.
-  2. Implement execution path in `ChatAgent` to call the right `NexusClient` method(s).
-  3. Add server-side endpoint if needed in the Nexus backend, then wire it in `nexus.py`.
-  4. Update prompts if guidance is needed for when/how to use the tool.
-- Change prompt/policies:
-  - Edit `bot/prompts.py` sections (role, formatting, guidelines). Keep dynamic parts small and stable for caching.
-- Menu/search UX:
-  - Use `menu_lookup` (primary), leverage `fuzzy_menu_search` if/when integrated for discovery.
 
 ### Endpoints Recap
 
