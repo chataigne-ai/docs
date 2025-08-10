@@ -100,26 +100,6 @@ Product restrictions control when and how products can be ordered. All restricti
 | `availableForDelivery` | boolean                   | Whether the product is available for delivery orders |
 | `availableForPickup`   | boolean                   | Whether the product is available for pickup orders   |
 
-### Restriction Examples
-
-#### Time-Based Restrictions
-
-- **Breakfast items**: Available 06:00-11:30 daily
-- **Happy hour drinks**: Available 16:00-19:00 on weekdays only
-- **Late night menu**: Available 22:00-02:00 on Friday/Saturday
-
-#### Date-Based Restrictions
-
-- **Seasonal items**: Available between specific start/end dates
-- **Limited time offers**: Products with defined availability periods
-- **Holiday specials**: Available only on specific dates
-
-#### Service Type Restrictions
-
-- **Alcohol**: Pickup only (not available for delivery)
-- **Hot food**: Available for both delivery and pickup
-- **Fragile items**: Pickup only to prevent damage during delivery
-
 ## DaysOfWeek
 
 Specifies which days of the week a product is available. If a day is set to `false` or omitted, the product is not available on that day.
@@ -134,51 +114,13 @@ Specifies which days of the week a product is available. If a day is set to `fal
 | `saturday`  | boolean | Available on Saturday  |
 | `sunday`    | boolean | Available on Sunday    |
 
-### Common Day Patterns
-
-```json
-// Weekdays only
-{
-  "monday": true,
-  "tuesday": true,
-  "wednesday": true,
-  "thursday": true,
-  "friday": true,
-  "saturday": false,
-  "sunday": false
-}
-
-// Weekends only
-{
-  "monday": false,
-  "tuesday": false,
-  "wednesday": false,
-  "thursday": false,
-  "friday": false,
-  "saturday": true,
-  "sunday": true
-}
-
-// All days (or simply omit the dow field)
-{
-  "monday": true,
-  "tuesday": true,
-  "wednesday": true,
-  "thursday": true,
-  "friday": true,
-  "saturday": true,
-  "sunday": true
-}
-```
-
 ## Skus
 
-SKUs (Stock Keeping Units) represent specific variants of products, such as different sizes or configurations.
+SKUs (Stock Keeping Units) represent specific variants of products, such as different sizes or configurations. Atm we only accept one sku per product.
 
 | Name                    | Type                                 | Description                                                          |
 | ----------------------- | ------------------------------------ | -------------------------------------------------------------------- |
 | `internalId`            | string                               | Unique internal identifier of the sku, optimized for LLM readability |
-| `name`                  | string (optional)                    | Display name for this SKU variant (e.g., "Large", "Family Size")     |
 | `productInternalId`     | string                               | Internal Id of the product this sku is part of                       |
 | `price`                 | [Price](/chatbot/types/common/price) | Price of this sku                                                    |
 | `optionListInternalIds` | string[]                             | Internal Ids of the option lists that are associated to this sku     |
@@ -188,9 +130,8 @@ SKUs (Stock Keeping Units) represent specific variants of products, such as diff
 ```json
 {
   "internalId": "pizza_margherita_large",
-  "name": "Large",
   "productInternalId": "pizza_margherita",
-  "price": { "amount": 1400, "currency": "EUR" },
+  "price": { "amount": 14, "currency": "EUR" },
   "optionListInternalIds": ["crust_types", "extra_toppings"]
 }
 ```
@@ -199,7 +140,7 @@ SKUs (Stock Keeping Units) represent specific variants of products, such as diff
 {
   "internalId": "coffee_espresso_single",
   "productInternalId": "coffee_espresso",
-  "price": { "amount": 250, "currency": "EUR" },
+  "price": { "amount": 2.5, "currency": "EUR" },
   "optionListInternalIds": ["milk_options", "sweeteners"]
 }
 ```
@@ -319,10 +260,10 @@ Each deal line represents a group of products that the customer can choose from 
 
 These are the specific product variants available for selection in each deal line.
 
-| Name            | Type                                            | Description                                                                    |
-| --------------- | ----------------------------------------------- | ------------------------------------------------------------------------------ |
-| `skuInternalId` | string                                          | Internal ID of the SKU that can be selected for this deal line                 |
-| `price`         | [Price](/chatbot/types/common/price) (optional) | Specific price for this SKU within the deal (if different from standard price) |
+| Name            | Type                                            | Description                                                                                       |
+| --------------- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `skuInternalId` | string                                          | Internal ID of the SKU that can be selected for this deal line                                    |
+| `price`         | [Price](/chatbot/types/common/price) (optional) | Premium for this item. If undefined the base deal price remains the same else we add this premium |
 
 #### Example Deal Structure
 

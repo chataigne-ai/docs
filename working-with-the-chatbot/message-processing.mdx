@@ -144,20 +144,9 @@ LeClerk parses the response and:
 
 #### 4. Tool Call Integration
 
-If the LLM requested tool calls during processing, they're executed between the prompt and final response:
+If the LLM requested tool calls during processing, they're executed, the response is stored in the conversation and the LLM is runned again
 
-```xml
-<thinking>
-Customer wants to order "the usual" but I don't know what that is. I need to check their order history.
-</thinking>
-
-<!-- Tool call: get_customer_previous_orders -->
-<!-- Tool result: Last 3 orders all contained Large Pepperoni pizza -->
-
-<response_for_customer>
-I see you love our Large Pepperoni pizza - that's been your go-to! Should I add one to your order for €14.00?
-</response_for_customer>
-```
+````
 
 ### Quality Control and Validation
 
@@ -199,7 +188,7 @@ Total: €28.00
 
 Ready to add anything else or shall we proceed to checkout?
 </response_for_customer>
-```
+````
 
 #### Multi-turn Tool Usage
 
