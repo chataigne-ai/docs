@@ -1,417 +1,445 @@
 ## Update Order Draft Functionality
 
-The `update_order_draft` tool is the central hub for all order management in LeClerk. It handles everything from adding items to a cart to applying discounts, setting delivery details, and managing customer preferences. Understanding how this tool works is essential for anyone working on the ordering experience.
+The `update_order_draft` tool is LeClerk's core order management system. Unlike a traditional shopping cart with simple add/remove operations, this system uses a sophisticated validation and processing pipeline to ensure orders are valid, properly priced, and ready for fulfillment.
 
 ### What is an Order Draft?
 
-An order draft is a "work in progress" order that lives in the system until the customer decides to finalize and pay for it. Think of it as a shopping cart that remembers what the customer wants, where they want it delivered, and how they want to pay.
+An order draft represents a customer's order-in-progress within a conversation. It's a stateful entity that accumulates customer choices and gets validated/updated through the `CheckAndUpdateOrderDraftUsecase`.
 
-Order drafts are:
+Key characteristics:
 
-- **Persistent**: They survive across conversation sessions
-- **Flexible**: Can be modified at any time before payment
-- **Intelligent**: Automatically validate items, calculate totals, and apply business rules
-- **Customer-Specific**: Each customer can have multiple drafts for different occasions
+- **Conversation-Scoped**: Each order draft belongs to a specific WhatsApp conversation
+- **Stateful**: Maintains items, deals, delivery details, timing, and customer preferences
+- **Validated**: Every update triggers comprehensive validation before persistence
+- **Mode-Aware**: Handles both single-location and multi-location organization scenarios
 
-### Core Order Draft Operations
+### The Update and Validation Pipeline
+
+The system uses a processor-based architecture rather than simple CRUD operations:
 
 ```mermaid
 flowchart TD
-    Start[Customer Intent] --> Operation{Operation Type}
+    Input[UpdateOrderDraftDTO] --> Load[Load Context]
+    Load --> Clear[Clear Conflicting Items/Deals]
+    Clear --> Init[Initialize ValidationState]
+    Init --> Reset[Reset Computed Fields]
+    Reset --> Apply[Apply Updates]
+    Apply --> Processors[Run Validation Processors]
 
-    Operation -->|Add Item| AddItem[Add to cart]
-    Operation -->|Remove Item| RemoveItem[Remove from cart]
-    Operation -->|Modify Item| ModifyItem[Change quantity/options]
-    Operation -->|Apply Discount| Discount[Add promotion code]
-    Operation -->|Set Delivery| Delivery[Update address/time]
-    Operation -->|Change Service| Service[Delivery/Pickup switch]
+    Processors --> FormatDeals[Format Deals Processor]
+    FormatDeals --> LocationState[Location State Processor]
+    LocationState --> Discounts[Discounts Processor]
+    Discounts --> Items[Items Processor]
+    Items --> Delivery[Delivery Processor]
+    Delivery --> Customer[Customer Updates Processor]
 
-    AddItem --> Validate[Validate item availability]
-    RemoveItem --> Validate
-    ModifyItem --> Validate
-    Discount --> ValidatePromo[Validate promotion]
-    Delivery --> ValidateAddress[Validate delivery details]
-    Service --> ValidateService[Validate service option]
-
-    Validate --> Update[Update order draft]
-    ValidatePromo --> Update
-    ValidateAddress --> Update
-    ValidateService --> Update
-
-    Update --> Response[Return updated order summary]
-    Response --> Customer[Send confirmation to customer]
+    Customer --> Errors{Validation Errors?}
+    Errors -->|Yes| ErrorResponse[Return Validation Errors]
+    Errors -->|No| Payment[Payment Validation]
+    Payment --> FinalResponse[Return Updated Draft + Validation Data]
 ```
 
-### Adding Items to Orders
+### How Order Updates Work
 
-When a customer says "I want a large pepperoni pizza," here's what happens:
+The system receives an `UpdateOrderDraftDTO` which can contain:
 
-#### Item Resolution
-
-The system needs to figure out exactly what the customer wants:
-
-```json
+```typescript
 {
-  "operation": "add_item",
-  "item_search": "large pepperoni pizza",
-  "quantity": 1
+  // Location and delivery
+  deliveryAddress?: AddressDTO;
+  locationId?: string;
+  deliveryAddressString?: string;
+  deliveryAddressCoordinates?: { latitude: number; longitude: number };
+
+  // Timing
+  requestedTime?: Date | "ASAP";
+
+  // Customer details
+  customerFirstName?: string;
+  customerLastName?: string;
+  customerLanguage?: Language;
+  customerNote?: string;
+  deliveryInstructions?: string;
+
+  // Order content (mutually exclusive)
+  items?: CreateOrderDraftItemDTO[];     // Regular items
+  deals?: CreateOrderDraftDealDTO[];     // Deal-based items
+
+  // Service and payment
+  serviceType?: ServiceTypeDTO;
+  paymentMethod?: PaymentMethodTypeDTO;
+  codes?: string[];  // Promotion codes
 }
 ```
 
-#### Smart Matching
+### Key Constraint: Items vs Deals
 
-LeClerk matches customer requests to actual menu items:
+Order drafts support either **items** OR **deals**, but not both simultaneously:
 
-- "pepperoni pizza" → "Pizza Pepperoni"
-- "large" → Size option: "Large"
-- "extra cheese" → Additional topping: "Extra Cheese"
-- "no onions" → Remove ingredient: "Onions"
+- If `items` are provided in an update, any existing `deals` are cleared
+- If `deals` are provided in an update, any existing `items` are cleared
+- This ensures clean order structure and prevents pricing conflicts
 
-#### Validation and Options
+### The Validation Processors
 
-Before adding items, the system validates:
+#### 1. Format Deals Processor
 
-- **Availability**: Is the item currently available?
-- **Size Options**: What sizes are available?
-- **Required Choices**: Does the customer need to pick a crust type?
-- **Pricing**: What's the current price including any promotions?
+- Validates deal structure and SKU assignments
+- Ensures each deal line has exactly one SKU selected
+- Optimizes SKU-to-deal-line assignments for best pricing
 
-#### Successful Addition
+#### 2. Location State Processor
 
-```json
+- Validates the location exists and is operational
+- Checks if location is paused or outside operating hours
+- Sets up location-specific business rules
+
+#### 3. Discounts Processor
+
+- Applies automatic discounts based on order value, timing, customer segment
+- Validates and applies promotion codes from `codes` array
+- Calculates discount amounts and updates order totals
+
+#### 4. Items Processor
+
+- Validates each SKU exists in the catalog
+- Checks product availability restrictions (time, date, service type)
+- Validates option selections and quantities
+- Ensures deal-only SKUs aren't ordered outside of deals
+
+#### 5. Delivery Processor
+
+- Validates delivery addresses using geocoding
+- Checks delivery zones and restrictions
+- Calculates delivery fees based on location and distance
+- Handles different delivery modes (UberDirect, Chaskis, postal code, etc.)
+
+#### 6. Customer Updates Processor
+
+- Updates customer profile information
+- Handles language preferences and personal details
+
+### Working with Items and SKUs
+
+Items in the order draft are based on **SKU Internal IDs** rather than product names:
+
+```typescript
+// Adding items to an order draft
 {
-  "success": true,
-  "item_added": {
-    "name": "Pizza Pepperoni",
-    "size": "Large",
-    "price": 14.0,
-    "quantity": 1
-  },
-  "order_total": 14.0,
-  "message": "Added Large Pepperoni Pizza (€14.00) to your order."
+  items: [
+    {
+      skuInternalId: "pizza_pepperoni_large",
+      quantity: 2,
+      options: [
+        {
+          optionInternalId: "extra_cheese",
+          quantity: 1,
+        },
+      ],
+    },
+  ];
 }
 ```
 
-### Handling Complex Orders
+#### Item Structure
 
-#### Multiple Items
+Each item contains:
 
-```xml
-<thinking>
-Customer said "I want 2 large pepperonis and a Coke". This is multiple items in one request.
-I should add them all in a single update_order_draft call.
-</thinking>
+- **`skuInternalId`**: References a specific product variant (Pizza Pepperoni - Large)
+- **`quantity`**: How many of this item
+- **`options`**: Array of selected options with their quantities
 
-<!-- Tool call with multiple items -->
+### Working with Deals
 
-<response_for_customer>
-Perfect! I've added to your order:
-• 2x Large Pepperoni Pizza (€14.00 each)
-• 1x Coca-Cola (€2.50)
+Deals represent bundle offers with multiple SKUs at special pricing:
 
-Your current total is €30.50. What else would you like?
-</response_for_customer>
-```
-
-#### Customizations and Options
-
-```json
+```typescript
 {
-  "operation": "add_item",
-  "item_id": "pizza_margherita",
-  "size": "large",
-  "options": {
-    "crust": "thin",
-    "extra_toppings": ["extra_cheese", "mushrooms"],
-    "remove_ingredients": ["basil"]
-  },
-  "special_instructions": "Well done, please"
+  deals: [
+    {
+      dealInternalId: "family_combo",
+      skus: [
+        {
+          skuInternalId: "pizza_pepperoni_large",
+          quantity: 1,
+          options: [
+            {
+              optionInternalId: "thin_crust",
+              quantity: 1,
+            },
+          ],
+        },
+        {
+          skuInternalId: "pizza_margherita_large",
+          quantity: 1,
+          options: [],
+        },
+        {
+          skuInternalId: "coke_2l",
+          quantity: 1,
+          options: [],
+        },
+      ],
+    },
+  ];
 }
 ```
 
-#### Bundle and Deal Handling
+#### Deal Validation Rules
 
-```json
+- Each deal line must have exactly one SKU selected
+- All SKUs must be available and valid for the deal
+- Option selections must be valid for each SKU
+- Deal pricing is calculated automatically
+
+### Common Validation Errors
+
+The system returns specific error codes when validation fails:
+
+#### Item-Related Errors
+
+- **`SKU_NOT_FOUND$${skuId}`**: The requested SKU doesn't exist in the catalog
+- **`SKU_OUT_OF_STOCK$${skuId}`**: The SKU is temporarily unavailable
+- **`SKU_ONLY_AVAILABLE_IN_DEALS$${skuId}`**: This SKU can only be ordered as part of a deal
+- **`OPTION_NOT_FOUND$${optionId}`**: The selected option doesn't exist
+- **`NOT_ENOUGH_OPTIONS_SELECTED$${skuId}$${optionListId}$${min}$${selected}`**: More options required
+- **`TOO_MANY_OPTIONS_SELECTED$${skuId}$${optionListId}$${max}$${selected}`**: Too many options selected
+
+#### Product Restriction Errors
+
+- **`PRODUCT_NOT_AVAILABLE_TODAY$${productId}$${date}$${reason}`**: Product not available on this date
+- **`PRODUCT_NOT_AVAILABLE_AT_THIS_TIME_TOO_EARLY$${productId}$${time}$${availableFrom}$${date}`**: Ordered too early
+- **`PRODUCT_NOT_AVAILABLE_FOR_DELIVERY$${productId}$${reason}`**: Not available for delivery service
+
+#### Deal-Related Errors
+
+- **`DEAL_NOT_FOUND$${dealId}`**: The deal doesn't exist
+- **`DEAL_SKU_NOT_IN_DEAL$${dealId}$${skuId}`**: SKU is not part of this deal
+- **`DEAL_INCORRECT_SKU_COUNT$${dealId}$${line}$${expected}`**: Wrong number of SKUs for deal line
+
+#### Service and Delivery Errors
+
+- **`DELIVERY_ADDRESS_REQUIRED`**: Address needed for delivery orders
+- **`OUTSIDE_OF_DELIVERY_RADIUS$${distance}`**: Address outside delivery zone
+- **`MINIMUM_ORDER_NOT_MET$${minimum}$${current}$${currency}`**: Order below minimum value
+- **`LOCATION_IS_PAUSED`**: Restaurant is temporarily closed
+
+### Response Structure
+
+The `CheckAndUpdateOrderDraftUsecase` returns a `CheckAndUpdateOrderDraftReturnDTO`:
+
+```typescript
 {
-  "operation": "add_item",
-  "deal_id": "family_combo",
-  "deal_selections": {
-    "pizza_1": { "id": "pizza_pepperoni", "size": "large" },
-    "pizza_2": { "id": "pizza_margherita", "size": "large" },
-    "drink": { "id": "coke_2l" },
-    "side": { "id": "garlic_bread" }
+  orderDraft: OrderDraftDTO; // Updated order draft with all changes
+  validation: OrderDraftValidationDTO; // Validation results
+}
+```
+
+#### Validation Types
+
+The validation object indicates the order's readiness state:
+
+##### 1. Validation Errors
+
+```typescript
+{
+  type: "validationError",
+  errors: [
+    "SKU_NOT_FOUND$pizza_invalid",
+    "DELIVERY_ADDRESS_REQUIRED"
+  ],
+  validationData: {
+    // Any computed data (delivery fees, timing, etc.)
   }
 }
 ```
 
-### Order Modifications
+##### 2. Payment Setup Required
 
-#### Changing Quantities
-
-```xml
-<thinking>
-Customer wants to change from 1 to 2 pizzas. I need to update the quantity of the existing item.
-</thinking>
-
-<response_for_customer>
-Updated! You now have 2x Large Pepperoni Pizza in your order.
-New total: €28.00
-</response_for_customer>
-```
-
-#### Removing Items
-
-```json
+```typescript
 {
-  "operation": "remove_item",
-  "item_reference": "pizza_pepperoni_large",
-  "quantity": 1
+  type: "noPaymentMethod",
+  validationData: {
+    paymentMethodSetupUrl: "https://checkout.stripe.com/setup/...",
+    availablePaymentMethods: ["card", "ideal", "bancontact"]
+  }
 }
 ```
 
-#### Swapping Items
+##### 3. Ready for Payment
 
-```json
+```typescript
 {
-  "operation": "replace_item",
-  "old_item": "pizza_pepperoni_large",
-  "new_item": "pizza_hawaiian_large"
+  type: "readyForPayment",
+  validationData: {
+    deliveryTime: "2024-01-15T19:30:00Z",
+    deliveryFee: { amount: 350, currency: "EUR" },
+    serviceFee: { amount: 150, currency: "EUR" },
+    discounts: [
+      {
+        type: "percentage",
+        percentage: 10,
+        priceOff: { amount: 250, currency: "EUR" }
+      }
+    ]
+  }
 }
 ```
 
-### Service Type Management
+### Timing and Scheduling
 
-#### Delivery Setup
+Time handling is complex and considers:
 
-```json
-{
-  "operation": "set_service_type",
-  "service_type": "delivery",
-  "delivery_address": "123 Rue de Rivoli, Paris 75001",
-  "delivery_time": "asap"
-}
-```
+#### Business Hours
 
-#### Pickup Configuration
+- Restaurant operating hours
+- Kitchen preparation times
+- Delivery time windows
 
-```json
-{
-  "operation": "set_service_type",
-  "service_type": "pickup",
-  "pickup_time": "2024-01-15T19:30:00Z"
-}
-```
+#### Service Type Impact
 
-#### Scheduled Orders
+- **Collection**: Only needs ready time (when food is prepared)
+- **Delivery**: Needs both ready time and delivery time (includes travel)
 
-```json
-{
-  "operation": "set_timing",
-  "service_type": "delivery",
-  "scheduled_time": "2024-01-15T20:00:00Z",
-  "delivery_address": "456 Avenue des Champs-Élysées"
-}
-```
+#### Timing Validation
 
-### Discount and Promotion Handling
+- **`OUTSIDE_OF_STORE_HOURS`**: Requested time outside restaurant hours
+- **`OUTSIDE_OF_DELIVERY_HOURS`**: Delivery requested outside delivery window
+- **`REQUESTED_TIME_REQUIRED`**: Must specify ASAP or scheduled time
 
-#### Applying Promotion Codes
+### Delivery Mode Handling
 
-```json
-{
-  "operation": "apply_discount",
-  "discount_code": "SAVE10",
-  "verification": true
-}
-```
+The delivery processor handles different delivery modes based on location settings:
 
-#### Automatic Promotions
+#### UberDirect Integration
 
-The system automatically applies eligible promotions:
+- Validates addresses using Uber's API
+- Calculates real-time delivery quotes
+- Handles special Uber timing and fee requirements
+- Error codes: `UBER_ADDRESS_UNDELIVERABLE`, `INVALID_UBER_TIMINGS`
 
-- Order value discounts: "Free delivery over €25"
-- Time-based promotions: "20% off Tuesday orders"
-- Customer-specific offers: "Welcome back! 15% off"
+#### Chaskis Delivery
 
-#### Promotion Validation
+- Validates delivery zones using geographic boundaries
+- Calculates distance-based fees
+- Considers traffic and route optimization
 
-```json
-{
-  "discount_applied": true,
-  "discount_name": "10% Off Any Order",
-  "discount_amount": 2.5,
-  "new_total": 22.5,
-  "message": "SAVE10 code applied! You saved €2.50"
-}
-```
+#### Postal Code Delivery
 
-### Payment Method Integration
+- Simple postcode-based zone validation
+- Fixed fees per postcode area
+- Error: `POSTAL_CODE_NOT_SERVED$${postalCode}`
 
-#### Setting Payment Preferences
+#### Free Delivery
 
-```json
-{
-  "operation": "set_payment_method",
-  "payment_type": "card",
-  "save_method": true
-}
-```
+- Validates minimum order requirements
+- May have time or zone restrictions
 
-#### Payment Method Validation
+### Multi-Location Considerations
 
-```json
-{
-  "payment_method_valid": true,
-  "payment_type": "Visa ending in 4242",
-  "requires_confirmation": false
-}
-```
+In organization mode, the system handles:
 
-### Error Handling and Validation
+#### Location Assignment
 
-#### Item Unavailability
+- If no `locationId` is provided, address checking determines the best location
+- Error: `LOCATION_ID_NOT_FOUND_IN_BUSINESS_ORGANIZATION`
 
-```json
-{
-  "success": false,
-  "error": "item_unavailable",
-  "message": "Sorry, Large Pepperoni Pizza is currently sold out. Would you like to try our Large Margherita instead?",
-  "alternatives": [
-    { "name": "Large Margherita", "price": 12.5 },
-    { "name": "Large Hawaiian", "price": 13.5 }
-  ]
-}
-```
+#### Location Switching
 
-#### Invalid Discounts
-
-```json
-{
-  "success": false,
-  "error": "invalid_discount",
-  "message": "The code 'EXPIRED10' is no longer valid. Here are some current offers available to you:",
-  "available_discounts": [
-    { "code": "WELCOME15", "description": "15% off your first order" }
-  ]
-}
-```
-
-#### Address Validation Errors
-
-```json
-{
-  "success": false,
-  "error": "delivery_unavailable",
-  "message": "We don't deliver to that address. Our delivery radius is 5km from the restaurant. Would you like to try pickup instead?"
-}
-```
-
-### Order Summary and Confirmation
-
-After each update, customers receive a clear summary:
-
-```xml
-<response_for_customer>
-Here's your updated order:
-
-🍕 2x Large Pepperoni Pizza - €28.00
-🥤 1x Coca-Cola - €2.50
-📍 Delivery to: 123 Rue de Rivoli, Paris
-🚚 Delivery fee: €3.00
-💰 Subtotal: €33.50
-
-⏰ Estimated delivery: 45-60 minutes
-
-Ready to proceed to payment, or would you like to add anything else?
-</response_for_customer>
-```
+- Updating `locationId` switches the context to a different restaurant
+- All subsequent validations use the new location's catalog and settings
 
 ### Advanced Features
 
+#### Promotion Code Processing
+
+The `codes` array in `UpdateOrderDraftDTO` triggers automatic discount validation:
+
+- Validates code existence and eligibility
+- Applies percentage, fixed amount, BOGO, or free product discounts
+- Calculates cumulative effects of multiple codes
+
 #### Customer Memory Integration
 
-```json
-{
-  "operation": "add_favorite_order",
-  "customer_memory": "usual_order",
-  "items": [
-    { "id": "pizza_pepperoni", "size": "large" },
-    { "id": "coke", "size": "regular" }
-  ]
-}
-```
+The system can update customer preferences:
 
-#### Order Splitting
+- Language preferences affect future interactions
+- Name updates sync across the customer profile
+- Notes and instructions are stored for reuse
 
-```json
-{
-  "operation": "split_order",
-  "split_reason": "different_delivery_times",
-  "order_1": { "items": ["pizza_1"], "delivery_time": "asap" },
-  "order_2": { "items": ["pizza_2", "dessert"], "delivery_time": "20:00" }
-}
-```
+#### Order Summary Generation
 
-#### Group Orders
+After successful validation, the system provides:
 
-```json
-{
-  "operation": "start_group_order",
-  "participants": ["customer_1", "customer_2"],
-  "shared_items": true,
-  "payment_split": "equal"
-}
-```
+- Itemized pricing with options
+- Applied discounts and their effects
+- Delivery fees broken down by type (delivery + service)
+- Timing estimates based on kitchen capacity and delivery distance
 
-### Integration with Other Systems
+### Development Considerations
 
-#### Inventory Management
+#### State Management
 
-Order drafts check real-time inventory:
+The system uses `ValidationState` internally to track:
 
-- Validate item availability before adding
-- Suggest alternatives for unavailable items
-- Update availability status during ordering
+- A working copy of the order draft (`draft`)
+- Accumulated validation errors (`errors`)
+- Computed validation data (`validationData`)
+- A log of all patches applied (`patchLog`)
 
-#### Pricing Engine
+#### Processor Architecture
 
-Dynamic pricing based on:
+Each processor is self-contained and can:
 
-- Time of day (peak hour surcharges)
-- Customer segment (loyalty discounts)
-- Order value (bulk discounts)
-- Location-specific pricing
-
-#### Kitchen Integration
-
-Order complexity affects preparation time:
-
-- Simple orders: Standard timing
-- Heavy customizations: Extended prep time
-- Peak hours: Adjusted estimates
-
-### Development Best Practices
-
-#### Atomic Updates
-
-Always update order drafts atomically—either the entire update succeeds or it fails completely.
-
-#### Validation First
-
-Validate all changes before applying them to prevent inconsistent states.
-
-#### Clear Feedback
-
-Always provide clear feedback about what changed and why.
+- Validate specific aspects of the order
+- Apply patches to the working draft
+- Add errors to the validation context
+- Compute additional data (fees, timing, etc.)
 
 #### Error Recovery
 
-When updates fail, provide helpful alternatives and recovery paths.
+The validation pipeline stops at the first processor that encounters errors, ensuring:
 
-#### Performance Optimization
+- Fast failure for invalid requests
+- Consistent error reporting
+- No unnecessary computation after validation fails
 
-- Cache frequently accessed menu data
-- Batch multiple operations when possible
-- Optimize for common ordering patterns
+#### Testing Strategies
 
-The update_order_draft tool is the workhorse of LeClerk's ordering system. It transforms natural language customer requests into structured order data while ensuring business rules, inventory constraints, and customer preferences are all respected. Mastering this tool is crucial for creating smooth ordering experiences.
+- Mock individual processors for unit testing
+- Use full integration tests for complex validation scenarios
+- Test error conditions extensively
+- Verify that patches are applied correctly
+
+### Performance Characteristics
+
+#### Caching
+
+- Catalog data is cached to avoid repeated database queries
+- Geographic validation results are cached by address
+- Customer data is loaded once per request
+
+#### Database Interactions
+
+- Context loading happens upfront with optimized queries
+- Order draft updates are atomic
+- Customer profile updates are separate transactions
+
+#### Scalability Considerations
+
+- Processors run sequentially but could be parallelized for independent validations
+- Geographic APIs (geocoding, Uber) are rate-limited
+- Complex deals with many SKU combinations can be computationally expensive
+
+### Integration Points
+
+The update order draft system integrates with:
+
+- **Catalog Service**: For product, SKU, and deal validation
+- **Customer Service**: For profile updates and preferences
+- **Location Service**: For business rules and operational status
+- **Pricing Service**: For discount calculation and fee computation
+- **Delivery Services**: For address validation and quote generation
+- **Payment Service**: For payment method validation and setup
+
+Understanding this sophisticated validation and processing pipeline is essential for working with LeClerk's order management system. The system prioritizes data integrity and business rule compliance while providing detailed feedback for both successful operations and validation failures.

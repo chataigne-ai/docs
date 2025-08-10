@@ -12,6 +12,7 @@ title: Catalog
 | `optionLists` | [Option Lists](#option-lists) | Option Lists of the catalog      |
 | `options`     | [Options](#options)           | Options of the catalog           |
 | `discounts`   | [Discounts](#discounts)       | Discounts of the catalog         |
+| `deals`       | [Deals](#deals)               | Bundle deals of the catalog      |
 
 ## Categories
 
@@ -22,6 +23,8 @@ title: Catalog
 
 ## Products
 
+Products represent menu items that customers can order. Each product can have various restrictions that control when and how they can be ordered.
+
 | Name           | Type                                   | Description                                                              |
 | -------------- | -------------------------------------- | ------------------------------------------------------------------------ |
 | `internalId`   | string                                 | Unique internal identifier of the product, optimized for LLM readability |
@@ -31,7 +34,61 @@ title: Catalog
 | `isAvailable`  | boolean                                | Whether the product is currently available for ordering                  |
 | `restriction`  | [Restriction](#restriction) (optional) | Availability restrictions for this product                               |
 
+### Product Examples
+
+```json
+{
+  "internalId": "breakfast_special",
+  "name": "Full English Breakfast",
+  "categoryName": "Breakfast",
+  "description": "Eggs, bacon, sausages, beans, toast and hash browns",
+  "isAvailable": true,
+  "restriction": {
+    "dow": {
+      "monday": true,
+      "tuesday": true,
+      "wednesday": true,
+      "thursday": true,
+      "friday": true,
+      "saturday": true,
+      "sunday": true
+    },
+    "startTime": "06:00",
+    "endTime": "11:30",
+    "availableForDelivery": true,
+    "availableForPickup": true
+  }
+}
+```
+
+```json
+{
+  "internalId": "weekend_brunch_cocktail",
+  "name": "Bottomless Mimosas",
+  "categoryName": "Beverages",
+  "description": "Unlimited mimosas with weekend brunch",
+  "isAvailable": true,
+  "restriction": {
+    "dow": {
+      "monday": false,
+      "tuesday": false,
+      "wednesday": false,
+      "thursday": false,
+      "friday": false,
+      "saturday": true,
+      "sunday": true
+    },
+    "startTime": "10:00",
+    "endTime": "15:00",
+    "availableForDelivery": false,
+    "availableForPickup": true
+  }
+}
+```
+
 ## Restriction
+
+Product restrictions control when and how products can be ordered. All restriction fields are optional - if not specified, no restrictions apply.
 
 | Name                   | Type                      | Description                                          |
 | ---------------------- | ------------------------- | ---------------------------------------------------- |
@@ -43,7 +100,29 @@ title: Catalog
 | `availableForDelivery` | boolean                   | Whether the product is available for delivery orders |
 | `availableForPickup`   | boolean                   | Whether the product is available for pickup orders   |
 
+### Restriction Examples
+
+#### Time-Based Restrictions
+
+- **Breakfast items**: Available 06:00-11:30 daily
+- **Happy hour drinks**: Available 16:00-19:00 on weekdays only
+- **Late night menu**: Available 22:00-02:00 on Friday/Saturday
+
+#### Date-Based Restrictions
+
+- **Seasonal items**: Available between specific start/end dates
+- **Limited time offers**: Products with defined availability periods
+- **Holiday specials**: Available only on specific dates
+
+#### Service Type Restrictions
+
+- **Alcohol**: Pickup only (not available for delivery)
+- **Hot food**: Available for both delivery and pickup
+- **Fragile items**: Pickup only to prevent damage during delivery
+
 ## DaysOfWeek
+
+Specifies which days of the week a product is available. If a day is set to `false` or omitted, the product is not available on that day.
 
 | Name        | Type    | Description            |
 | ----------- | ------- | ---------------------- |
@@ -55,14 +134,75 @@ title: Catalog
 | `saturday`  | boolean | Available on Saturday  |
 | `sunday`    | boolean | Available on Sunday    |
 
+### Common Day Patterns
+
+```json
+// Weekdays only
+{
+  "monday": true,
+  "tuesday": true,
+  "wednesday": true,
+  "thursday": true,
+  "friday": true,
+  "saturday": false,
+  "sunday": false
+}
+
+// Weekends only
+{
+  "monday": false,
+  "tuesday": false,
+  "wednesday": false,
+  "thursday": false,
+  "friday": false,
+  "saturday": true,
+  "sunday": true
+}
+
+// All days (or simply omit the dow field)
+{
+  "monday": true,
+  "tuesday": true,
+  "wednesday": true,
+  "thursday": true,
+  "friday": true,
+  "saturday": true,
+  "sunday": true
+}
+```
+
 ## Skus
+
+SKUs (Stock Keeping Units) represent specific variants of products, such as different sizes or configurations.
 
 | Name                    | Type                                 | Description                                                          |
 | ----------------------- | ------------------------------------ | -------------------------------------------------------------------- |
 | `internalId`            | string                               | Unique internal identifier of the sku, optimized for LLM readability |
+| `name`                  | string (optional)                    | Display name for this SKU variant (e.g., "Large", "Family Size")     |
 | `productInternalId`     | string                               | Internal Id of the product this sku is part of                       |
 | `price`                 | [Price](/chatbot/types/common/price) | Price of this sku                                                    |
 | `optionListInternalIds` | string[]                             | Internal Ids of the option lists that are associated to this sku     |
+
+### SKU Examples
+
+```json
+{
+  "internalId": "pizza_margherita_large",
+  "name": "Large",
+  "productInternalId": "pizza_margherita",
+  "price": { "amount": 1400, "currency": "EUR" },
+  "optionListInternalIds": ["crust_types", "extra_toppings"]
+}
+```
+
+```json
+{
+  "internalId": "coffee_espresso_single",
+  "productInternalId": "coffee_espresso",
+  "price": { "amount": 250, "currency": "EUR" },
+  "optionListInternalIds": ["milk_options", "sweeteners"]
+}
+```
 
 ## Option Lists
 
@@ -150,3 +290,79 @@ The discount data structure varies based on the discount type:
 #### Free Shipping Discount
 
 This discount type has no additional data fields.
+
+## Deals
+
+Deals represent bundle offers with multiple products at special pricing. Customers can select specific SKUs for each deal line.
+
+| Name          | Type                                 | Description                                                           |
+| ------------- | ------------------------------------ | --------------------------------------------------------------------- |
+| `internalId`  | string                               | Unique internal identifier of the deal, optimized for LLM readability |
+| `name`        | string                               | Name of the deal                                                      |
+| `ref`         | string (optional)                    | Reference code for the deal                                           |
+| `description` | string (optional)                    | Description of the deal                                               |
+| `categoryId`  | string                               | Category ID this deal belongs to                                      |
+| `price`       | [Price](/chatbot/types/common/price) | Price of the complete deal                                            |
+| `lines`       | [Deal Lines](#deal-lines)            | Lines that make up this deal                                          |
+
+### Deal Lines
+
+Each deal line represents a group of products that the customer can choose from within the deal.
+
+| Name   | Type                              | Description                                    |
+| ------ | --------------------------------- | ---------------------------------------------- |
+| `id`   | string                            | Unique identifier of the deal line             |
+| `name` | string (optional)                 | Name of the deal line (e.g., "Choose a Pizza") |
+| `skus` | [Deal Line SKUs](#deal-line-skus) | Available SKUs for this deal line              |
+
+### Deal Line SKUs
+
+These are the specific product variants available for selection in each deal line.
+
+| Name            | Type                                            | Description                                                                    |
+| --------------- | ----------------------------------------------- | ------------------------------------------------------------------------------ |
+| `skuInternalId` | string                                          | Internal ID of the SKU that can be selected for this deal line                 |
+| `price`         | [Price](/chatbot/types/common/price) (optional) | Specific price for this SKU within the deal (if different from standard price) |
+
+#### Example Deal Structure
+
+```json
+{
+  "internalId": "family_combo",
+  "name": "Family Combo",
+  "description": "Perfect for families - 2 large pizzas, sides and drinks",
+  "categoryId": "combos",
+  "price": { "amount": 3500, "currency": "EUR" },
+  "lines": [
+    {
+      "id": "pizza_line_1",
+      "name": "Choose your first pizza",
+      "skus": [
+        { "skuInternalId": "pizza_margherita_large" },
+        { "skuInternalId": "pizza_pepperoni_large" },
+        { "skuInternalId": "pizza_hawaiian_large" }
+      ]
+    },
+    {
+      "id": "pizza_line_2",
+      "name": "Choose your second pizza",
+      "skus": [
+        { "skuInternalId": "pizza_margherita_large" },
+        { "skuInternalId": "pizza_pepperoni_large" }
+      ]
+    },
+    {
+      "id": "drink_line",
+      "name": "Choose a drink",
+      "skus": [{ "skuInternalId": "coke_2l" }, { "skuInternalId": "sprite_2l" }]
+    }
+  ]
+}
+```
+
+#### Deal Validation Rules
+
+- Each deal line must have exactly one SKU selected when ordering
+- Selected SKUs must be available and part of the deal line's allowed SKUs
+- Deal pricing is applied to the entire bundle, not individual items
+- Options can be selected for each SKU within the deal structure

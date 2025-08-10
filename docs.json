@@ -145,15 +145,11 @@
               "chatbot/event-webhook",
               "chatbot/commands",
               "chatbot/order-draft",
-              "chatbot/translation",
-              "chatbot/queue-system",
               {
                 "group": "Features",
                 "pages": [
-                  {
-                    "group": "Memory",
-                    "pages": ["chatbot/features/memory"]
-                  }
+                  "chatbot/features/translation",
+                  "chatbot/features/queue-system"
                 ]
               },
               {

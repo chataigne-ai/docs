@@ -68,19 +68,6 @@ function scoreLocation(location, customerAddress) {
 }
 ```
 
-#### Business Rules
-
-- **Service Area**: Location must actually deliver to the address
-- **Operating Hours**: Prefer locations that are currently open
-- **Kitchen Capacity**: Avoid overwhelmed kitchens when possible
-- **Special Capabilities**: Some locations might have unique menu items or faster service
-
-#### Customer Preferences
-
-- **Previous Orders**: Prefer locations the customer has ordered from before
-- **Saved Preferences**: Some customers might have location preferences saved
-- **Language**: Match customer language to location staff capabilities
-
 ### The Location Switching Process
 
 #### Automatic Location Assignment
@@ -92,6 +79,8 @@ I need to check which location can serve this address.
 </thinking>
 
 <!-- check_address tool call happens -->
+
+<!-- switch_location tool call happens -->
 
 <response_for_customer>
 Perfect! I can help you order for delivery to Rue Saint-Antoine.
@@ -137,7 +126,6 @@ Different locations might have:
 - **Delivery Zones**: Each location has its own delivery area
 - **Service Types**: Some locations might be pickup-only
 - **Operating Hours**: Different hours per location
-- **Kitchen Capacity**: Peak hours vary by location
 
 #### Staffing and Languages
 
@@ -186,49 +174,6 @@ What works best for you?
 </response_for_customer>
 ```
 
-### Technical Implementation
-
-#### Location Context Management
-
-```python
-class LocationContext:
-    def __init__(self, organization_id, location_id=None):
-        self.organization_id = organization_id
-        self.location_id = location_id
-        self.effective_location = None
-
-    def set_effective_location(self, location_id):
-        """Set the location that will handle this customer's order"""
-        self.effective_location = location_id
-
-    def get_menu_context(self):
-        """Get menu data for the effective location"""
-        if self.effective_location:
-            return get_location_menu(self.effective_location)
-        return get_organization_menu(self.organization_id)
-```
-
-#### Address-to-Location Mapping
-
-```python
-def find_serving_locations(address, organization_id):
-    """Find all locations that can serve a given address"""
-    locations = get_organization_locations(organization_id)
-    serving_locations = []
-
-    for location in locations:
-        if can_deliver_to(location, address):
-            distance = calculate_distance(location.coordinates, address.coordinates)
-            score = calculate_location_score(location, address, distance)
-            serving_locations.append({
-                'location': location,
-                'distance': distance,
-                'score': score
-            })
-
-    return sorted(serving_locations, key=lambda x: x['score'], reverse=True)
-```
-
 ### Customer Experience Scenarios
 
 #### New Customer Journey
@@ -270,56 +215,5 @@ I found two locations that can deliver to your new address:
 Which location would you prefer, or shall I just go with the faster option?
 </response_for_customer>
 ```
-
-### Analytics and Optimization
-
-#### Location Performance Tracking
-
-- **Order Volume**: Track orders per location and time period
-- **Customer Satisfaction**: Monitor ratings and feedback per location
-- **Delivery Performance**: Track delivery times and success rates
-- **Menu Performance**: See which items are popular at each location
-
-#### Routing Optimization
-
-- **Load Balancing**: Distribute orders across locations during peak times
-- **Delivery Efficiency**: Route customers to locations that can serve them fastest
-- **Capacity Management**: Avoid overloading specific locations
-
-#### Business Intelligence
-
-- **Demand Patterns**: Understand customer preferences by location
-- **Expansion Planning**: Identify underserved areas
-- **Menu Optimization**: Tailor menus to local preferences
-- **Staffing Insights**: Optimize staffing based on demand patterns
-
-### Development Considerations
-
-#### Testing Multi-Location Scenarios
-
-```bash
-# Test organization mode activation
-curl -X POST /message \
-  -H "Authorization: Bearer $API_KEY" \
-  -d '{
-    "organization_id": "org_pizza_palace",
-    "customer_message": "I want pizza delivery",
-    "mode": "organization"
-  }'
-```
-
-#### Common Edge Cases
-
-- **Boundary Addresses**: Addresses that multiple locations could serve
-- **No Service Areas**: Addresses outside all delivery zones
-- **Capacity Limits**: All nearby locations at capacity
-- **System Failures**: Location services temporarily unavailable
-
-#### Performance Optimization
-
-- **Location Data Caching**: Cache location information for faster lookups
-- **Geographic Indexing**: Use spatial databases for efficient distance calculations
-- **Parallel Validation**: Check multiple locations simultaneously
-- **Fallback Strategies**: Graceful degradation when services are unavailable
 
 Multi-location management transforms LeClerk from a simple chatbot into an intelligent routing system that provides customers with seamless access to restaurant chains while optimizing operations for the business. Understanding this system is crucial for anyone working on enterprise restaurant solutions.
