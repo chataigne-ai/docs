@@ -28,7 +28,10 @@
           },
           {
             "group": "Working with the chatbot",
-            "pages": ["working-with-the-chatbot/leclerk-architecture"]
+            "pages": [
+              "working-with-the-chatbot/leclerk-architecture",
+              "working-with-the-chatbot/leclerk-tools"
+            ]
           },
           {
             "group": "Working with the server",

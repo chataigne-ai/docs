@@ -45,7 +45,7 @@ flowchart LR
 - `LeClerk/src/chataigne_clerk/bot/prompts.py`
   - Builds system prompts and guidelines, with dynamic customer/menu/store info.
 - `LeClerk/src/chataigne_clerk/bot/tool_definitions.py`
-  - Defines the tool catalog exposed to the LLM (address checks, menu lookup, update order draft, feedback, scheduling, etc.).
+  - Defines the tool catalog exposed to the LLM (address checks, menu lookup, update order draft, feedback, scheduling, etc.). For a complete, in-depth reference of every tool, see [LeClerk Tools Reference](/working-with-the-chatbot/leclerk-tools).
 - `LeClerk/src/chataigne_clerk/nexus.py`
   - HTTP client to the Nexus backend with retry and tracing. Implements operations like `send_platform_message`, `update_order_draft`, `check_address`, `create_feedback`, etc.
 - `LeClerk/src/chataigne_clerk/models.py`
