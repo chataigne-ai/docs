@@ -72,126 +72,6 @@ The system receives an `UpdateOrderDraftDTO` which can contain:
 }
 ```
 
-### Key Constraint: Items vs Deals
-
-Order drafts support either **items** OR **deals**, but not both simultaneously:
-
-- If `items` are provided in an update, any existing `deals` are cleared
-- If `deals` are provided in an update, any existing `items` are cleared
-- This ensures clean order structure and prevents pricing conflicts
-
-### The Validation Processors
-
-#### 1. Format Deals Processor
-
-- Validates deal structure and SKU assignments
-- Ensures each deal line has exactly one SKU selected
-- Optimizes SKU-to-deal-line assignments for best pricing
-
-#### 2. Location State Processor
-
-- Validates the location exists and is operational
-- Checks if location is paused or outside operating hours
-- Sets up location-specific business rules
-
-#### 3. Discounts Processor
-
-- Applies automatic discounts based on order value, timing, customer segment
-- Validates and applies promotion codes from `codes` array
-- Calculates discount amounts and updates order totals
-
-#### 4. Items Processor
-
-- Validates each SKU exists in the catalog
-- Checks product availability restrictions (time, date, service type)
-- Validates option selections and quantities
-- Ensures deal-only SKUs aren't ordered outside of deals
-
-#### 5. Delivery Processor
-
-- Validates delivery addresses using geocoding
-- Checks delivery zones and restrictions
-- Calculates delivery fees based on location and distance
-- Handles different delivery modes (UberDirect, Chaskis, postal code, etc.)
-
-#### 6. Customer Updates Processor
-
-- Updates customer profile information
-- Handles language preferences and personal details
-
-### Working with Items and SKUs
-
-Items in the order draft are based on **SKU Internal IDs** rather than product names:
-
-```typescript
-// Adding items to an order draft
-{
-  items: [
-    {
-      skuInternalId: "pizza_pepperoni_large",
-      quantity: 2,
-      options: [
-        {
-          optionInternalId: "extra_cheese",
-          quantity: 1,
-        },
-      ],
-    },
-  ];
-}
-```
-
-#### Item Structure
-
-Each item contains:
-
-- **`skuInternalId`**: References a specific product variant (Pizza Pepperoni - Large)
-- **`quantity`**: How many of this item
-- **`options`**: Array of selected options with their quantities
-
-### Working with Deals
-
-Deals represent bundle offers with multiple SKUs at special pricing:
-
-```typescript
-{
-  deals: [
-    {
-      dealInternalId: "family_combo",
-      skus: [
-        {
-          skuInternalId: "pizza_pepperoni_large",
-          quantity: 1,
-          options: [
-            {
-              optionInternalId: "thin_crust",
-              quantity: 1,
-            },
-          ],
-        },
-        {
-          skuInternalId: "pizza_margherita_large",
-          quantity: 1,
-          options: [],
-        },
-        {
-          skuInternalId: "coke_2l",
-          quantity: 1,
-          options: [],
-        },
-      ],
-    },
-  ];
-}
-```
-
-#### Deal Validation Rules
-
-- Each deal line must have exactly one SKU selected
-- All SKUs must be available and valid for the deal
-- Option selections must be valid for each SKU
-- Deal pricing is calculated automatically
-
 ### Common Validation Errors
 
 The system returns specific error codes when validation fails:
@@ -341,7 +221,7 @@ In organization mode, the system handles:
 
 #### Location Assignment
 
-- If no `locationId` is provided, address checking determines the best location
+- If no `locationId` is provided
 - Error: `LOCATION_ID_NOT_FOUND_IN_BUSINESS_ORGANIZATION`
 
 #### Location Switching
@@ -378,24 +258,6 @@ After successful validation, the system provides:
 
 ### Development Considerations
 
-#### State Management
-
-The system uses `ValidationState` internally to track:
-
-- A working copy of the order draft (`draft`)
-- Accumulated validation errors (`errors`)
-- Computed validation data (`validationData`)
-- A log of all patches applied (`patchLog`)
-
-#### Processor Architecture
-
-Each processor is self-contained and can:
-
-- Validate specific aspects of the order
-- Apply patches to the working draft
-- Add errors to the validation context
-- Compute additional data (fees, timing, etc.)
-
 #### Error Recovery
 
 The validation pipeline stops at the first processor that encounters errors, ensuring:
@@ -403,33 +265,6 @@ The validation pipeline stops at the first processor that encounters errors, ens
 - Fast failure for invalid requests
 - Consistent error reporting
 - No unnecessary computation after validation fails
-
-#### Testing Strategies
-
-- Mock individual processors for unit testing
-- Use full integration tests for complex validation scenarios
-- Test error conditions extensively
-- Verify that patches are applied correctly
-
-### Performance Characteristics
-
-#### Caching
-
-- Catalog data is cached to avoid repeated database queries
-- Geographic validation results are cached by address
-- Customer data is loaded once per request
-
-#### Database Interactions
-
-- Context loading happens upfront with optimized queries
-- Order draft updates are atomic
-- Customer profile updates are separate transactions
-
-#### Scalability Considerations
-
-- Processors run sequentially but could be parallelized for independent validations
-- Geographic APIs (geocoding, Uber) are rate-limited
-- Complex deals with many SKU combinations can be computationally expensive
 
 ### Integration Points
 

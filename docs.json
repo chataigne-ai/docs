@@ -27,19 +27,6 @@
             "pages": ["integrations/general"]
           },
           {
-            "group": "Working with the chatbot",
-            "pages": [
-              "working-with-the-chatbot/leclerk-architecture",
-              "working-with-the-chatbot/message-webhook",
-              "working-with-the-chatbot/event-webhook",
-              "working-with-the-chatbot/message-processing",
-              "working-with-the-chatbot/check-address",
-              "working-with-the-chatbot/update-order-draft",
-              "working-with-the-chatbot/multi-location-management",
-              "working-with-the-chatbot/all-tools-reference"
-            ]
-          },
-          {
             "group": "Working with the server",
             "pages": [
               "working-with-the-server/overview",
@@ -143,8 +130,14 @@
               "chatbot/getting-started",
               "chatbot/message-webhook",
               "chatbot/event-webhook",
-              "chatbot/commands",
+              "chatbot/leclerk-architecture",
               "chatbot/order-draft",
+              "chatbot/message-processing",
+              "chatbot/check-address",
+              "chatbot/update-order-draft",
+              "chatbot/multi-location-management",
+              "chatbot/all-tools-reference",
+              "chatbot/commands",
               {
                 "group": "Features",
                 "pages": [
