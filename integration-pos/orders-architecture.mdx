@@ -1,9 +1,3 @@
----
-title: 'Architecture des Commandes (Orders)'
-description: 'Documentation technique pour l'intégration POS des commandes'
-icon: 'receipt'
----
-
 # Architecture des Commandes (Orders)
 
 Cette documentation détaille le système de gestion des commandes dans Châtaigne et son intégration avec les systèmes de caisse (POS). Les commandes sont créées en interne puis transmises au POS via un mapping spécifique.
@@ -13,11 +7,12 @@ Cette documentation détaille le système de gestion des commandes dans Châtaig
 Une **commande** (Order) représente une transaction complète entre un client et un restaurant. Elle contient tous les détails nécessaires : articles commandés, informations de livraison, paiements, et statut de traitement.
 
 <Note>
-**Flux typique** : 
-1. Création de la commande via chatbot ou plateforme
-2. Transmission au POS (Hubrise)
-3. Mise à jour du statut via webhook
-4. Suivi en temps réel jusqu'à la livraison/collecte
+  **Flux typique** :
+
+  1. Création de la commande via chatbot ou plateforme
+  2. Transmission au POS (Hubrise)
+  3. Mise à jour du statut via webhook
+  4. Suivi en temps réel jusqu'à la livraison/collecte
 </Note>
 
 ## Structure de la commande
@@ -52,6 +47,7 @@ type OrderChannel =
 ```
 
 Cette information est cruciale pour :
+
 - Les rapports et analyses
 - Les commissions différenciées
 - Le routage des notifications
@@ -63,34 +59,33 @@ Le système gère trois horaires critiques pour orchestrer la préparation et la
 <Tabs>
   <Tab title="Expected Start Time">
     **Moment où le restaurant doit commencer la préparation**
-    
+
     Calculé automatiquement selon :
+
     - La durée de préparation moyenne du restaurant
     - L'heure de collecte/livraison souhaitée
     - Les contraintes de capacité cuisine
-    
+
     ```typescript
     expectedStartTime: Date // Ex: 12:15 pour une livraison à 12:45
     ```
   </Tab>
-  
   <Tab title="Expected Pickup Time">
     **Moment où la commande doit être prête**
-    
+
     - Pour livraison : Arrivée du livreur
     - Pour collecte : Arrivée du client
-    
+
     ```typescript
     expectedPickupTime: Date // Ex: 12:30
     ```
   </Tab>
-  
   <Tab title="Expected Delivery Time">
     **Moment de livraison au client final**
-    
+
     Uniquement pour les commandes en livraison.
     Prend en compte le temps de transport.
-    
+
     ```typescript
     expectedDeliveryTime?: Date // Ex: 12:45
     ```
@@ -98,6 +93,7 @@ Le système gère trois horaires critiques pour orchestrer la préparation et la
 </Tabs>
 
 **Note importante** : `expectedTime` est un champ générique qui correspond à :
+
 - `expectedPickupTime` pour les collectes
 - `expectedDeliveryTime` pour les livraisons
 
@@ -121,9 +117,10 @@ type ServiceType =
 ```
 
 <Info>
-**Explication du mode** :
-- `location` : Commande passée directement au restaurant
-- `businessOrganization` : Commande passée via numéro centralisé d'une chaîne, puis routée vers le bon restaurant
+  **Explication du mode** :
+
+  - `location` : Commande passée directement au restaurant
+  - `businessOrganization` : Commande passée via numéro centralisé d'une chaîne, puis routée vers le bon restaurant
 </Info>
 
 ## Contenu de la commande
@@ -179,6 +176,7 @@ Les `OrderDeal` représentent les menus commandés avec leur composition :
 ```
 
 Chaque `OrderDealLineSku` contient :
+
 - Les produits sélectionnés dans chaque ligne du menu
 - Les options de ces produits
 - Les quantités
@@ -211,6 +209,7 @@ Les frais additionnels appliqués à la commande :
 ```
 
 **Types de frais courants** :
+
 - **Frais de service** : Commission Châtaigne
 - **Frais de livraison** : Coût de transport
 - **Frais de transaction** : Coûts de paiement
@@ -218,7 +217,7 @@ Les frais additionnels appliqués à la commande :
 ### Payments (Paiements)
 
 <Warning>
-**Point critique pour l'intégration POS** : Le montant total des paiements DOIT correspondre exactement au total de la commande pour permettre la clôture en caisse. Un écart créera des problèmes de caisse.
+  **Point critique pour l'intégration POS** : Le montant total des paiements DOIT correspondre exactement au total de la commande pour permettre la clôture en caisse. Un écart créera des problèmes de caisse.
 </Warning>
 
 ```typescript
@@ -233,9 +232,10 @@ Les frais additionnels appliqués à la commande :
 ```
 
 **Cas d'usage** :
+
 - **Paiement en ligne** : Un seul payment Stripe pour le total
 - **Paiement en magasin** : Pas de payment dans l'order (géré par le POS)
-- **Paiement mixte** : Possible mais rare
+- **Paiement mixte** : Possible mais pas utilisé
 
 ## Calculs de prix
 
@@ -279,13 +279,11 @@ Les transitions sont contrôlées selon le type de service :
     graph LR
       received --> accepted
       accepted --> in_preparation
-      in_preparation --> awaiting_shipment
-      awaiting_shipment --> in_delivery
+      in_preparation --> in_delivery
       in_delivery --> completed
       in_delivery --> delivery_failed
     ```
   </Tab>
-  
   <Tab title="Collecte">
     ```mermaid
     graph LR
@@ -338,6 +336,7 @@ POST /webhook/order/status
 ### Collection Code
 
 Code unique pour les commandes à emporter :
+
 - Affiché au client
 - Utilisé pour identifier la commande au comptoir
 - Format : 4 caractères alphanumériques
@@ -468,39 +467,5 @@ Lors de l'envoi au POS, la commande est transformée selon le schéma Hubrise :
 2. **Gérer les paiements avec précision** : Le total des paiements = total de la commande
 3. **Implémenter tous les webhooks de statut** : Pour un suivi en temps réel
 4. **Valider les transitions de statut** : Respecter la logique métier
-5. **Synchroniser les horaires** : Les expected times sont critiques pour la coordination
+5. **Synchroniser les horaires** : Les expected times sont critiques pour la coordination (ils sont gérer en interne et exposer au POS)
 6. **Gérer les erreurs gracieusement** : Prévoir les cas d'échec de synchronisation
-
-## Endpoints webhook pour mises à jour
-
-Le POS doit appeler ces endpoints pour mettre à jour les commandes :
-
-### Mise à jour de statut
-```http
-POST /api/webhook/order/status
-{
-  orderId: string,
-  status: OrderStatus,
-  timestamp: string
-}
-```
-
-### Confirmation d'horaire
-```http
-POST /api/webhook/order/confirm-time
-{
-  orderId: string,
-  confirmedTime: string
-}
-```
-
-### Annulation
-```http
-POST /api/webhook/order/cancel
-{
-  orderId: string,
-  reason: string
-}
-```
-
-Cette architecture permet une gestion complète du cycle de vie des commandes avec une intégration robuste aux systèmes POS, garantissant la cohérence des données et la traçabilité complète des transactions.
