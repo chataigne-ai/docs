@@ -1,7 +1,7 @@
 ---
-title: 'Architecture des Catalogues'
-description: 'Documentation technique complète sur le système de catalogues pour la restauration'
-icon: 'book'
+title: "Architecture des Catalogues"
+description: "Documentation technique complète sur le système de catalogues pour la restauration"
+icon: "book"
 ---
 
 # Architecture des Catalogues
@@ -19,9 +19,9 @@ Un **catalogue** représente l'ensemble de l'offre d'un restaurant, incluant ses
 Le catalogue est l'entité racine qui contient toutes les autres entités. Il sert de conteneur principal et gère les relations entre tous les éléments.
 
 **Propriétés clés :**
+
 - `id` : Identifiant unique du catalogue
 - `name` : Nom du catalogue (ex: "Menu Principal", "Menu Livraison")
-- `hubriseId` : Identifiant pour l'intégration avec Hubrise (système de caisse)
 - Collections : `categories`, `products`, `skus`, `optionLists`, `options`, `discounts`, `deals`
 
 Le catalogue offre des méthodes de recherche avancées permettant de retrouver facilement n'importe quelle entité par son identifiant, sa référence ou son identifiant interne.
@@ -31,6 +31,7 @@ Le catalogue offre des méthodes de recherche avancées permettant de retrouver 
 Les catégories organisent les produits et les menus de manière logique pour faciliter la navigation du client.
 
 **Exemples de catégories :**
+
 - "Entrées"
 - "Plats principaux"
 - "Desserts"
@@ -38,11 +39,12 @@ Les catégories organisent les produits et les menus de manière logique pour fa
 - "Menus"
 
 **Structure :**
+
 ```typescript
 {
   id: string,
-  internalId: string,  // Format: cat-{nomCategorie}
-  ref?: string,        // Référence pour synchronisation avec logiciel de caisse
+  internalId: string,  // Id unique à l'échelle du catalogue dans un format lisible pour les LLMs
+  ref?: string,        // Référence dans logiciel de caisse
   name: string,
   image?: ImageEntity,
   products: Product[], // Produits dans cette catégorie
@@ -55,24 +57,25 @@ Les catégories organisent les produits et les menus de manière logique pour fa
 Un produit représente un article individuel qu'un client peut commander. Dans notre architecture, chaque produit a exactement un SKU associé.
 
 **Exemples de produits :**
+
 - "Pizza Margherita"
 - "Burger Classic"
 - "Coca-Cola 33cl"
 - "Salade César"
 
 **Structure :**
+
 ```typescript
 {
   id: string,
   internalId: string,     // Format: prod-{categorie}-{nomProduit}
-  ref?: string,           // Référence caisse
   name: string,
   categoryId: string,
   description?: string,
   sku: Sku,              // Un produit = Un SKU (spécificité restauration)
   image?: ImageEntity,
   available: boolean,
-  restriction?: Restriction  // Disponibilité horaire/géographique
+  restriction?: Restriction  // Disponibilité horaire/géographique/type de service
 }
 ```
 
@@ -81,10 +84,15 @@ Un produit représente un article individuel qu'un client peut commander. Dans n
 Le SKU est l'unité de gestion des stocks et des prix. **Point crucial** : le champ `ref` du SKU est la référence utilisée par les logiciels de caisse pour identifier les produits lors de la synchronisation des commandes.
 
 <Note>
-**Particularité de notre vertical restauration** : Contrairement au e-commerce classique où un produit peut avoir plusieurs SKUs (ex: T-shirt en différentes tailles), dans la restauration, nous maintenons une relation 1:1 entre produit et SKU. Cela simplifie la gestion tout en gardant la flexibilité pour évoluer si nécessaire.
+  **Particularité de notre vertical restauration** : Contrairement au e-commerce
+  classique où un produit peut avoir plusieurs SKUs (ex: T-shirt en différentes
+  tailles), dans la restauration, nous maintenons une relation 1:1 entre produit
+  et SKU. Cela simplifie la gestion tout en gardant la flexibilité pour évoluer
+  si nécessaire.
 </Note>
 
 **Structure :**
+
 ```typescript
 {
   id: string,
@@ -156,6 +164,7 @@ Une liste d'options regroupe des choix similaires avec des règles de sélection
 Chaque option représente un choix spécifique dans une liste d'options.
 
 **Structure :**
+
 ```typescript
 {
   id: string,
@@ -177,7 +186,9 @@ Les deals représentent des menus ou formules combinant plusieurs produits à un
 Un deal est composé de plusieurs **lignes** (DealLine), chaque ligne représentant un choix dans le menu.
 
 ### **DealLine (Lignes de menu)**
+
 - **Concept clé** : Chaque ligne représente un "choix" dans le menu avec des règles de sélection
+
   ```typescript
   {
     id: string,
@@ -189,17 +200,19 @@ Un deal est composé de plusieurs **lignes** (DealLine), chaque ligne représent
   ```
 
   **Règles de sélection :**
+
   - `minSelections` : Nombre minimum d'éléments à choisir (1 par défaut = obligatoire)
   - `maxSelections` : Nombre maximum d'éléments à choisir (1 par défaut = choix unique)
   - Permet de créer des lignes optionnelles (minSelections: 0) ou multi-choix (maxSelections > 1)
 
 ### **DealLineSku (SKUs dans une ligne de menu)**
+
 - **Structure :**
   ```typescript
   {
     skuId: string,
     sku: Sku,
-    price?: Price         // Prix spécial dans le contexte du menu
+    price?: Price         // Premium dans le cas où ce SKU est choisi. Exemple un deal menu midi a un prix de base a 10 euros mais choisir un risotto comme plat augmente le prix du menu de 2 euros.
   }
   ```
 
@@ -348,19 +361,22 @@ Un deal est composé de plusieurs **lignes** (DealLine), chaque ligne représent
 ### Similarité avec les OptionLists
 
 Les deals fonctionnent de manière identique aux OptionLists, mais à un niveau supérieur :
+
 - **OptionList** : Personnalise un produit avec `minSelections`/`maxSelections` sur des options
 - **DealLine** : Sélectionne des produits avec `minSelections`/`maxSelections` sur des SKUs
 
 **Parallèle direct :**
+
 - Une `DealLine` est comme une `OptionList` pour les menus
 - Les deux partagent les mêmes propriétés de sélection (`minSelections`, `maxSelections`)
 - La différence : les OptionLists opèrent sur des options (suppléments), les DealLines sur des produits complets
 
 ## Restrictions et disponibilité
 
-Le système gère des restrictions complexes adaptées à la restauration :
+Le système gère des restrictions complexes adaptées à la restauration. Pour l'instant les restrictions ne s'applique qu'aux produits mais nous allons les étendres aux options et aux menus :
 
 ### Restrictions temporelles
+
 ```typescript
 {
   dow: ["monday", "tuesday", "wednesday", "thursday", "friday"], // Jours de disponibilité
@@ -372,6 +388,7 @@ Le système gère des restrictions complexes adaptées à la restauration :
 ```
 
 ### Restrictions par canal de vente
+
 ```typescript
 {
   availableForDelivery: true,  // Disponible en livraison
@@ -380,23 +397,16 @@ Le système gère des restrictions complexes adaptées à la restauration :
 ```
 
 **Exemples d'utilisation :**
+
 - Menu du midi disponible uniquement de 11h30 à 14h30 en semaine
 - Promotion weekend sur certains produits
-- Plats disponibles uniquement en livraison (trop fragiles pour l'emport)
+- Plats disponibles uniquement en livraison
 
 ## Intégration avec les systèmes de caisse
 
 ### Importance du champ `ref`
 
-Le champ `ref` présent sur les SKUs, Options et Deals est **critique** pour la synchronisation avec les logiciels de caisse. C'est l'identifiant utilisé pour :
-- Envoyer les commandes au système de caisse
-- Synchroniser les stocks
-- Mettre à jour les prix
-- Gérer la disponibilité des produits
-
-### Hubrise Integration
-
-Hubrise est une plateforme d'intégration populaire dans la restauration. Notre système maintient un `hubriseId` au niveau du catalogue pour faciliter cette intégration.
+Le champ `ref` présent sur les SKUs, Options et Deals est **critique** pour la synchronisation avec les logiciels de caisse. C'est l'identifiant utilisé pour identifier les entités lors de l'envoie des commandes au système de caisse
 
 ## Gestion des prix
 
@@ -406,7 +416,7 @@ Le système utilise une entité `Price` robuste :
 class Price {
   amount: number,        // Montant en centimes (pour éviter les erreurs d'arrondi)
   currency: string,      // CHF, EUR, USD
-  
+
   // Méthodes arithmétiques sécurisées
   add(other: Price): Price
   multiply(quantity: number): Price
@@ -485,21 +495,3 @@ deal: {
   ]
 }
 ```
-
-## Bonnes pratiques
-
-1. **Toujours définir un `ref` pour les SKUs** : Essentiel pour la synchronisation avec les caisses
-2. **Utiliser les `internalId` sémantiques** : Facilite le debugging et l'import/export
-3. **Gérer la disponibilité à plusieurs niveaux** : Product, SKU, Option peuvent tous avoir un flag `available`
-4. **Prévoir les restrictions dès le début** : Les horaires et canaux de vente sont critiques en restauration
-5. **Tester les calculs de prix** : Vérifier que les suppléments et deals s'appliquent correctement
-6. **Définir explicitement les règles de sélection** : Utiliser `minSelections`/`maxSelections` dans les DealLines pour contrôler précisément les choix du client (optionnel, multi-choix, etc.)
-
-## Évolutions futures
-
-Bien que notre système maintienne actuellement une relation 1:1 entre produits et SKUs, l'architecture est conçue pour évoluer vers des cas d'usage plus complexes si nécessaire :
-- Multiple SKUs par produit (différentes portions, packagings)
-- Gestion d'inventaire plus fine
-- Variantes de produits (comme dans le e-commerce traditionnel)
-
-Cette flexibilité nous permet de répondre aux besoins actuels de la restauration tout en gardant la porte ouverte aux évolutions futures du marché.
