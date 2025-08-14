@@ -27,6 +27,15 @@
             "pages": ["integrations/general"]
           },
           {
+            "group": "Integration POS",
+            "icon": "cash-register",
+            "pages": [
+              "integration-pos/catalogues-architecture",
+              "integration-pos/orders-architecture",
+              "integration-pos/integrations-architecture"
+            ]
+          },
+          {
             "group": "Working with the server",
             "pages": [
               "working-with-the-server/overview",
