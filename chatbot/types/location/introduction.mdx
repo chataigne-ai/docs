@@ -2,21 +2,22 @@
 title: Location
 ---
 
-| Field                  | Type                                       | Description                                                                              |
-| ---------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| internalId             | string                                     | Unique identifier of the location                                                        |
-| name                   | string                                     | Name of the location                                                                     |
-| address                | [Address](/chatbot/types/common/address)   | Address of the location                                                                  |
-| contactInformations    | string (optional)                          | Phone number or email of contact of the location                                         |
-| timezone               | string                                     | Timezone of the location                                                                 |
-| openingHours           | [Opening Hours](#opening-hours)            | Opening Hours of the location                                                            |
-| catalog                | [Catalog](/chatbot/types/location/catalog) | Catalog of the location                                                                  |
-| whatsappNumber         | string                                     | WhatsApp number of the location                                                          |
-| locationInformations   | string (optional)                          | Additional information about the location to give as personalized context to the chatbot |
-| averagePreparationTime | object                                     | Average preparation time of the location                                                 |
-| minOrderAmount         | number                                     | Minimum order amount for this location                                                   |
-| deliverySettings       | [Delivery Settings](#delivery-settings)    | Delivery settings of the location                                                        |
-| paymentSettings        | [Payment Settings](#payment-settings)      | Payment Settings of the location                                                         |
+| Field                  | Type                                                   | Description                                                                              |
+| ---------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| internalId             | string                                                 | Unique identifier of the location                                                        |
+| name                   | string                                                 | Name of the location                                                                     |
+| address                | [Address](/chatbot/types/common/address)               | Address of the location                                                                  |
+| contactInformations    | string (optional)                                      | Phone number or email of contact of the location                                         |
+| timezone               | string                                                 | Timezone of the location                                                                 |
+| openingHours           | [Opening Hours](#opening-hours)                        | Opening Hours of the location                                                            |
+| catalog                | [Catalog](/chatbot/types/location/catalog)             | Catalog of the location                                                                  |
+| whatsappNumber         | string                                                 | WhatsApp number of the location                                                          |
+| locationInformations   | string (optional)                                      | Additional information about the location to give as personalized context to the chatbot |
+| averagePreparationTime | object                                                 | Average preparation time of the location                                                 |
+| minOrderAmount         | number                                                 | Minimum order amount for this location                                                   |
+| deliverySettings       | [Delivery Settings](#delivery-settings)                | Delivery settings of the location                                                        |
+| paymentSettings        | [Payment Settings](#payment-settings)                  | Payment Settings of the location                                                         |
+| acceptanceSettings     | [Acceptance Settings](#acceptance-settings) (optional) | Settings for order acceptance                                                            |
 
 ## Opening Hours
 
@@ -64,3 +65,19 @@ title: Location
 | Field          | Type     | Description                                                                            |
 | -------------- | -------- | -------------------------------------------------------------------------------------- |
 | paymentMethods | string[] | Array of payment methods: "InStore", "SavedCard", "OneTimeCard", "Twint", "RevolutPay" |
+
+## Acceptance Settings
+
+| Field                | Type                                | Description                                   |
+| -------------------- | ----------------------------------- | --------------------------------------------- |
+| mode                 | [Acceptance Mode](#acceptance-mode) | The current acceptance mode for the location. |
+| extraPreparationTime | number (optional)                   | Extra time in minutes added to preparation.   |
+| reason               | string (optional)                   | The reason for the current acceptance status. |
+
+## Acceptance Mode
+
+A `string` that can have one of the following values:
+
+- `"online"`: The location is open and accepting orders normally.
+- `"busy"`: The location is temporarily busy and may have longer preparation times.
+- `"paused"`: The location is not accepting new orders at the moment.

@@ -1,23 +1,90 @@
 ---
 title: Getting started
-description: This page and its subpages describe the chatbot integration and the different ways it interacts with the server.
+description: Quick intro to LeClerk, how it works, and where to find everything in the chatbot docs.
 ---
 
-The chatbot has two webhooks listening to events sent from the server:
+LeClerk is our AI-powered WhatsApp assistant for restaurants. It understands customer intent, calls backend tools (address check, order updates, etc.), and replies with friendly, contextual messages via WhatsApp.
+
+### What you’ll learn here
+
+- The high-level architecture and where LeClerk fits in the platform
+- How customer messages and system events are processed
+- The internal XML structure used to guide the LLM
+- The tools the agent can call and when to use them
+- The key flows: address validation, order-draft updates, multi‑location routing
+
+### Start here (recommended path)
+
+1. Read the overview to get the big picture
+   - Architecture & concepts: [LeClerk Architecture](/chatbot/leclerk-architecture)
+2. Understand how LeClerk is invoked
+   - Message webhook (customer messages): [Message Webhook](/chatbot/message-webhook)
+   - Event webhook (system events): [Event Webhook](/chatbot/event-webhook)
+3. Learn how the LLM is steered
+   - XML tags, parsing, guardrails: [Message Processing](/chatbot/message-processing)
+4. See what the agent can do
+   - Complete tool catalog and usage rules: [All Tools Reference](/chatbot/all-tools-reference)
+5. Study the most important flows
+   - Address validation and location selection: [Check Address](/chatbot/check-address)
+   - Order building and validation pipeline: [Update Order Draft](/chatbot/update-order-draft)
+   - Chain and location routing: [Multi‑location Management](/chatbot/multi-location-management)
+6. Browse the data models
+   - Catalog types (products, SKUs, options, deals): [Catalog Types](/chatbot/types/location/catalog)
+7. Run useful local commands
+   - Developer commands and utilities: [Commands](/chatbot/commands)
+
+### Quick links
+
+<Card title="Architecture" href="/chatbot/leclerk-architecture">
+  High‑level map of components, flows, and integrations
+</Card>
 
 <Card title="Message Webhook" href="/chatbot/message-webhook">
-  Handle incoming messages received by the server and that needs the chatbot to
-  take action
+  How customer WhatsApp messages reach LeClerk and are processed
 </Card>
 
 <Card title="Event Webhook" href="/chatbot/event-webhook">
-  Handle events received by the server and that might be interesting for the
-  chabot. For example this could be an order status change or a successful
-  payment.
+  How backend events (payments, delivery, status) trigger proactive messages
 </Card>
 
+<Card title="Message Processing" href="/chatbot/message-processing">
+  XML tags, tool cycles, parsing, and response extraction
+</Card>
+
+<Card title="All Tools Reference" href="/chatbot/all-tools-reference">
+  Full list of agent tools with parameters and when to use them
+</Card>
+
+<Card title="Check Address" href="/chatbot/check-address">
+  Validate address, pick best location, compute fees/eligibility
+</Card>
+
+<Card title="Update Order Draft" href="/chatbot/update-order-draft">
+  The order pipeline (items/deals, validation, fees, timing, payment state)
+</Card>
+
+<Card title="Multi‑location" href="/chatbot/multi-location-management">
+  Organization mode, effective location, switching logic
+</Card>
+
+<Card title="Catalog Types" href="/chatbot/types/location/catalog">
+  DTOs the LLM sees: products, SKUs, options, deals, restrictions
+</Card>
+
+<Card title="API Reference" href="/api-reference/openapi">
+  Endpoints backing the chatbot flows (OpenAPI)
+</Card>
+
+### How it works (in one minute)
+
+- WhatsApp messages and system events hit the server; the server calls LeClerk via secured webhooks (Bearer token).
+- LeClerk builds a prompt with context, lets the LLM decide, and executes safe tool calls when needed.
+- Results are validated by the backend (business rules), then LeClerk sends a final response via the server to WhatsApp.
+
 <Info>
-  We might want to review the way we handle these as we scale as there might be
-  quite a lot of events we would want to send the chatbot, each events being of
-  different type
+  New to the codebase? Read the overview first, then follow the recommended path
+  above. Keep the
+  <a href="/chatbot/all-tools-reference">Tools Reference</a> and <a href="/api-reference/openapi">
+    API Reference
+  </a> open while developing.
 </Info>

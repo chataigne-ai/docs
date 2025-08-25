@@ -3,79 +3,84 @@ title: "Project updates"
 description: "New features, bug fixes, and improvements"
 ---
 
+<Update label="2025-07-02" description="v1.5.0">
+  **Location**
+
+- Add optional `acceptanceSettings` to the [Location](/chatbot/types/location/introduction) object to manage order acceptance status.
+  </Update>
+
 <Update label="2025-06-12" description="v1.4.0">
   **Order Draft**
 
-  - Add `locationId` to [OrderDraft](/chatbot/types/order-draft/introduction) Object
+- Add `locationId` to [OrderDraft](/chatbot/types/order-draft/introduction) Object
 
-  **Payloads**
+**Payloads**
 
-  - Add `mode` and `locationId` to  [Message](/chatbot/message-webhook)
-  - Add `mode` and `locationId`to [Event](/chatbot/event-webhook) payloads
+- Add `mode` and `locationId` to [Message](/chatbot/message-webhook)
+- Add `mode` and `locationId`to [Event](/chatbot/event-webhook) payloads
 
-  **Update order draft**
+**Update order draft**
 
-  - Add location id to [check and update order draft](/api-reference/order-drafts/update-and-validate-an-order-draft) endpoint
-  - Add `"LOCATION_ID_REQUIRED"` error in case the location id is not set.
+- Add location id to [check and update order draft](/api-reference/order-drafts/update-and-validate-an-order-draft) endpoint
+- Add `"LOCATION_ID_REQUIRED"` error in case the location id is not set.
 
-  **Check Address**
+**Check Address**
 
-  Update to the [check address](/api-reference/chatbot/check-address) endpoint
+Update to the [check address](/api-reference/chatbot/check-address) endpoint
 
-  - **Location Mode**: Check address against a specific location
-    - Directly validates delivery/collection capability for a single location
-    - Maintains existing behavior for single-location businesses
-    - Optimal for focused address validation
-  - **Business Organization Mode**: Check address against multiple locations within an organization
-    - Automatically finds the best location within a business organization
-    - Calculates distances to all locations within 20km radius
-    - Selects optimal location based on service type and availability
-    - Updates order draft's locationId with selected location ID
-  - **`Delivery Service (serviceType: 'delivery')`**:
-    - Validates delivery capability for each location within range
-    - Returns up to `locationNumber` deliverable locations sorted by distance
-    - Includes delivery fee, estimated delivery time, and distance information
-    - Falls back gracefully if fewer locations can deliver than requested
-    - Updates order draft's locationId with closest deliverable location
-  - **`Collection Service (serviceType: 'collection')`**:
-    - Returns up to `locationNumber` closest locations sorted by distance
-    - No delivery validation required (customer pickup)
-    - Includes distance information for route planning
-    - Updates order draft's locationId with closest location for pickup
-</Update>
+- **Location Mode**: Check address against a specific location
+  - Directly validates delivery/collection capability for a single location
+  - Maintains existing behavior for single-location businesses
+  - Optimal for focused address validation
+- **Business Organization Mode**: Check address against multiple locations within an organization
+  - Automatically finds the best location within a business organization
+  - Calculates distances to all locations within 20km radius
+  - Selects optimal location based on service type and availability
+  - Updates order draft's locationId with selected location ID
+- **`Delivery Service (serviceType: 'delivery')`**:
+  - Validates delivery capability for each location within range
+  - Returns up to `locationNumber` deliverable locations sorted by distance
+  - Includes delivery fee, estimated delivery time, and distance information
+  - Falls back gracefully if fewer locations can deliver than requested
+  - Updates order draft's locationId with closest deliverable location
+- **`Collection Service (serviceType: 'collection')`**: - Returns up to `locationNumber` closest locations sorted by distance - No delivery validation required (customer pickup) - Includes distance information for route planning - Updates order draft's locationId with closest location for pickup
+  </Update>
 
 <Update label="2025-04-29" description="v1.3.0">
   • Added the Delivery field in the order
 
-  • Added the "delivery_status_changed" to Event Webhook
+• Added the "delivery_status_changed" to Event Webhook
+
 </Update>
 
 <Update label="2025-04-23" description="v1.2.0">
   **Order Draft Endpoint Updates**
 
-  • Add a new paymentMethod field in the order draft data
+• Add a new paymentMethod field in the order draft data
 
-  • Add a new validation error "NO_PAYMENT_METHOD"
+• Add a new validation error "NO_PAYMENT_METHOD"
 
-  • Add AvailablePaymentMethods if the "NO_PAYMENT_METHOD" error is present
+• Add AvailablePaymentMethods if the "NO_PAYMENT_METHOD" error is present
 
-  • Removed ReadyForInStorePayment in favor of a general "ReadyForPayment" validation type
+• Removed ReadyForInStorePayment in favor of a general "ReadyForPayment" validation type
 
-  • Add paymentType data in the validation object for ReadyForPayment: - Can be 'RegisterWithoutPayment', 'InstantPayment' or 'CheckoutPayment'
+• Add paymentType data in the validation object for ReadyForPayment: - Can be 'RegisterWithoutPayment', 'InstantPayment' or 'CheckoutPayment'
 
-  **Register Order Endpoint Changes**
+**Register Order Endpoint Changes**
 
-  • Changed the return type to showcase registration type: - Can be "orderRegistered", "orderPaid", "checkoutUrl"
+• Changed the return type to showcase registration type: - Can be "orderRegistered", "orderPaid", "checkoutUrl"
 
-  • Removed endpoints: - payOrderDraft - createCheckoutSession
+• Removed endpoints: - payOrderDraft - createCheckoutSession
 
-  • Changed the PaymentSettingsDTO in Location
+• Changed the PaymentSettingsDTO in Location
+
 </Update>
 
 <Update label="2025-03-24" description="v1.1.0">
   • Formalized the documentation for Order Draft and conversation
 
-  • Formalized the documentation of the Chatbot Webhooks and all chatbot data types
+• Formalized the documentation of the Chatbot Webhooks and all chatbot data types
+
 </Update>
 
 <Update label="2025-03-22" description="v1.0.0">
