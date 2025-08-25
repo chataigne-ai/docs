@@ -166,6 +166,25 @@
                 ]
               },
               {
+                "group": "Order Processing",
+                "icon": "gear",
+                "pages": [
+                  "check-and-update-order-draft-overview",
+                  "smart-fee-splitting-algorithm",
+                  {
+                    "group": "Processors",
+                    "icon": "cogs",
+                    "pages": [
+                      "processors/items-processor",
+                      "processors/delivery-processor",
+                      "processors/fees-processor",
+                      "processors/payment-processor",
+                      "processors/time-processor"
+                    ]
+                  }
+                ]
+              },
+              {
                 "group": "Types",
                 "pages": [
                   "chatbot/types/last-message",
