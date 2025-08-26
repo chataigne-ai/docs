@@ -1,0 +1,497 @@
+---
+title: "Architecture des Catalogues"
+description: "Documentation technique complète sur le système de catalogues pour la restauration"
+icon: "book"
+---
+
+# Architecture des Catalogues
+
+Le système de catalogues est le cœur de la plateforme Châtaigne, permettant de gérer l'ensemble des produits, menus et options disponibles dans un restaurant. Cette documentation détaille l'architecture et le fonctionnement de ce système adapté spécifiquement au domaine de la restauration.
+
+## Vue d'ensemble
+
+Un **catalogue** représente l'ensemble de l'offre d'un restaurant, incluant ses catégories de produits, ses produits individuels, ses menus (deals), et toutes les options de personnalisation disponibles. Chaque restaurant peut avoir un ou plusieurs catalogues selon ses besoins (par exemple, un catalogue différent pour la livraison et pour le service sur place).
+
+## Entités principales
+
+### Catalogue (Catalog)
+
+Le catalogue est l'entité racine qui contient toutes les autres entités. Il sert de conteneur principal et gère les relations entre tous les éléments.
+
+**Propriétés clés :**
+
+- `id` : Identifiant unique du catalogue
+- `name` : Nom du catalogue (ex: "Menu Principal", "Menu Livraison")
+- Collections : `categories`, `products`, `skus`, `optionLists`, `options`, `discounts`, `deals`
+
+Le catalogue offre des méthodes de recherche avancées permettant de retrouver facilement n'importe quelle entité par son identifiant, sa référence ou son identifiant interne.
+
+### Catégories (Category)
+
+Les catégories organisent les produits et les menus de manière logique pour faciliter la navigation du client.
+
+**Exemples de catégories :**
+
+- "Entrées"
+- "Plats principaux"
+- "Desserts"
+- "Boissons"
+- "Menus"
+
+**Structure :**
+
+```typescript
+{
+  id: string,
+  internalId: string,  // Id unique à l'échelle du catalogue dans un format lisible pour les LLMs
+  ref?: string,        // Référence dans logiciel de caisse
+  name: string,
+  image?: ImageEntity,
+  products: Product[], // Produits dans cette catégorie
+  deals: Deal[]       // Menus dans cette catégorie
+}
+```
+
+### Produits (Product)
+
+Un produit représente un article individuel qu'un client peut commander. Dans notre architecture, chaque produit a exactement un SKU associé.
+
+**Exemples de produits :**
+
+- "Pizza Margherita"
+- "Burger Classic"
+- "Coca-Cola 33cl"
+- "Salade César"
+
+**Structure :**
+
+```typescript
+{
+  id: string,
+  internalId: string,     // Format: prod-{categorie}-{nomProduit}
+  name: string,
+  categoryId: string,
+  description?: string,
+  sku: Sku,              // Un produit = Un SKU (spécificité restauration)
+  image?: ImageEntity,
+  available: boolean,
+  restriction?: Restriction  // Disponibilité horaire/géographique/type de service
+}
+```
+
+### SKU (Stock Keeping Unit)
+
+Le SKU est l'unité de gestion des stocks et des prix. **Point crucial** : le champ `ref` du SKU est la référence utilisée par les logiciels de caisse pour identifier les produits lors de la synchronisation des commandes.
+
+<Note>
+  **Particularité de notre vertical restauration** : Contrairement au e-commerce
+  classique où un produit peut avoir plusieurs SKUs (ex: T-shirt en différentes
+  tailles), dans la restauration, nous maintenons une relation 1:1 entre produit
+  et SKU. Cela simplifie la gestion tout en gardant la flexibilité pour évoluer
+  si nécessaire.
+</Note>
+
+**Structure :**
+
+```typescript
+{
+  id: string,
+  internalId: string,        // Format: sku_{nomProduit}
+  ref?: string,              // ⚠️ CRITIQUE : Référence pour logiciels de caisse
+  name?: string,
+  productId: string,
+  price: Price,              // Prix avec devise
+  optionListIds: string[],   // Listes d'options disponibles
+  dealOnly: boolean         // Si true, disponible uniquement dans les menus
+}
+```
+
+## Système d'options (Modifiers)
+
+Les options permettent de personnaliser les produits selon les préférences du client. Elles correspondent aux "modifiers" dans les systèmes de caisse traditionnels.
+
+### Listes d'options (OptionList)
+
+Une liste d'options regroupe des choix similaires avec des règles de sélection.
+
+**Exemples concrets :**
+
+<CodeGroup>
+
+```typescript "Taille de pizza"
+{
+  name: "Taille",
+  minSelections: 1,    // Obligatoire de choisir une taille
+  maxSelections: 1,    // Une seule taille possible
+  options: [
+    { name: "Petite (26cm)", price: { amount: 0, currency: "CHF" } },
+    { name: "Moyenne (30cm)", price: { amount: 3, currency: "CHF" } },
+    { name: "Grande (34cm)", price: { amount: 5, currency: "CHF" } }
+  ]
+}
+```
+
+```typescript "Sauces supplémentaires"
+{
+  name: "Sauces extra",
+  minSelections: 0,    // Optionnel
+  maxSelections: 3,    // Maximum 3 sauces
+  options: [
+    { name: "Sauce BBQ", price: { amount: 1.5, currency: "CHF" } },
+    { name: "Sauce Ranch", price: { amount: 1.5, currency: "CHF" } },
+    { name: "Sauce Piquante", price: { amount: 1.5, currency: "CHF" } }
+  ]
+}
+```
+
+```typescript "Cuisson du steak"
+{
+  name: "Cuisson",
+  minSelections: 1,    // Obligatoire
+  maxSelections: 1,    // Un seul choix
+  options: [
+    { name: "Saignant", price: { amount: 0, currency: "CHF" } },
+    { name: "À point", price: { amount: 0, currency: "CHF" } },
+    { name: "Bien cuit", price: { amount: 0, currency: "CHF" } }
+  ]
+}
+```
+
+</CodeGroup>
+
+### Options individuelles (Option)
+
+Chaque option représente un choix spécifique dans une liste d'options.
+
+**Structure :**
+
+```typescript
+{
+  id: string,
+  internalId: string,    // Format: opt-{nomListe}-{nomOption}
+  ref?: string,          // Référence caisse
+  name: string,          // Ex: "Sans oignons", "Extra fromage"
+  optionListId: string,
+  price: Price,          // Supplément de prix (peut être 0)
+  available: boolean
+}
+```
+
+## Système de menus (Deals)
+
+Les deals représentent des menus ou formules combinant plusieurs produits à un prix forfaitaire. C'est une fonctionnalité essentielle pour la restauration.
+
+### Structure d'un Deal
+
+Un deal est composé de plusieurs **lignes** (DealLine), chaque ligne représentant un choix dans le menu.
+
+### **DealLine (Lignes de menu)**
+
+- **Concept clé** : Chaque ligne représente un "choix" dans le menu avec des règles de sélection
+
+  ```typescript
+  {
+    id: string,
+    name?: string,         // Ex: "Votre burger", "Votre boisson"
+    minSelections?: number, // Nombre minimum de sélections (défaut: 1)
+    maxSelections?: number, // Nombre maximum de sélections (défaut: 1)
+    skus: DealLineSku[]   // SKUs disponibles pour cette ligne
+  }
+  ```
+
+  **Règles de sélection :**
+
+  - `minSelections` : Nombre minimum d'éléments à choisir (1 par défaut = obligatoire)
+  - `maxSelections` : Nombre maximum d'éléments à choisir (1 par défaut = choix unique)
+  - Permet de créer des lignes optionnelles (minSelections: 0) ou multi-choix (maxSelections > 1)
+
+### **DealLineSku (SKUs dans une ligne de menu)**
+
+- **Structure :**
+  ```typescript
+  {
+    skuId: string,
+    sku: Sku,
+    price?: Price         // Premium dans le cas où ce SKU est choisi. Exemple un deal menu midi a un prix de base a 10 euros mais choisir un risotto comme plat augmente le prix du menu de 2 euros.
+  }
+  ```
+
+**Exemple concret : Menu Big Mac**
+
+```typescript
+{
+  name: "Menu Big Mac",
+  price: { amount: 12.90, currency: "CHF" },
+  lines: [
+    {
+      name: "Votre burger",
+      minSelections: 1,  // Obligatoire
+      maxSelections: 1,  // Un seul choix
+      skus: [
+        { skuId: "sku_big_mac", price: { amount: 0, currency: "CHF" } }
+      ]
+    },
+    {
+      name: "Votre accompagnement",
+      minSelections: 1,  // Au moins un accompagnement
+      maxSelections: 1,  // Un seul accompagnement
+      skus: [
+        { skuId: "sku_frites_moyennes", price: { amount: 0, currency: "CHF" } },
+        { skuId: "sku_frites_grandes", price: { amount: 1.5, currency: "CHF" } }, // Supplément
+        { skuId: "sku_salade", price: { amount: 0, currency: "CHF" } }
+      ]
+    },
+    {
+      name: "Votre boisson",
+      minSelections: 1,  // Au moins une boisson
+      maxSelections: 2,  // Possibilité de prendre 2 boissons
+      skus: [
+        { skuId: "sku_coca_33cl", price: { amount: 0, currency: "CHF" } },
+        { skuId: "sku_coca_50cl", price: { amount: 1, currency: "CHF" } }, // Supplément
+        { skuId: "sku_eau", price: { amount: 0, currency: "CHF" } }
+      ]
+    }
+  ]
+}
+```
+
+### Types de menus courants
+
+<Tabs>
+  <Tab title="Menu classique">
+    **Structure : Entrée + Plat + Dessert**
+    
+    ```typescript
+    {
+      name: "Menu du Jour",
+      price: { amount: 25, currency: "CHF" },
+      lines: [
+        { 
+          name: "Entrée",
+          minSelections: 1,
+          maxSelections: 1,
+          skus: [/* liste des entrées */]
+        },
+        { 
+          name: "Plat principal",
+          minSelections: 1,
+          maxSelections: 1,
+          skus: [/* liste des plats */]
+        },
+        { 
+          name: "Dessert",
+          minSelections: 1,
+          maxSelections: 1,
+          skus: [/* liste des desserts */]
+        }
+      ]
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Menu Fast-Food">
+    **Structure : Burger + Accompagnement + Boisson**
+    
+    ```typescript
+    {
+      name: "Menu Burger",
+      price: { amount: 15, currency: "CHF" },
+      lines: [
+        { 
+          name: "Burger",
+          minSelections: 1,
+          maxSelections: 1,
+          skus: [/* burgers disponibles */]
+        },
+        { 
+          name: "Accompagnement",
+          minSelections: 1,
+          maxSelections: 1,
+          skus: [/* frites, salades */]
+        },
+        { 
+          name: "Boisson",
+          minSelections: 1,
+          maxSelections: 1,
+          skus: [/* boissons */]
+        }
+      ]
+    }
+    ```
+  </Tab>
+  
+  <Tab title="Menu avec options">
+    **Structure : Plat principal + Options supplémentaires**
+    
+    ```typescript
+    {
+      name: "Menu Giga Bucket",
+      price: { amount: 22, currency: "CHF" },
+      lines: [
+        { 
+          name: "Bucket de poulet",
+          minSelections: 1,
+          maxSelections: 1,
+          skus: [{ skuId: "sku_giga_bucket" }]
+        },
+        { 
+          name: "Boisson incluse",
+          minSelections: 1,
+          maxSelections: 1,
+          skus: [/* boissons standards */]
+        },
+        {
+          name: "Boisson supplémentaire (optionnel)",
+          minSelections: 0,  // Optionnel
+          maxSelections: 1,  // Maximum 1 boisson supplémentaire
+          skus: [/* avec prix supplémentaire */]
+        },
+        {
+          name: "Sides supplémentaires",
+          minSelections: 0,  // Optionnel
+          maxSelections: 3,  // Maximum 3 sides
+          skus: [/* accompagnements premium */]
+        }
+      ]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Similarité avec les OptionLists
+
+Les deals fonctionnent de manière identique aux OptionLists, mais à un niveau supérieur :
+
+- **OptionList** : Personnalise un produit avec `minSelections`/`maxSelections` sur des options
+- **DealLine** : Sélectionne des produits avec `minSelections`/`maxSelections` sur des SKUs
+
+**Parallèle direct :**
+
+- Une `DealLine` est comme une `OptionList` pour les menus
+- Les deux partagent les mêmes propriétés de sélection (`minSelections`, `maxSelections`)
+- La différence : les OptionLists opèrent sur des options (suppléments), les DealLines sur des produits complets
+
+## Restrictions et disponibilité
+
+Le système gère des restrictions complexes adaptées à la restauration. Pour l'instant les restrictions ne s'applique qu'aux produits mais nous allons les étendres aux options et aux menus :
+
+### Restrictions temporelles
+
+```typescript
+{
+  dow: ["monday", "tuesday", "wednesday", "thursday", "friday"], // Jours de disponibilité
+  startTime: "11:30",  // Disponible à partir de 11h30
+  endTime: "14:30",    // Jusqu'à 14h30
+  startDate: "2024-06-01", // Promotion d'été
+  endDate: "2024-08-31"
+}
+```
+
+### Restrictions par canal de vente
+
+```typescript
+{
+  availableForDelivery: true,  // Disponible en livraison
+  availableForPickup: false    // Non disponible à emporter
+}
+```
+
+**Exemples d'utilisation :**
+
+- Menu du midi disponible uniquement de 11h30 à 14h30 en semaine
+- Promotion weekend sur certains produits
+- Plats disponibles uniquement en livraison
+
+## Intégration avec les systèmes de caisse
+
+### Importance du champ `ref`
+
+Le champ `ref` présent sur les SKUs, Options et Deals est **critique** pour la synchronisation avec les logiciels de caisse. C'est l'identifiant utilisé pour identifier les entités lors de l'envoie des commandes au système de caisse
+
+## Gestion des prix
+
+Le système utilise une entité `Price` robuste :
+
+```typescript
+class Price {
+  amount: number,        // Montant en centimes (pour éviter les erreurs d'arrondi)
+  currency: string,      // CHF, EUR, USD
+
+  // Méthodes arithmétiques sécurisées
+  add(other: Price): Price
+  multiply(quantity: number): Price
+  isZero(): boolean
+}
+```
+
+## Exemple complet : Pizzeria
+
+Voici comment structurer le catalogue d'une pizzeria :
+
+```typescript
+// Catégories
+categories: [
+  { name: "Pizzas", internalId: "cat-pizzas" },
+  { name: "Boissons", internalId: "cat-boissons" },
+  { name: "Menus", internalId: "cat-menus" }
+]
+
+// Produit avec options
+product: {
+  name: "Pizza Margherita",
+  categoryId: "cat-pizzas",
+  sku: {
+    ref: "PIZZA_MARG_001",  // Référence caisse
+    price: { amount: 1800, currency: "CHF" }, // 18 CHF
+    optionListIds: ["taille-pizza", "supplements-pizza"]
+  }
+}
+
+// Listes d'options
+optionLists: [
+  {
+    name: "Taille de pizza",
+    minSelections: 1,
+    maxSelections: 1,
+    options: [
+      { name: "Petite (26cm)", price: { amount: 0 } },
+      { name: "Grande (34cm)", price: { amount: 500 } } // +5 CHF
+    ]
+  },
+  {
+    name: "Suppléments",
+    minSelections: 0,
+    maxSelections: 5,
+    options: [
+      { name: "Extra mozzarella", price: { amount: 250 } }, // +2.50 CHF
+      { name: "Jambon", price: { amount: 300 } } // +3 CHF
+    ]
+  }
+]
+
+// Menu/Deal
+deal: {
+  name: "Menu Pizza",
+  price: { amount: 2500, currency: "CHF" }, // 25 CHF
+  lines: [
+    {
+      name: "Votre pizza",
+      minSelections: 1,  // Une pizza obligatoire
+      maxSelections: 1,
+      skus: [/* toutes les pizzas disponibles */]
+    },
+    {
+      name: "Votre boisson",
+      minSelections: 1,  // Une boisson obligatoire
+      maxSelections: 1,
+      skus: [/* boissons incluses */]
+    },
+    {
+      name: "Dessert (optionnel)",
+      minSelections: 0,  // Dessert optionnel
+      maxSelections: 1,
+      skus: [/* desserts avec supplément */]
+    }
+  ]
+}
+```

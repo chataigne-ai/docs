@@ -1,0 +1,568 @@
+---
+title: "Custom hooks"
+description: "Création et utilisation des hooks custom pour la logique métier avec TanStack Query et React Hook Form"
+icon: "code"
+---
+
+<Info>
+  Les hooks personnalisés sont le cœur de notre architecture. Ils encapsulent
+  toute la logique métier, orchestrent TanStack Query et React Hook Form, et
+  fournissent une interface simple aux composants.
+</Info>
+
+## Principe fondamental
+
+Les hooks custom séparent complètement la logique métier de l'affichage. Nos composants deviennent de simples orchestrateurs visuels qui consomment des hooks intelligents.
+
+<CardGroup cols={3}>
+  <Card title="Hooks de données" icon="server" href="#hooks-de-données">
+    TanStack Query pour l'état serveur et le cache intelligent
+  </Card>
+
+{" "}
+
+{" "}
+
+{" "}
+
+<Card title="Hooks de formulaires" icon="gear" href="#hooks-de-formulaires">
+  React Hook Form + Zod pour la validation et la gestion des formulaires
+</Card>
+
+  <Card title="Hooks métier" icon="brain" href="#hooks-métier">
+    Logique complexe et orchestration de plusieurs sources de données
+  </Card>
+</CardGroup>
+
+<Warning>
+  **Règle d'or** : Aucune logique métier dans les composants. Tout passe par les
+  hooks.
+</Warning>
+
+## Hooks de données
+
+### Hooks de lecture (Queries)
+
+Les hooks de lecture encapsulent TanStack Query et fournissent des données typées avec gestion automatique du cache.
+
+<Tabs>
+  <Tab title="Hook simple">
+    Pattern de base pour récupérer des données :
+
+    ```typescript use-catalogs.hook.ts
+    import { useQuery } from "@tanstack/react-query";
+    import { getLocationCatalogs } from "../services/catalog.service";
+
+    export function useCatalogs(locationId: string) {
+      return useQuery({
+        queryKey: ["catalogs", locationId],
+        queryFn: () => getLocationCatalogs(locationId),
+        enabled: !!locationId,
+        staleTime: 5 * 60 * 1000, // 5 minutes
+      });
+    }
+    ```
+
+  </Tab>
+
+  <Tab title="Hook avec paramètres">
+    Gestion des filtres et paramètres dynamiques :
+
+    ```typescript use-products.hook.ts
+    import { useQuery } from "@tanstack/react-query";
+    import { getProducts } from "../services/product.service";
+    import type { ProductFilters } from "../types/product.type";
+
+    export function useProducts(catalogId: string, filters?: ProductFilters) {
+      return useQuery({
+        queryKey: ["products", catalogId, filters],
+        queryFn: () => getProducts(catalogId, filters),
+        enabled: !!catalogId,
+        select: (data) => {
+          // Transformation des données si nécessaire
+          return data.sort((a, b) => a.name.localeCompare(b.name));
+        },
+      });
+    }
+    ```
+
+  </Tab>
+
+  <Tab title="Hook conditionnel">
+    Requêtes qui dépendent d'autres données :
+
+    ```typescript use-user-permissions.hook.ts
+    import { useQuery } from "@tanstack/react-query";
+    import { getUserPermissions } from "../services/user.service";
+    import { useAuth } from "./use-auth.hook";
+
+    export function useUserPermissions() {
+      const { user } = useAuth();
+
+      return useQuery({
+        queryKey: ["permissions", user?.id],
+        queryFn: () => getUserPermissions(user!.id),
+        enabled: !!user?.id,
+        staleTime: 10 * 60 * 1000, // 10 minutes pour les permissions
+      });
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+### Hooks de mutation
+
+Les mutations gèrent les opérations de création, modification et suppression avec invalidation automatique du cache.
+
+<Tabs>
+  <Tab title="Mutation simple">
+    Pattern de base pour modifier des données :
+
+    ```typescript use-create-catalog.hook.ts
+    import { useMutation, useQueryClient } from "@tanstack/react-query";
+    import { createCatalog } from "../services/catalog.service";
+    import type { CreateCatalogDTO } from "@chataigne/client";
+
+    export function useCreateCatalog() {
+      const queryClient = useQueryClient();
+
+      return useMutation({
+        mutationFn: (data: CreateCatalogDTO) => createCatalog(data),
+        onSuccess: (newCatalog) => {
+          // Invalidation ciblée
+          queryClient.invalidateQueries({
+            queryKey: ["catalogs", newCatalog.locationId],
+          });
+
+          // Ajout direct au cache
+          queryClient.setQueryData(["catalogs", newCatalog.id], newCatalog);
+        },
+        onError: (error) => {
+          console.error("Erreur lors de la création:", error);
+        },
+      });
+    }
+    ```
+
+  </Tab>
+
+  <Tab title="Optimistic update">
+    Mise à jour optimiste pour une UX fluide :
+
+    ```typescript use-update-product.hook.ts
+    import { useMutation, useQueryClient } from "@tanstack/react-query";
+    import { updateProduct } from "../services/product.service";
+    import type { UpdateProductDTO, ProductDTO } from "@chataigne/client";
+
+    export function useUpdateProduct() {
+      const queryClient = useQueryClient();
+
+      return useMutation({
+        mutationFn: ({ id, data }: { id: string; data: UpdateProductDTO }) =>
+          updateProduct(id, data),
+
+        onMutate: async ({ id, data }) => {
+          // Annuler les requêtes en cours
+          await queryClient.cancelQueries({ queryKey: ["products", id] });
+
+          // Sauvegarder l'état précédent
+          const previousProduct = queryClient.getQueryData(["products", id]);
+
+          // Mise à jour optimiste
+          queryClient.setQueryData(["products", id], (old: ProductDTO) => ({
+            ...old,
+            ...data,
+          }));
+
+          return { previousProduct };
+        },
+
+        onError: (err, variables, context) => {
+          // Rollback en cas d'erreur
+          if (context?.previousProduct) {
+            queryClient.setQueryData(
+              ["products", variables.id],
+              context.previousProduct
+            );
+          }
+        },
+
+        onSettled: (data, error, variables) => {
+          // Toujours revalider après
+          queryClient.invalidateQueries({
+            queryKey: ["products", variables.id],
+          });
+        },
+      });
+    }
+    ```
+
+  </Tab>
+</Tabs>
+
+### Patterns avancés
+
+<Steps>
+  <Step title="Prefetching">
+    Anticiper les besoins de données :
+
+    ```typescript
+    export function usePrefetchCatalog() {
+      const queryClient = useQueryClient();
+
+      return (catalogId: string) => {
+        queryClient.prefetchQuery({
+          queryKey: ["catalogs", catalogId],
+          queryFn: () => getCatalog(catalogId),
+          staleTime: 10 * 1000,
+        });
+      };
+    }
+    ```
+
+  </Step>
+
+  <Step title="Infinite queries">
+    Pagination infinie :
+
+    ```typescript
+    export function useInfiniteProducts(catalogId: string) {
+      return useInfiniteQuery({
+        queryKey: ["products", catalogId, "infinite"],
+        queryFn: ({ pageParam = 0 }) =>
+          getProductsPaginated(catalogId, pageParam),
+        getNextPageParam: (lastPage) => lastPage.nextCursor,
+        enabled: !!catalogId,
+      });
+    }
+    ```
+
+  </Step>
+
+  <Step title="Dependent queries">
+    Requêtes en cascade :
+
+    ```typescript
+    export function useCatalogWithProducts(catalogId: string) {
+      const { data: catalog } = useCatalog(catalogId);
+
+      const { data: products } = useQuery({
+        queryKey: ["products", catalogId],
+        queryFn: () => getProducts(catalogId),
+        enabled: !!catalog, // Attend que le catalogue soit chargé
+      });
+
+      return { catalog, products };
+    }
+    ```
+
+  </Step>
+</Steps>
+
+## Hooks de formulaires
+
+### Hook de formulaire de base
+
+Intégration React Hook Form + Zod pour la validation :
+
+```typescript use-catalog-form.hook.ts
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  catalogSchema,
+  type CatalogSchema,
+} from "../validations/catalog.schema";
+import {
+  useCreateCatalog,
+  useUpdateCatalog,
+} from "./use-catalog-mutations.hook";
+
+interface UseCatalogFormProps {
+  catalogId?: string;
+  initialData?: Partial<CatalogSchema>;
+  onSuccess?: () => void;
+}
+
+export function useCatalogForm({
+  catalogId,
+  initialData,
+  onSuccess,
+}: UseCatalogFormProps = {}) {
+  const createCatalog = useCreateCatalog();
+  const updateCatalog = useUpdateCatalog();
+
+  const form = useForm<CatalogSchema>({
+    resolver: zodResolver(catalogSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      ...initialData,
+    },
+  });
+
+  const isEditing = !!catalogId;
+  const mutation = isEditing ? updateCatalog : createCatalog;
+
+  const onSubmit = async (data: CatalogSchema) => {
+    try {
+      if (isEditing) {
+        await updateCatalog.mutateAsync({ id: catalogId, data });
+      } else {
+        await createCatalog.mutateAsync(data);
+      }
+
+      onSuccess?.();
+      form.reset();
+    } catch (error) {
+      form.setError("root", {
+        message: "Une erreur est survenue lors de la sauvegarde",
+      });
+    }
+  };
+
+  return {
+    ...form,
+    onSubmit: form.handleSubmit(onSubmit),
+    isSubmitting: mutation.isPending,
+    isEditing,
+  };
+}
+```
+
+### Hook de formulaire avec validation dynamique
+
+Validation qui dépend du contexte :
+
+```typescript use-product-form.hook.ts
+import { useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { productSchema } from "../validations/product.schema";
+import { useCatalogCategories } from "./use-catalog-categories.hook";
+
+export function useProductForm(catalogId: string) {
+  const { data: categories } = useCatalogCategories(catalogId);
+
+  const form = useForm({
+    resolver: zodResolver(productSchema),
+    defaultValues: {
+      name: "",
+      price: 0,
+      categoryId: "",
+    },
+  });
+
+  // Surveillance des changements pour validation dynamique
+  const selectedCategoryId = useWatch({
+    control: form.control,
+    name: "categoryId",
+  });
+
+  // Validation conditionnelle basée sur la catégorie
+  const selectedCategory = categories?.find((c) => c.id === selectedCategoryId);
+
+  // Mise à jour des règles de validation selon la catégorie
+  useEffect(() => {
+    if (selectedCategory?.requiresDescription) {
+      form.setValue("description", form.getValues("description") || "");
+    }
+  }, [selectedCategory, form]);
+
+  return {
+    ...form,
+    categories,
+    selectedCategory,
+  };
+}
+```
+
+## Hooks métier
+
+### Hook d'authentification
+
+Orchestration complète de l'authentification :
+
+```typescript use-auth.hook.ts
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { authService } from "../services/auth.service";
+import { useAuthStore } from "../store/auth.store";
+import type { LoginSchema } from "../validations/auth.schema";
+
+export function useAuth() {
+  const { token, setToken, clearToken } = useAuthStore();
+  const queryClient = useQueryClient();
+  const router = useRouter();
+
+  // Query pour l'utilisateur courant
+  const { data: user, isLoading } = useQuery({
+    queryKey: ["auth", "current-user"],
+    queryFn: authService.getCurrentUser,
+    enabled: !!token,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
+  // Mutation de connexion
+  const loginMutation = useMutation({
+    mutationFn: (credentials: LoginSchema) => authService.login(credentials),
+    onSuccess: (response) => {
+      setToken(response.token);
+      queryClient.setQueryData(["auth", "current-user"], response.user);
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      router.push("/dashboard");
+    },
+    onError: (error) => {
+      console.error("Échec de la connexion:", error);
+    },
+  });
+
+  // Mutation de déconnexion
+  const logoutMutation = useMutation({
+    mutationFn: authService.logout,
+    onSuccess: () => {
+      clearToken();
+      queryClient.clear();
+      router.push("/login");
+    },
+  });
+
+  return {
+    user,
+    token,
+    login: loginMutation.mutate,
+    logout: logoutMutation.mutate,
+    isLoading,
+    isLoggingIn: loginMutation.isPending,
+    isAuthenticated: !!user && !!token,
+  };
+}
+```
+
+### Hook de gestion complexe
+
+Orchestration de plusieurs sources de données :
+
+```typescript use-catalog-management.hook.ts
+import { useCatalogs } from "./use-catalogs.hook";
+import { useProducts } from "./use-products.hook";
+import { useCatalogStore } from "../store/catalog.store";
+import {
+  useCreateProduct,
+  useUpdateProduct,
+} from "./use-product-mutations.hook";
+
+export function useCatalogManagement(locationId: string) {
+  const { selectedCatalogId, setSelectedCatalogId } = useCatalogStore();
+
+  // Données
+  const { data: catalogs, isLoading: catalogsLoading } =
+    useCatalogs(locationId);
+  const { data: products, isLoading: productsLoading } = useProducts(
+    selectedCatalogId || ""
+  );
+
+  // Mutations
+  const createProduct = useCreateProduct();
+  const updateProduct = useUpdateProduct();
+
+  // Logique dérivée
+  const selectedCatalog = catalogs?.find((c) => c.id === selectedCatalogId);
+  const isLoading = catalogsLoading || productsLoading;
+
+  // Actions complexes
+  const selectCatalog = (catalogId: string) => {
+    setSelectedCatalogId(catalogId);
+  };
+
+  const addProductToCatalog = async (productData: CreateProductDTO) => {
+    if (!selectedCatalogId) return;
+
+    await createProduct.mutateAsync({
+      ...productData,
+      catalogId: selectedCatalogId,
+    });
+  };
+
+  // Auto-sélection du premier catalogue
+  useEffect(() => {
+    if (catalogs?.length && !selectedCatalogId) {
+      setSelectedCatalogId(catalogs[0].id);
+    }
+  }, [catalogs, selectedCatalogId, setSelectedCatalogId]);
+
+  return {
+    // État
+    catalogs,
+    products,
+    selectedCatalog,
+    selectedCatalogId,
+    isLoading,
+
+    // Actions
+    selectCatalog,
+    addProductToCatalog,
+
+    // Mutations
+    createProduct: createProduct.mutate,
+    updateProduct: updateProduct.mutate,
+
+    // États des mutations
+    isCreatingProduct: createProduct.isPending,
+    isUpdatingProduct: updateProduct.isPending,
+  };
+}
+```
+
+## Bonnes pratiques
+
+<Steps>
+  <Step title="Naming et organisation">
+    • Préfixe `use-` pour tous les hooks
+
+    • Suffixe `.hook.ts` pour les fichiers
+
+    • Un hook par fichier avec export nommé
+
+    • Grouper par feature dans `/hooks`
+
+  </Step>
+
+  <Step title="Query keys cohérentes">
+    • Structure hiérarchique : `["resource", id, "params"]`
+
+    • Utiliser des constantes pour éviter les erreurs
+
+    • Faciliter l'invalidation ciblée
+
+    • Documenter la structure des clés
+
+  </Step>
+
+  <Step title="Gestion des erreurs">
+    • Toujours gérer les cas d'erreur
+
+    • Messages d'erreur utilisateur-friendly
+
+    • Logging approprié pour le debugging
+
+    • Fallbacks et états de récupération
+
+  </Step>
+
+  <Step title="Performance">
+    • Utiliser `enabled` pour les requêtes conditionnelles
+
+    • Optimiser `staleTime` selon le contexte
+
+    • Prefetching pour les données prévisibles
+
+    • Optimistic updates pour l'UX
+
+  </Step>
+</Steps>
+
+<Check>
+  Les hooks personnalisés sont la clé d'une architecture maintenable. Ils
+  encapsulent la complexité et offrent une interface simple aux composants.
+</Check>{" "}

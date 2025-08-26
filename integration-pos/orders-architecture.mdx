@@ -1,0 +1,471 @@
+# Architecture des Commandes (Orders)
+
+Cette documentation détaille le système de gestion des commandes dans Châtaigne et son intégration avec les systèmes de caisse (POS). Les commandes sont créées en interne puis transmises au POS via un mapping spécifique.
+
+## Vue d'ensemble
+
+Une **commande** (Order) représente une transaction complète entre un client et un restaurant. Elle contient tous les détails nécessaires : articles commandés, informations de livraison, paiements, et statut de traitement.
+
+<Note>
+  **Flux typique** :
+
+  1. Création de la commande via chatbot ou plateforme
+  2. Transmission au POS (Hubrise)
+  3. Mise à jour du statut via webhook
+  4. Suivi en temps réel jusqu'à la livraison/collecte
+</Note>
+
+## Structure de la commande
+
+### Identifiants et métadonnées
+
+```typescript
+{
+  id: string,              // Format: "ord_" + 10 caractères
+  shortId: string,         // Code court (ex: "A1B2") pour référence client
+  hubriseId?: string,      // ID dans le système POS
+  ref?: string,            // Référence externe
+  orderDraftId?: string,   // Lien vers le brouillon
+  conversationId?: string, // Lien vers la conversation chatbot
+  createdAt: Date,
+  updatedAt?: Date
+}
+```
+
+Le `shortId` est particulièrement important : c'est le code à 4 caractères que le client utilise pour identifier sa commande (affiché sur les écrans, tickets, etc.).
+
+### Canal de commande (Channel)
+
+Le canal indique **d'où provient la commande** :
+
+```typescript
+type OrderChannel = 
+  | 'Chataigne'    // Via chatbot WhatsApp/Web
+  | 'Uber Eats'    // Plateforme Uber Eats
+  | 'Just Eat'     // Plateforme Just Eat
+  | 'Deliveroo';   // Plateforme Deliveroo
+```
+
+Cette information est cruciale pour :
+
+- Les rapports et analyses
+- Les commissions différenciées
+- Le routage des notifications
+
+### Gestion des horaires (Expected Times)
+
+Le système gère trois horaires critiques pour orchestrer la préparation et la livraison :
+
+<Tabs>
+  <Tab title="Expected Start Time">
+    **Moment où le restaurant doit commencer la préparation**
+
+    Calculé automatiquement selon :
+
+    - La durée de préparation moyenne du restaurant
+    - L'heure de collecte/livraison souhaitée
+    - Les contraintes de capacité cuisine
+
+    ```typescript
+    expectedStartTime: Date // Ex: 12:15 pour une livraison à 12:45
+    ```
+  </Tab>
+  <Tab title="Expected Pickup Time">
+    **Moment où la commande doit être prête**
+
+    - Pour livraison : Arrivée du livreur
+    - Pour collecte : Arrivée du client
+
+    ```typescript
+    expectedPickupTime: Date // Ex: 12:30
+    ```
+  </Tab>
+  <Tab title="Expected Delivery Time">
+    **Moment de livraison au client final**
+
+    Uniquement pour les commandes en livraison.
+    Prend en compte le temps de transport.
+
+    ```typescript
+    expectedDeliveryTime?: Date // Ex: 12:45
+    ```
+  </Tab>
+</Tabs>
+
+**Note importante** : `expectedTime` est un champ générique qui correspond à :
+
+- `expectedPickupTime` pour les collectes
+- `expectedDeliveryTime` pour les livraisons
+
+### Type de service
+
+```typescript
+type ServiceType = 
+  | 'delivery'    // Livraison à domicile
+  | 'collection'  // À emporter (pickup)
+  | 'eat_in';     // Sur place
+```
+
+### Mode de fonctionnement
+
+```typescript
+{
+  locationId: string,              // Restaurant concerné
+  businessOrganizationId?: string, // Chaîne/groupe (optionnel)
+  mode: 'location' | 'businessOrganization'
+}
+```
+
+<Info>
+  **Explication du mode** :
+
+  - `location` : Commande passée directement au restaurant
+  - `businessOrganization` : Commande passée via numéro centralisé d'une chaîne, puis routée vers le bon restaurant
+</Info>
+
+## Contenu de la commande
+
+### Items (Articles individuels)
+
+Un `OrderItem` représente un produit commandé avec ses options :
+
+```typescript
+{
+  id: string,                    // Format: "orditm_" + 10 caractères
+  productName: string,           // Nom du produit
+  productInternalId?: string,    // ID interne produit
+  skuName?: string,              // Nom du SKU
+  skuRef?: string,               // ⚠️ CRITIQUE : Référence POS du SKU
+  skuInternalId?: string,        // ID interne SKU
+  price: Price,                  // Prix unitaire
+  quantity: number,              // Quantité commandée
+  customerNotes?: string,        // Instructions spéciales
+  options?: OrderOption[]        // Options sélectionnées
+}
+```
+
+### Options des items
+
+Les options représentent les personnalisations (taille, suppléments, etc.) :
+
+```typescript
+{
+  id: string,                     // Format: "ordopt_" + 10 caractères
+  optionListName: string,         // Ex: "Taille"
+  optionListInternalId?: string,
+  optionInternalId?: string,
+  name: string,                   // Ex: "Grande"
+  ref?: string,                   // Référence POS
+  price: Price,                   // Supplément
+  quantity: number                // Quantité de cette option
+}
+```
+
+### Deals (Menus)
+
+Les `OrderDeal` représentent les menus commandés avec leur composition :
+
+```typescript
+{
+  id: string,
+  name: string,              // Ex: "Menu Big Mac"
+  ref?: string,              // Référence POS du menu
+  price: Price,              // Prix du menu complet
+  skus: OrderDealLineSku[]   // Composition du menu
+}
+```
+
+Chaque `OrderDealLineSku` contient :
+
+- Les produits sélectionnés dans chaque ligne du menu
+- Les options de ces produits
+- Les quantités
+
+## Gestion financière
+
+### Discounts (Réductions)
+
+```typescript
+{
+  id: string,
+  name: string,         // Ex: "Promo été -20%"
+  ref?: string,         // Référence POS
+  priceOff: Price,      // Montant de la réduction
+  campaignId?: string   // ID de la campagne marketing
+}
+```
+
+### Charges (Frais)
+
+Les frais additionnels appliqués à la commande :
+
+```typescript
+{
+  id: string,
+  name: string,    // Ex: "Frais de livraison", "Frais de service"
+  ref?: string,    // Référence POS
+  price: Price     // Montant des frais
+}
+```
+
+**Types de frais courants** :
+
+- **Frais de service** : Commission Châtaigne
+- **Frais de livraison** : Coût de transport
+- **Frais de transaction** : Coûts de paiement
+
+### Payments (Paiements)
+
+<Warning>
+  **Point critique pour l'intégration POS** : Le montant total des paiements DOIT correspondre exactement au total de la commande pour permettre la clôture en caisse. Un écart créera des problèmes de caisse.
+</Warning>
+
+```typescript
+{
+  id: string,
+  amount: Price,           // Montant payé
+  method: PaymentMethod,   // Méthode de paiement
+  status: PaymentStatus,   // Statut du paiement
+  provider?: string,       // Ex: "Stripe", "Cash"
+  reference?: string       // Référence de transaction
+}
+```
+
+**Cas d'usage** :
+
+- **Paiement en ligne** : Un seul payment Stripe pour le total
+- **Paiement en magasin** : Pas de payment dans l'order (géré par le POS)
+- **Paiement mixte** : Possible mais pas utilisé
+
+## Calculs de prix
+
+La commande expose des méthodes de calcul automatique :
+
+```typescript
+class Order {
+  // Sous-total = Somme(items) + Somme(deals)
+  get subtotal(): Price
+  
+  // Total = subtotal - Somme(discounts) + Somme(charges)
+  get total(): Price
+}
+```
+
+## Statuts de commande
+
+### États possibles
+
+```typescript
+type OrderStatus =
+  | 'received'            // Reçue, en attente d'acceptation
+  | 'accepted'            // Acceptée par le restaurant
+  | 'in_preparation'      // En cours de préparation
+  | 'awaiting_shipment'   // Prête, en attente du livreur (livraison)
+  | 'awaiting_collection' // Prête, en attente du client (collecte)
+  | 'in_delivery'         // En cours de livraison
+  | 'completed'           // Terminée avec succès
+  | 'rejected'            // Refusée par le restaurant
+  | 'cancelled'           // Annulée par le client
+  | 'delivery_failed';    // Échec de livraison
+```
+
+### Transitions de statut
+
+Les transitions sont contrôlées selon le type de service :
+
+<Tabs>
+  <Tab title="Livraison">
+    ```mermaid
+    graph LR
+      received --> accepted
+      accepted --> in_preparation
+      in_preparation --> in_delivery
+      in_delivery --> completed
+      in_delivery --> delivery_failed
+    ```
+  </Tab>
+  <Tab title="Collecte">
+    ```mermaid
+    graph LR
+      received --> accepted
+      accepted --> in_preparation
+      in_preparation --> awaiting_collection
+      awaiting_collection --> completed
+    ```
+  </Tab>
+</Tabs>
+
+### Mise à jour du statut via webhook
+
+Le POS peut mettre à jour le statut de la commande via webhook :
+
+```typescript
+// Endpoint webhook
+POST /webhook/order/status
+
+// Payload
+{
+  orderId: string,
+  status: OrderStatus,
+  timestamp: Date,
+  reason?: string  // Pour rejected/cancelled
+}
+```
+
+## Informations client et livraison
+
+### Customer (Client)
+
+```typescript
+{
+  customerId?: string,
+  customer?: {
+    firstName: string,
+    lastName: string,
+    phone: string,
+    email?: string
+  }
+}
+```
+
+### Notes
+
+- **customerNotes** : Instructions du client pour la préparation
+- **deliveryNotes** : Instructions pour la livraison (code porte, étage, etc.)
+
+### Collection Code
+
+Code unique pour les commandes à emporter :
+
+- Affiché au client
+- Utilisé pour identifier la commande au comptoir
+- Format : 4 caractères alphanumériques
+
+## Intégration POS (Hubrise)
+
+### Mapping Châtaigne → POS
+
+Lors de l'envoi au POS, la commande est transformée selon le schéma Hubrise :
+
+```typescript
+// Châtaigne Order
+{
+  id: "ord_abc123",
+  status: "accepted",
+  items: [...],
+  total: { amount: 2500, currency: "CHF" }
+}
+
+// → Hubrise Order
+{
+  id: "ord_abc123",
+  status: "accepted",
+  items: [...],
+  total: "25.00 CHF"
+}
+```
+
+### Points d'attention pour le mapping
+
+1. **Références SKU** : Le champ `skuRef` DOIT correspondre exactement aux références du POS
+2. **Formats de prix** : Conversion entre objets Price et strings
+3. **Statuts** : Mapping des statuts Châtaigne vers statuts POS
+4. **Paiements** : Synchronisation critique pour éviter les écarts de caisse
+
+## Exemple complet
+
+```typescript
+// Commande de livraison avec menu et options
+{
+  id: "ord_1234567890",
+  shortId: "A1B2",
+  channel: "Chataigne",
+  status: "in_preparation",
+  serviceType: "delivery",
+  
+  // Horaires
+  expectedStartTime: "2024-01-15T12:00:00Z",
+  expectedPickupTime: "2024-01-15T12:20:00Z",
+  expectedDeliveryTime: "2024-01-15T12:35:00Z",
+  
+  // Client
+  customer: {
+    firstName: "Jean",
+    lastName: "Dupont",
+    phone: "+33612345678"
+  },
+  
+  // Livraison
+  deliveryAddress: {
+    address: "123 rue de la Paix",
+    postalCode: "75001",
+    city: "Paris",
+    latitude: 48.8566,
+    longitude: 2.3522
+  },
+  
+  // Contenu
+  items: [
+    {
+      id: "orditm_abc",
+      productName: "Pizza Margherita",
+      skuRef: "PIZZA_MARG_001",
+      price: { amount: 1200, currency: "EUR" },
+      quantity: 1,
+      options: [
+        {
+          name: "Grande (34cm)",
+          price: { amount: 300, currency: "EUR" },
+          quantity: 1
+        }
+      ]
+    }
+  ],
+  
+  deals: [
+    {
+      name: "Menu Midi",
+      ref: "MENU_MIDI_001",
+      price: { amount: 1500, currency: "EUR" },
+      skus: [/* composition du menu */]
+    }
+  ],
+  
+  // Finances
+  discounts: [
+    {
+      name: "Code promo WELCOME",
+      priceOff: { amount: 500, currency: "EUR" }
+    }
+  ],
+  
+  charges: [
+    {
+      name: "Frais de livraison",
+      price: { amount: 250, currency: "EUR" }
+    }
+  ],
+  
+  payments: [
+    {
+      amount: { amount: 2750, currency: "EUR" },
+      method: "card",
+      provider: "Stripe",
+      status: "paid"
+    }
+  ],
+  
+  // Notes
+  customerNotes: "Sans oignons svp",
+  deliveryNotes: "2ème étage, code 1234A"
+}
+```
+
+## Bonnes pratiques pour l'intégration
+
+1. **Toujours vérifier la correspondance des références** : Les `skuRef` doivent matcher exactement
+2. **Gérer les paiements avec précision** : Le total des paiements = total de la commande
+3. **Implémenter tous les webhooks de statut** : Pour un suivi en temps réel
+4. **Valider les transitions de statut** : Respecter la logique métier
+5. **Synchroniser les horaires** : Les expected times sont critiques pour la coordination (ils sont gérer en interne et exposer au POS)
+6. **Gérer les erreurs gracieusement** : Prévoir les cas d'échec de synchronisation

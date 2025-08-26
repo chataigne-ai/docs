@@ -1,0 +1,215 @@
+---
+title: "Composants UI"
+description: "Guidelines pour l'organisation et le développement des composants UI"
+icon: "puzzle-piece"
+---
+
+<Info>
+  Notre architecture de composants UI est organisée en deux niveaux : les
+  composants globaux réutilisables et les composants spécifiques aux features.
+</Info>
+
+## Composants Features
+
+### Organisation par feature
+
+Chaque feature contient ses propres composants dans son dossier `components/` :
+
+```
+features/
+├── catalog/
+│   └── components/
+│       ├── catalog-card.component.tsx
+│       ├── product-form.component.tsx
+│       └── category-selector.component.tsx
+├── orders/
+│   └── components/
+│       ├── order-card.component.tsx
+│       ├── order-status.component.tsx
+│       └── order-summary.component.tsx
+└── conversations/
+    └── components/
+        ├── message-bubble.component.tsx
+        ├── chat-input.component.tsx
+        └── conversation-list.component.tsx
+```
+
+## Composants Globaux
+
+Les composants globaux sont dans `/shared/components/common/` et sont réutilisables dans toute l'application.
+
+### Structure des fichiers
+
+<Tabs>
+  <Tab title="Composant simple">
+    ```
+    shared/components/common/
+    └── button.component.tsx
+    ```
+  </Tab>
+
+  <Tab title="Composant complexe">
+    ```
+    shared/components/common/
+    └── data-table/
+        ├── data-table.component.tsx
+        ├── data-table-header.component.tsx
+        └── data-table-row.component.tsx
+    ```
+  </Tab>
+</Tabs>
+
+## CVA (Class Variance Authority)
+
+On utilise CVA pour créer des variants de composants type-safe :
+
+```tsx
+const buttonVariants = cva(
+  "font-medium rounded-md transition-colors", // Classes de base
+  {
+    variants: {
+      variant: {
+        default: "bg-gray-100 text-gray-900",
+        primary: "bg-blue-600 text-white",
+        destructive: "bg-red-600 text-white",
+      },
+      size: {
+        sm: "px-3 py-1 text-sm",
+        md: "px-4 py-2 text-base",
+        lg: "px-6 py-3 text-lg",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "md",
+    },
+  }
+);
+```
+
+## Exemple de composant
+
+Voici un exemple concret qui respecte toutes nos conventions :
+
+```tsx button.component.tsx
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center font-medium rounded-md transition-colors",
+  {
+    variants: {
+      variant: {
+        default: "bg-gray-100 text-gray-900 hover:bg-gray-200",
+        primary: "bg-blue-600 text-white hover:bg-blue-700",
+        destructive: "bg-red-600 text-white hover:bg-red-700",
+        outline: "border border-gray-300 bg-transparent hover:bg-gray-50",
+      },
+      size: {
+        sm: "px-3 py-1 text-sm h-8",
+        md: "px-4 py-2 text-base h-10",
+        lg: "px-6 py-3 text-lg h-12",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "md",
+    },
+  }
+);
+
+interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  children: React.ReactNode;
+}
+
+export function Button({
+  className,
+  variant,
+  size,
+  children,
+  ...props
+}: ButtonProps) {
+  return (
+    <button
+      className={cn(buttonVariants({ variant, size, className }))}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+```
+
+## Conventions
+
+<Warning>
+  Ces règles doivent être respectées sans exception pour maintenir la cohérence.
+</Warning>
+
+<Steps>
+  <Step title="Nommage">
+    • Fichiers : `kebab-case.component.tsx`
+    
+    • Composants : `PascalCase` 
+    
+    • Props : `PascalCase` avec suffixe `Props`
+    
+    ```tsx
+    // Correct
+    export function CatalogCard({ catalog }: CatalogCardProps) {}
+    
+    // Incorrect  
+    export function catalogCard({ catalog }: catalogCardProps) {}
+    ```
+  </Step>
+
+  <Step title="Structure des props">
+    • Interface dédiée pour chaque composant
+    
+    • Props optionnelles avec valeurs par défaut
+    
+    • Types stricts avec DTOs quand possible
+    
+    ```tsx
+    interface ProductFormProps {
+      product?: ProductDTO;
+      onSubmit: (data: ProductFormData) => void;
+      onCancel?: () => void;
+      isLoading?: boolean;
+    }
+    ```
+  </Step>
+
+  <Step title="Logique interdite">
+    • Aucune logique métier dans les composants
+    
+    • Pas d'appels API directs
+    
+    • Pas de gestion d'état complexe
+    
+    ```tsx
+    // Correct - Logique déléguée aux hooks
+    export function ProductList() {
+      const { products, isLoading } = useProducts();
+      
+      if (isLoading) return <LoadingSpinner />;
+      
+      return (
+        <div>
+          {products?.map(product => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      );
+    }
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  Les composants UI sont la fondation de notre interface. Respecter ces
+  conventions garantit une expérience utilisateur cohérente et un code
+  maintenable.
+</Note>

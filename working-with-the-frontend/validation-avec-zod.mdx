@@ -1,0 +1,274 @@
+---
+title: "Validation avec Zod"
+description: "Comment utiliser Zod pour valider les formulaires avec React Hook Form"
+icon: "shield-check"
+---
+
+<Info>
+  Zod crée des schémas de validation qui s'intègrent avec React Hook Form. Un
+  schéma = validation + types TypeScript automatiques.
+</Info>
+
+## Vue d'ensemble
+
+<CardGroup cols={2}>
+  <Card title="Schéma de validation" icon="file-code" href="#créer-un-schéma">
+    Définir les règles de validation avec Zod
+  </Card>
+
+<Card title="Hook de formulaire" icon="code" href="#hook-de-formulaire">
+  Intégrer le schéma avec React Hook Form
+</Card>
+
+<Card
+  title="Composant formulaire"
+  icon="form-input"
+  href="#composant-formulaire"
+>
+  Utiliser le hook dans un composant
+</Card>
+
+  <Card
+    title="Service de validation"
+    icon="shield-check"
+    href="#validation-dans-le-service"
+  >
+    Valider avant l'envoi au backend
+  </Card>
+</CardGroup>
+
+## Créer un schéma
+
+On sépare les schémas par feature et par usage. Exemples d'organisation :
+
+<Tabs>
+  <Tab title="Schémas entités">
+    Pour les données métier principales :
+    
+    ```typescript product-schema.ts
+    import { z } from "zod";
+    
+    export const productSchema = z.object({
+      name: z.string().min(1, "Le nom est requis"),
+      price: z.number().positive("Le prix doit être positif"),
+      categoryId: z.string().min(1, "La catégorie est requise"),
+      isVisible: z.boolean().default(true),
+    });
+    
+    export type Product = z.infer<typeof productSchema>;
+    ```
+  </Tab>
+
+  <Tab title="Schémas formulaires">
+    Pour les formulaires spécifiques (dialogs, etc.) :
+    
+    ```typescript option-dialog.schema.ts
+    import { z } from "zod";
+    
+    export const optionDialogSchema = z
+      .object({
+        name: z.string().min(1, { message: "Le nom est requis" }),
+        ref: z.string().optional(),
+        minSelections: z.number().min(0).default(0),
+        maxSelections: z.number().min(0).nullable().default(null),
+      })
+      .refine(
+        (data) =>
+          data.maxSelections === null || data.maxSelections >= data.minSelections,
+        {
+          message: "Le maximum doit être supérieur au minimum",
+          path: ["maxSelections"],
+        }
+      );
+    
+    export type OptionDialogForm = z.infer<typeof optionDialogSchema>;
+    ```
+  </Tab>
+</Tabs>
+
+## Hook de formulaire
+
+Créez un hook personnalisé qui combine Zod et React Hook Form :
+
+```typescript use-option-dialog-form.hook.ts
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  optionDialogSchema,
+  type OptionDialogForm,
+} from "../validations/option-dialog.schema";
+
+export function useOptionDialogForm(initialData?: Partial<OptionDialogForm>) {
+  return useForm<OptionDialogForm>({
+    resolver: zodResolver(optionDialogSchema),
+    defaultValues: {
+      name: "",
+      minSelections: 0,
+      maxSelections: null,
+      ...initialData,
+    },
+  });
+}
+```
+
+<Check>
+  Le `zodResolver` connecte automatiquement la validation Zod avec React Hook
+  Form.
+</Check>
+
+## Composant formulaire
+
+Utilisez le hook dans votre composant :
+
+```tsx OptionDialog.component.tsx
+import { useOptionDialogForm } from "../hooks/use-option-dialog-form.hook";
+import {
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+} from "@/shared/components/ui/form";
+import { Input } from "@/shared/components/ui/input";
+
+export function OptionDialog({ onSubmit, initialData }) {
+  const form = useOptionDialogForm(initialData);
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nom de la liste d'options</FormLabel>
+              <FormControl>
+                <Input placeholder="Entrez le nom" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="minSelections"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Sélections minimum</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  min="0"
+                  {...field}
+                  onChange={(e) => field.onChange(Number(e.target.value))}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </form>
+    </Form>
+  );
+}
+```
+
+## Validation dans le service
+
+Validez les données avant de les envoyer au backend :
+
+```typescript option.service.ts
+import { optionDialogSchema } from "../validations/option-dialog.schema";
+import { authClient } from "@/shared/services/backend-client.service";
+
+export const createOption = async (formData: unknown) => {
+  // Validation côté client
+  const validatedData = optionDialogSchema.parse(formData);
+
+  // Envoi au backend avec données validées
+  return authClient.$fetch("/api/options", {
+    method: "POST",
+    body: validatedData,
+  });
+};
+```
+
+<Warning>
+  Utilisez `.parse()` pour une validation stricte qui lève une erreur si les
+  données sont invalides.
+</Warning>
+
+## Types de validation courants
+
+<Tabs>
+  <Tab title="String">
+    ```typescript
+    // Validation de chaînes
+    z.string().min(1, "Requis")
+    z.string().email("Email invalide")
+    z.string().optional()
+    z.string().regex(/^[A-Z]+$/, "Majuscules uniquement")
+    ```
+  </Tab>
+
+<Tab title="Number">
+  ```typescript // Validation de nombres z.number().min(0, "Doit être positif")
+  z.number().max(100, "Maximum 100") z.number().positive("Doit être positif")
+  z.number().int("Doit être un entier") ```
+</Tab>
+
+<Tab title="Boolean & Array">
+  ```typescript // Boolean z.boolean().default(true) // Array
+  z.array(z.string()).default([]) z.array(z.string()).min(1, "Au moins un
+  élément") z.array(z.string()).max(5, "Maximum 5 éléments") ```
+</Tab>
+
+  <Tab title="Enum & Optional">
+    ```typescript
+    // Enum
+    z.enum(["option1", "option2", "option3"])
+    
+    // Optionnel avec défaut
+    z.string().optional()
+    z.string().default("valeur par défaut")
+    z.string().nullable()
+    ```
+  </Tab>
+</Tabs>
+
+## Bonnes pratiques
+
+<Steps>
+  <Step title="Organisation des fichiers">
+    Séparez les schémas par usage et par feature :
+    
+    ```
+    features/catalog/validations/
+    ├── product-schema.ts          # Entité produit
+    ├── product-dialog.schema.ts   # Formulaire création/édition
+    ├── category-schema.ts         # Entité catégorie
+    └── catalog-dialog.schema.ts   # Formulaire catalog
+    ```
+  </Step>
+
+<Step title="Messages d'erreur clairs">
+  Utilisez des messages en français, spécifiques et actionables : ```typescript
+  z.string().min(2, "Le nom doit contenir au moins 2 caractères") ```
+</Step>
+
+  <Step title="Validation dans les services">
+    Toujours valider avec `.parse()` avant l'envoi au backend :
+    
+    ```typescript
+    const validatedData = schema.parse(formData);
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  Cette approche garantit une validation cohérente et type-safe entre le
+  formulaire et l'API.
+</Note>
