@@ -390,7 +390,19 @@
         "groups": [
           {
             "group": "Changelog",
-            "pages": ["changelog/changelog"]
+            "pages": [
+              "changelog/changelog",
+              {
+                "group": "Chatbot",
+                "pages": [
+                  "changelog/chatbot/changelog",
+                  {
+                    "group": "Changes",
+                    "pages": ["changelog/chatbot/changelog/fee-split-algorithm"]
+                  }
+                ]
+              }
+            ]
           }
         ]
       }

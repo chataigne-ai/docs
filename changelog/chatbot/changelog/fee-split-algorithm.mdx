@@ -1,0 +1,95 @@
+# Fee Split Algorithm Implementation - Changelog pour Leclerk
+
+## Résumé de l'implémentation
+
+Nouvel algorithme de répartition des frais de livraison implémenté pour optimiser les revenus des restaurants tout en maintenant la transparence tarifaire pour les clients. Cet algorithme s'applique **uniquement aux livraisons utilisant Uber Direct ou Chaskis**.
+
+### Nouveaux paramètres disponibles
+
+Les nouveaux paramètres de configuration sont accessibles dans les settings de livraison de chaque location (`deliverySettings.feeSharing.smartParameters`):
+
+- `menuUplift` (0-1): Pourcentage de majoration du menu sur Uber Eats vs Châtaigne
+- `uberCommission` (0-1): Commission Uber Eats pour cette location spécifique
+- `targetLift` (0-1): Pourcentage de bénéfice supplémentaire souhaité sur Châtaigne vs Uber Eats
+- `coverageFraction` (0-1): Pourcentage de la différence entre bénéfice réel et cible à répercuter sur les frais de livraison client
+
+### Activation
+
+L'algorithme est automatiquement appliqué pour les modes Uber Direct et Chaskis
+
+## Changements pour Leclerk
+
+### Nouveaux champs retournés dans `update_order_draft`
+
+#### 1. Nouveau champ `splitAlgorithmResult`
+
+Quand l'algorithme de répartition intelligente est actif, un nouvel objet `splitAlgorithmResult` est retourné dans la partie validationData du retour de l'update_order_draft avec trois sections:
+
+```typescript
+validationData>: {
+    {...oldProperties}
+    splitAlgorithmResult?: {
+        // Lignes tarifaires visibles par le client
+        customerLines?: {
+            subTotal?: number;     // Sous-total du panier
+            delivery?: number;     // Frais de livraison affichés
+            service?: number;      // Frais de service calculés
+            total?: number;        // Total client
+        };
+
+        // Transparence sur les calculs internes
+        transparency?: {
+            courierActual?: number;      // Coût réel du livreur
+            shortfall?: number;          // Différence entre coût réel et affiché
+            restaurantCovers?: number;   // Montant couvert par le restaurant
+            stripeInService?: number;    // Part Stripe dans les frais de service
+            variableInService?: number;  // Part variable dans les frais de service
+        };
+
+        // Économie pour le restaurant
+        restaurant?: {
+            netChataigne?: number;  // Bénéfice net sur Châtaigne
+            netUber?: number;       // Bénéfice net équivalent Uber
+            deltaVsUber?: number;   // Différence positive vs Uber
+        };
+    }
+}
+```
+
+### Contexte des nouvelles propriétés
+
+**`customerLines`**: Reproduit exactement ce que le client voit sur sa facture
+
+- Permet de vérifier la cohérence de l'affichage
+- Peut être utilisé pour générer des reçus détaillés
+
+**`transparency`**: Détaille les mécanismes internes de calcul
+
+- `courierActual`: Coût réel du prestataire (= `realDeliveryFees`)
+- `shortfall`: Écart entre coût réel et frais affichés (peut être négatif si affiché > réel)
+- `restaurantCovers`: Montant que le restaurant subventionne sur la différence
+- `stripeInService`: Part fixe Stripe dans les frais de service
+- `variableInService`: Part variable couvrant le déficit non subventionné
+
+**`restaurant`**: Compare la rentabilité Châtaigne vs Uber Eats
+
+- `netChataigne`: Revenus nets du restaurant sur Châtaigne après déduction des frais plateforme et subvention livraison
+- `netUber`: Revenus nets équivalents sur Uber Eats (simulation avec commission et majoration menu)
+- `deltaVsUber`: Bénéfice supplémentaire sur Châtaigne (garanti ≥ 0 par l'algorithme)
+
+### Modifications comportementales
+
+1. **Calcul des frais de service**: Désormais dynamique, inclut les frais Stripe + éventuel déficit de livraison non couvert
+
+2. **Stabilité tarifaire**: Les frais de livraison affichés ne changent plus selon les conditions de trafic/demande
+
+3. **Optimisation restaurant**: L'algorithme garantit que le restaurant gagne au minimum autant que sur Uber Eats (+ éventuel bonus configuré)
+
+### Scope d'application
+
+⚠️ **Important**: Ces changements ne s'appliquent que pour:
+
+- `deliverySettings.mode = 'uberDirect'` OU `'chaskis'`
+- `deliverySettings.feeSharing.mode = 'smart'`
+
+Pour les autres modes de livraison (`postalCode`, `free`, `none`), le comportement reste inchangé, en gros le champ splitAlgorithmResult est null.
