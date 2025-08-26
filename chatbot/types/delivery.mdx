@@ -1,0 +1,111 @@
+---
+title: Delivery Models
+description: Delivery-related data models for managing third-party delivery services, courier information, and delivery tracking
+---
+
+This module contains all delivery-related models used for managing deliveries through third-party providers like UberDirect and Chaskis.
+
+<Note>
+These delivery models are only present when delivery is handled by Châtaigne through third-party providers. If an order has delivery service type but these objects are not present, it means the delivery is handled by the store's own delivery service.
+</Note>
+
+## DeliveryStatusDTO
+
+Enum defining the various states of a delivery.
+
+| Value             | Description                                  |
+| ----------------- | -------------------------------------------- |
+| pending           | Delivery request has been created            |
+| assigned          | Delivery has been assigned to a courier      |
+| pickup_imminent   | Courier is approaching pickup location       |
+| en_route          | Courier has picked up order and is traveling |
+| dropoff_imminent  | Courier is approaching delivery location     |
+| delivered         | Order has been successfully delivered        |
+| cancelled         | Delivery has been cancelled                  |
+| failed            | Delivery attempt failed                      |
+
+## CourierDTO
+
+Information about the delivery courier assigned to an order.
+
+| Field                 | Type   | Required | Description                           |
+| --------------------- | ------ | -------- | ------------------------------------- |
+| id                    | string | Yes      | Unique courier identifier             |
+| name                  | string | Yes      | Courier's name                        |
+| phone                 | string | No       | Courier's phone number                |
+| imageUrl              | string | No       | Courier's profile image URL           |
+| latitude              | number | No       | Courier's current latitude            |
+| longitude             | number | No       | Courier's current longitude           |
+| vehicleType           | string | No       | Type of vehicle (bike, car, scooter)  |
+| vehicleLicensePlate   | string | No       | Vehicle license plate number          |
+| vehicleColor          | string | No       | Vehicle color                         |
+| vehicleModel          | string | No       | Vehicle model                         |
+| locationDescription   | string | No       | Current location description          |
+| rating                | string | No       | Courier's rating                      |
+
+### Courier Tracking
+
+The courier model provides real-time tracking information including:
+
+- **Location**: Current GPS coordinates for live tracking
+- **Vehicle Information**: Details about the delivery vehicle for identification
+- **Contact Information**: Phone number for direct communication
+- **Rating**: Quality metric for courier performance
+
+## DeliveryDTO
+
+Complete delivery information for orders handled by third-party providers.
+
+| Field           | Type              | Required | Description                           |
+| --------------- | ----------------- | -------- | ------------------------------------- |
+| id              | string            | Yes      | Unique delivery identifier            |
+| provider        | string            | Yes      | Delivery provider: "UberDirect" or "Chaskis" |
+| status          | DeliveryStatusDTO | Yes      | Current delivery status               |
+| deliveryAddress | AddressDTO        | No       | Destination address                   |
+| etaTime         | string            | No       | Estimated time of arrival             |
+| collectionCode  | string            | No       | Code for order pickup verification    |
+| trackingUrl     | string            | No       | URL for delivery tracking page        |
+| fees            | PriceDTO          | No       | Delivery fees                         |
+| courier         | CourierDTO        | No       | Assigned courier information          |
+
+### Delivery Providers
+
+The system currently supports two third-party delivery providers:
+
+#### UberDirect
+- Integration with Uber's delivery platform
+- Real-time courier tracking
+- Automated status updates
+- Professional courier network
+
+#### Chaskis
+- Regional delivery service provider
+- Local courier network
+- Specialized in food delivery
+- Custom integration features
+
+### Delivery Lifecycle
+
+1. **Order Creation**: Delivery request is sent to the provider
+2. **Assignment**: Provider assigns a courier to the delivery
+3. **Pickup**: Courier arrives at restaurant to collect the order
+4. **Transit**: Courier travels to the delivery address
+5. **Completion**: Order is delivered to the customer
+
+### Status Updates
+
+The delivery status is automatically updated throughout the delivery process:
+
+- Real-time status changes from delivery providers
+- Automatic customer notifications
+- ETA updates as courier progresses
+- Failed delivery handling and retry logic
+
+<Note>
+The delivery object is only present for orders using third-party delivery providers. Store-managed deliveries use different tracking systems not covered by these models.
+</Note>
+
+## Related Models
+
+- [AddressDTO](/chatbot/types/address#addressdto) - Used for delivery addresses
+- [PriceDTO](/chatbot/types/pricing#pricedto) - Used for delivery fees

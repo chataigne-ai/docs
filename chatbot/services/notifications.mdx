@@ -1,0 +1,108 @@
+---
+title: "Notifications Service"
+description: "Multi-channel notification service for alerts and issue reporting"
+---
+
+The Notifications service handles sending alerts and notifications to various channels, primarily Discord webhooks, for error reporting and system monitoring.
+
+## Overview
+
+NotificationsService provides:
+- Discord webhook integration for real-time alerts
+- Rich embed formatting with conversation links and context
+- Severity-based styling (error, warning, info)
+- Integration with Railway logs, Langfuse traces, and Linear issues
+- Customer information display for support context
+
+## Core Methods
+
+### send_discord_notification
+- `notification: DiscordNotification` - Notification data and formatting
+- Returns boolean indicating success/failure
+- Sends rich Discord embeds with contextual links and customer info
+
+## Data Models
+
+### DiscordNotification
+- `title: str` - Notification title (auto-generated if empty)
+- `description: str` - Main notification message
+- `store_name: str` - Store/location name for context
+- `conversation_id: str` - Conversation identifier for linking
+- `color: int` - Discord embed color (auto-set by severity)
+- `customer_name: str` - Customer name (optional)
+- `customer_phone: str` - Customer phone number (optional)  
+- `customer_orders_count: int` - Customer order history count (optional)
+- `trace_url: str` - Langfuse trace URL (optional)
+- `severity: str` - Severity level (error, warning, info)
+- `linear_url: str` - Linear issue URL (optional)
+- `linear_identifier: str` - Linear issue ID (optional)
+
+### SeverityLevel
+- `ERROR` - Red styling with 🚨 emoji
+- `WARNING` - Orange styling with ⚠️ emoji  
+- `INFO` - Blue styling with ℹ️ emoji
+
+## Rich Discord Integration
+
+### Embed Features
+- **Clickable Title**: Links directly to conversation in webapp
+- **Severity Styling**: Color-coded embeds with appropriate emojis
+- **Customer Context**: Name, phone, order history when available
+- **Conversation Link**: Direct link to conversation in Chataigne webapp
+- **Langfuse Integration**: Trace links for debugging and analysis
+- **Railway Logs**: Time-windowed log links for system debugging
+- **Linear Integration**: Issue tracking links when created
+- **Timezone Support**: Europe/Zurich timezone for timestamps
+
+### Link Generation
+- **Conversation**: `https://app.chataigne.ai/whatsapp/messages?conversationId={id}`
+- **Railway Logs**: Environment-specific log URLs with time windows
+- **Langfuse Traces**: Automatic trace URL detection from context
+- **Linear Issues**: Direct links to created issues with identifiers
+
+## Usage in Codebase
+
+### API Dependencies
+- **leclerk/api/dependencies.py:34** - FastAPI dependency for service injection
+- **leclerk/services/__init__.py:3** - Service export and availability
+
+### Route Integration
+NotificationsService is used in API routes for error alerting:
+
+#### Message Route
+- **leclerk/api/routes/message.py:16** - Import notifications dependency
+- **leclerk/api/routes/message.py:37** - Service injection in message endpoint
+- Used to alert on message processing failures and errors
+
+#### Event Route
+- **leclerk/api/routes/event.py:15** - Import notifications dependency
+- **leclerk/api/routes/event.py:31** - Service injection in event endpoint  
+- Used to alert on event processing failures and webhook issues
+
+### Error Reporting Workflow
+
+1. **Error Detection**: Exception caught in API routes
+2. **Context Gathering**: Customer info, conversation data, trace URLs collected
+3. **Issue Creation**: Linear issue created (optional)
+4. **Notification**: Discord notification sent with all context links
+5. **Support Response**: Team can quickly access conversation, traces, and logs
+
+## Environment Configuration
+
+### Railway Integration
+- **Environment Mapping**: Production, staging, demo environment IDs
+- **Log Windows**: 1-minute time windows around notification time
+- **Project Integration**: Chataigne-specific Railway project configuration
+
+### Discord Configuration
+- **Webhook URL**: Configurable Discord webhook endpoint
+- **Embed Limits**: Handles Discord's embed size and field limitations
+- **Error Handling**: Graceful fallback when webhook is unavailable
+
+## Multi-Channel Architecture
+
+The service is designed for extensibility:
+- **Current**: Discord webhook support
+- **Future**: Slack, email, SMS integration points
+- **Pluggable**: New notification channels can be added easily
+- **Conditional**: Channel selection based on severity or context

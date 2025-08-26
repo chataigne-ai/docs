@@ -61,7 +61,14 @@ description: "Documentation des clients dans l'infrastructure"
  * ```
  */
 export class HubriseOrderClient {
-  /**
+      // ... implementation
+    }
+    ```
+  </Step>
+
+  <Step title="Nouvelle Commande">
+    ```typescript
+/**
    * Crée une nouvelle commande dans Hubrise.
    *
    * @param order - La commande à créer
@@ -81,8 +88,12 @@ export class HubriseOrderClient {
   async createOrder(order: Order): Promise<Order> {
     // ... implementation
   }
+    ```
+  </Step>
 
-/\*\*
+  <Step title="Commande par id">
+    ```typescript
+/**
 
 - Récupère une commande par son ID.
 -
@@ -92,17 +103,19 @@ export class HubriseOrderClient {
 -
 - @example
 - ```typescript
-
-  ```
 - const order = await client.orders.get("order-id");
 - ```
    */
   async getOrder(id: string): Promise<Order> {
     // ... implementation
   }
-  ```
+    ```
+  </Step>
 
-/\*\*
+  <Step title="Mise a jour de la commande">
+    ```typescript
+
+/**
 
 - Met à jour le statut d'une commande.
 -
@@ -114,22 +127,17 @@ export class HubriseOrderClient {
 - @example
 - ```typescript
 
-  ```
 - const updatedOrder = await client.orders.updateStatus(
 - "order-id",
 - "preparing"
 - );
-- ```
+- 
      */
     async updateOrderStatus(id: string, status: OrderStatus): Promise<Order> {
       // ... implementation
     }
   }
-  ```
-
-
-    ```
-
+      ```
   </Step>
 </Steps>
 

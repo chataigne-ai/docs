@@ -1,0 +1,50 @@
+---
+title: "Development Routes"
+---
+
+
+## Health Monitoring
+
+### `/health`
+- **Method**: GET
+- **Response**: HealthResponse with system status and metrics
+- **Usage**: Monitor overall system health and service availability
+
+Returns comprehensive system information including:
+- Overall status (healthy/unhealthy/error)
+- Memory usage and CPU metrics
+- Service status (Nexus, Redis, Queue system, Langfuse)
+- System timestamp and version
+
+### `/debug/config`
+- **Method**: GET  
+- **Response**: Sanitized configuration dictionary
+- **Usage**: Debug configuration issues (only available in debug mode)
+
+Returns sanitized configuration without secrets:
+- Nexus URL and connection settings
+- Debug and development mode flags
+- OpenRouter configuration
+- Service availability status
+
+## Redis Maintenance
+
+### `/cleanup/redis`
+- **Method**: DELETE
+- **Response**: CleanupResponse with operation status
+- **Usage**: Clear conversation-related Redis keys while preserving system keys
+
+Safely removes conversation state from Redis:
+- Preserves system keys like 'ping'
+- Returns count of deleted keys
+- Useful for clearing stuck conversation registrations
+
+### `/cleanup/redis/status`
+- **Method**: GET
+- **Response**: Redis status information dictionary
+- **Usage**: Inspect current Redis state and key information
+
+Provides Redis status details:
+- Total key count
+- Key type and TTL information for first 10 keys
+- Error reporting for inaccessible keys

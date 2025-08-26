@@ -1,0 +1,91 @@
+---
+title: Address Models
+description: Address and location-related data models for location services, delivery settings, and geographical coordinates
+---
+
+This module contains all address and location-related models used throughout the chatbot system.
+
+## AddressDTO
+
+Model for address data with support for geocoding coordinates.
+
+| Field      | Type              | Required | Description               |
+| ---------- | ----------------- | -------- | ------------------------- |
+| address    | string            | No       | Street and number         |
+| address2   | string            | No       | Address complement        |
+| postalCode | string            | No       | Postal code               |
+| city       | string            | No       | City                      |
+| country    | string            | No       | Country                   |
+| latitude   | number            | No       | Latitude of the location  |
+| longitude  | number            | No       | Longitude of the location |
+
+<Note>
+Fields are kept optional for backward compatibility, though they may be required in specific contexts.
+</Note>
+
+## DeliveryPostalCodeDTO
+
+Model for delivery postal code data with minimum order requirements and fees.
+
+| Field              | Type      | Required | Description                                   |
+| ------------------ | --------- | -------- | --------------------------------------------- |
+| postalCode         | number    | Yes      | Postal code as integer                        |
+| minimumOrderAmount | number    | Yes      | Minimum order amount for this postal code    |
+| deliveryFee        | PriceDTO  | Yes      | Delivery fee for this postal code            |
+
+## DeliverySettingsDTO
+
+Model for delivery settings configuration.
+
+| Field       | Type                   | Required | Description                                                    |
+| ----------- | ---------------------- | -------- | -------------------------------------------------------------- |
+| mode        | string                 | Yes      | Delivery mode: "none", "postalCode", "uberDirect", "chaskis", "free" |
+| postalCodes | DeliveryPostalCodeDTO[] | No       | Required if mode is "postalCode"                               |
+
+### Delivery Modes
+
+- **none**: No delivery available
+- **postalCode**: Delivery based on postal code zones
+- **uberDirect**: Delivery via Uber Direct integration
+- **chaskis**: Delivery via Chaskis integration
+- **free**: Free delivery for all orders
+
+## CoordinatesDTO
+
+Simple coordinate pair model.
+
+| Field     | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| latitude  | number | Yes      | Latitude    |
+| longitude | number | Yes      | Longitude   |
+
+## AddressCheckResponseDTO
+
+Response from address validation service.
+
+| Field        | Type   | Required | Description                                           |
+| ------------ | ------ | -------- | ----------------------------------------------------- |
+| success      | boolean| Yes      | Whether address validation succeeded                  |
+| code         | string | No       | Response code (maps to CheckAddressResponseCode)      |
+| foundAddress | string | No       | Standardized address string                           |
+| deliveryFee  | number | No       | Delivery fee as float                                 |
+| deliveryTime | string | No       | Estimated delivery time (ISO duration or human-readable) |
+| distance     | number | No       | Distance in kilometers from address to location       |
+| locationId   | string | No       | Location ID that can serve this address (org mode)   |
+
+<Note>
+This model replaces deprecated fields from the old response format for better consistency and clarity.
+</Note>
+
+## GeoPointDTO
+
+Model for geographical location data.
+
+| Field     | Type   | Required | Description |
+| --------- | ------ | -------- | ----------- |
+| latitude  | number | Yes      | Latitude    |
+| longitude | number | Yes      | Longitude   |
+
+## Related Models
+
+- [PriceDTO](/chatbot/types/pricing#pricedto) - Used for delivery fees

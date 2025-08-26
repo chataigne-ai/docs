@@ -1,0 +1,91 @@
+---
+title: "Linear Service"
+description: "GraphQL client for Linear issue tracking integration"
+---
+
+The Linear service provides integration with Linear's GraphQL API for creating and managing issues from the chatbot system.
+
+## Overview
+
+LinearClient is a GraphQL client that enables:
+- Creating issues in Linear workspaces
+- Adding attachments to issues
+- Querying team information, states, and labels
+- Automatic error reporting from chatbot failures
+
+## Core Methods
+
+### get_teams
+- No parameters
+- Returns list of teams with their states and labels
+- Used to discover available teams for issue creation
+
+### create_issue
+- `issue: LinearIssueInput` - Issue details (title, description, teamId, priority)
+- `attachments: list[LinearAttachmentInput]` - Optional list of attachments
+- Returns created issue data with ID, identifier, title, and URL
+- Used for creating bug reports and feedback issues
+
+### create_attachment
+- `issue_id: str` - ID of the issue to attach to
+- `attachment: LinearAttachmentInput` - Attachment details (title, subtitle, url, iconUrl, metadata)
+- Returns created attachment data
+- Used to add context files, screenshots, or links to issues
+
+## Data Models
+
+### LinearIssueInput
+- `title: str` - Issue title
+- `description: str` - Issue description/body
+- `teamId: str` - Target team ID for the issue
+- `priority: int` - Issue priority level (optional)
+
+### LinearAttachmentInput
+- `title: str` - Attachment title
+- `subtitle: str` - Attachment subtitle (optional)
+- `url: str` - Attachment URL
+- `iconUrl: str` - Icon URL for the attachment (optional)
+- `metadata: dict` - Additional metadata (optional)
+
+## Usage in Codebase
+
+### API Dependencies
+- **leclerk/api/dependencies.py:29** - FastAPI dependency for Linear client injection
+- Returns configured LinearClient instance or None if not configured
+
+### Route Integration
+The Linear client is used in API routes for error reporting:
+
+#### Message Route
+- **leclerk/api/routes/message.py:15** - Import Linear dependency
+- **leclerk/api/routes/message.py:35** - Linear client injection in message endpoint
+- Used to create issues when message processing fails
+
+#### Event Route
+- **leclerk/api/routes/event.py:14** - Import Linear dependency  
+- **leclerk/api/routes/event.py:29** - Linear client injection in event endpoint
+- Used to create issues when event processing encounters errors
+
+### Error Reporting Workflow
+
+1. **API Error**: Exception occurs in message or event processing
+2. **Issue Creation**: LinearClient creates issue with error details
+3. **Attachment**: Relevant context (logs, traces) added as attachments
+4. **Notification**: Issue URL shared via NotificationsService to Discord
+
+## Configuration
+
+The Linear client requires:
+- **API Key**: Linear workspace API token
+- **Team ID**: Target team for created issues
+- **Environment**: Production vs development mode
+
+Configuration is typically handled through environment variables and injected via FastAPI dependencies.
+
+## GraphQL Integration
+
+The client uses Linear's GraphQL API with:
+- **Endpoint**: `https://api.linear.app/graphql`
+- **Authentication**: Bearer token in Authorization header
+- **Error Handling**: GraphQL error parsing and reporting
+- **Observability**: All methods decorated with `@observe` for tracing

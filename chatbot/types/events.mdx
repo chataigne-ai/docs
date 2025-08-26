@@ -1,0 +1,109 @@
+---
+title: Event Models
+description: Event-related data models for handling system events, webhooks, and notifications from the Nexus platform
+---
+
+This module contains all event-related models used for handling system events, webhooks, and inter-service communication.
+
+## NexusEvent
+
+Model for events received from the Nexus platform.
+
+| Field           | Type              | Required | Description                                    |
+| --------------- | ----------------- | -------- | ---------------------------------------------- |
+| type            | string            | Yes      | Event type: "order_status_changed", "payment_received", "payment_confirmed", "delivery_assigned" |
+| conversation_id | string            | Yes      | Associated conversation identifier             |
+| data            | object            | Yes      | Event-specific data containing order, location, customer info |
+
+### Event Types
+
+#### order_status_changed
+Triggered when an order's status changes (e.g., from "received" to "in_preparation").
+
+**Required data fields:**
+- `new_status`: The new order status
+
+#### payment_received
+Triggered when a payment is received but not yet confirmed.
+
+**Required data fields:**
+- `amount`: Payment amount
+
+#### payment_confirmed
+Triggered when a payment is successfully confirmed.
+
+**Required data fields:**
+- `order`: Order information
+- `location`: Location data
+- `customer`: Customer information  
+- `conversation`: Conversation context
+
+#### delivery_assigned
+Triggered when a delivery courier is assigned to an order.
+
+**Required data fields:**
+- `driver_name`: Name of the assigned delivery driver
+
+<Note>
+The validation logic ensures required fields are present based on the event type. Missing required fields will cause validation errors.
+</Note>
+
+## ChatbotEventType
+
+Enum defining the types of events that can be received from Nexus for chatbot processing.
+
+| Value                               | Description                                      |
+| ----------------------------------- | ------------------------------------------------ |
+| payment_method_registered           | Customer successfully registered a payment method |
+| payment_method_registration_failed  | Payment method registration failed               |
+| payment_confirmed                   | Payment was successfully processed               |
+| payment_failed                      | Payment processing failed                        |
+| order_status_changed                | Order status was updated                         |
+| delivery_status_changed             | Delivery status was updated                      |
+| nexus_instruction                   | Special instruction from Nexus platform         |
+| feedback_request                    | Request to collect customer feedback             |
+
+### Event Processing
+
+Events are processed by the chatbot system to:
+
+1. **Update Conversation State**: Reflect changes in order or payment status
+2. **Send Notifications**: Inform customers about status changes
+3. **Trigger Actions**: Execute automated responses or workflows
+4. **Collect Feedback**: Prompt customers for ratings and reviews
+
+### Event Categories
+
+#### Payment Events
+- `payment_method_registered`: Successful payment method setup
+- `payment_method_registration_failed`: Failed payment method setup
+- `payment_confirmed`: Successful payment processing
+- `payment_failed`: Failed payment processing
+
+#### Order Events  
+- `order_status_changed`: Order lifecycle updates
+- `delivery_status_changed`: Delivery tracking updates
+
+#### System Events
+- `nexus_instruction`: Platform-level instructions
+- `feedback_request`: Customer satisfaction surveys
+
+### Event Flow
+
+1. **Event Generation**: Nexus platform generates events based on system changes
+2. **Event Routing**: Events are routed to appropriate chatbot instances
+3. **Event Processing**: Chatbot processes events and updates conversation state
+4. **Customer Communication**: Relevant updates are communicated to customers
+5. **State Persistence**: Event results are persisted for future reference
+
+<Note>
+Events are the primary mechanism for keeping chatbot conversations synchronized with order and payment status changes across the platform.
+</Note>
+
+## Related Models
+
+The event models work closely with:
+- [ChatbotEventDTO](/chatbot/types/chatbot#chatboteventdto) - Complete event payload with context
+- [OrderDTO](/chatbot/types/orders#orderdto) - Order data in event payloads
+- [PaymentDTO](/chatbot/types/payments#paymentdto) - Payment data in event payloads
+- [ConversationDTO](/chatbot/types/chatbot#conversationdto) - Conversation context for events

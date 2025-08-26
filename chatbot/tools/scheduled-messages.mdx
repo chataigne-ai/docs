@@ -1,0 +1,341 @@
+---
+title: "Scheduled Messages System"
+description: "WhatsApp message scheduling and management tools"
+---
+
+# Scheduled Messages System
+
+The scheduled messaging system consists of three related tools that enable proactive customer communication through WhatsApp. Messages can be scheduled up to 24 hours in advance with flexible cancellation options.
+
+## Overview
+
+The system provides:
+- **Future message scheduling** with precise timing
+- **Automatic cancellation** when customers interact
+- **Message management** with listing and cancellation
+- **Two scheduling modes** for different use cases
+
+## Tools in the System
+
+### schedule_message
+Schedules a WhatsApp message for future delivery.
+
+### list_scheduled_messages  
+Shows all pending scheduled messages for a conversation.
+
+### cancel_scheduled_message
+Cancels a previously scheduled message by ID.
+
+## schedule_message Tool
+
+### Parameters
+
+#### Required
+- `message`: Content to send to customer
+- `scheduled_for`: ISO 8601 datetime when to send
+
+#### Optional
+- `type`: Scheduling behavior (default: "until_next_message")
+
+### Scheduling Types
+
+#### until_next_message (Default)
+Message is automatically cancelled if customer sends ANY message before scheduled time:
+
+```json
+{
+  "message": "Your order will be ready for pickup in 10 minutes!",
+  "scheduled_for": "2024-01-15T19:20:00+01:00",
+  "type": "until_next_message"
+}
+```
+
+**Use cases:**
+- Order confirmations ("Click to confirm your order")
+- Pickup reminders
+- Status updates that become irrelevant if customer messages
+
+#### permanent
+Message will ALWAYS be sent at scheduled time, even if customer messages:
+
+```json
+{
+  "message": "Thank you for your order! Please rate your experience.",
+  "scheduled_for": "2024-01-15T20:30:00+01:00", 
+  "type": "permanent"
+}
+```
+
+**Use cases:**
+- Follow-up surveys
+- Important notifications that must be delivered
+- Marketing messages with timing requirements
+
+### Time Format Requirements
+
+**Always call `get_current_time` first** to ensure accurate scheduling:
+
+```json
+// 1. Get current time
+{
+  "timezone": "Europe/Zurich"
+}
+
+// Response: {"current_time": "2024-01-15T18:30:00+01:00", ...}
+
+// 2. Calculate scheduled time (+1 hour)
+{
+  "message": "Reminder: Please confirm your order",
+  "scheduled_for": "2024-01-15T19:30:00+01:00"
+}
+```
+
+**Required Format:** ISO 8601 with timezone
+- ✅ Correct: `2024-01-15T19:30:00+01:00`
+- ✅ Correct: `2024-01-15T18:30:00Z`
+- ❌ Wrong: `2024-01-15T19:30:00` (missing timezone)
+
+### Response Handling
+
+#### Success Response
+```json
+{
+  "success": true,
+  "message": "Message scheduled successfully for 2024-01-15T19:30:00+01:00",
+  "scheduled_message_id": "msg_12345",
+  "type": "until_next_message"
+}
+```
+
+#### Validation Errors
+```json
+{
+  "success": false,
+  "error": "Scheduled time must be within 24 hours from now"
+}
+```
+
+```json
+{
+  "success": false,
+  "error": "Invalid ISO 8601 datetime format. Use format like '2024-12-14T15:30:00Z'"
+}
+```
+
+## list_scheduled_messages Tool
+
+### Usage
+No parameters required - lists all pending messages for the conversation:
+
+```json
+{
+  "query_type": "list_scheduled_messages"
+}
+```
+
+### Response
+```json
+{
+  "success": true,
+  "scheduled_messages": [
+    {
+      "id": "msg_12345",
+      "message": "Your order will be ready in 10 minutes!",
+      "scheduledFor": "2024-01-15T19:20:00+01:00",
+      "type": "until_next_message",
+      "status": "pending"
+    },
+    {
+      "id": "msg_67890", 
+      "message": "Please rate your experience",
+      "scheduledFor": "2024-01-15T20:30:00+01:00",
+      "type": "permanent",
+      "status": "pending"
+    }
+  ],
+  "count": 2
+}
+```
+
+## cancel_scheduled_message Tool
+
+### Parameters
+- `scheduled_message_id`: ID returned from `schedule_message`
+
+### Usage
+```json
+{
+  "scheduled_message_id": "msg_12345"
+}
+```
+
+### Response
+```json
+{
+  "success": true,
+  "message": "Scheduled message cancelled successfully"
+}
+```
+
+## Common Usage Patterns
+
+### Order Confirmation Reminder
+```json
+// After sending order summary with confirmation buttons
+{
+  "message": "Don't forget to confirm your order by clicking the button above! The kitchen is ready to start preparing your food.",
+  "scheduled_for": "2024-01-15T19:40:00+01:00",  // 10 minutes from now
+  "type": "until_next_message"  // Cancel if they confirm
+}
+```
+
+### Pickup Notification
+```json
+// When order is being prepared
+{
+  "message": "Your order is ready for pickup! Please come to the restaurant within the next 15 minutes.",
+  "scheduled_for": "2024-01-15T20:15:00+01:00",  // When ready
+  "type": "permanent"  // Always send, even if they message
+}
+```
+
+### Follow-up Survey
+```json
+// After order completion
+{
+  "message": "How was your meal? We'd love your feedback! Reply with a rating from 1-5 stars ⭐",
+  "scheduled_for": "2024-01-15T21:00:00+01:00",  // 1 hour after delivery
+  "type": "permanent"  // Always ask for feedback
+}
+```
+
+### Delivery Status Update
+```json
+// When out for delivery
+{
+  "message": "Your order is out for delivery! Expected arrival: 20-25 minutes.",
+  "scheduled_for": "2024-01-15T19:35:00+01:00",
+  "type": "until_next_message"  // Cancel if they ask about status
+}
+```
+
+## Best Practices
+
+### When to Use Scheduled Messages
+
+#### ✅ Good Use Cases
+- **Order confirmation reminders** (10-15 minutes)
+- **Pickup notifications** when order is ready
+- **Follow-up surveys** after meal completion
+- **Delivery status updates** during preparation
+- **Gentle nudges** for incomplete orders
+
+#### ❌ Avoid Overuse
+- Don't schedule messages for every interaction
+- Avoid messages that may become irrelevant quickly
+- Don't spam customers with too many scheduled messages
+- Avoid scheduling during likely sleep hours
+
+### Timing Considerations
+- **Immediate reminders**: 5-15 minutes
+- **Pickup notifications**: When actually ready
+- **Follow-ups**: 30-60 minutes after completion
+- **Surveys**: 1-2 hours after delivery
+- **Check business hours**: Avoid scheduling outside operating hours
+
+### Message Content Guidelines
+- **Be specific**: "Your pizza will be ready in 10 minutes"
+- **Include context**: Reference the specific order
+- **Actionable**: Tell customer what to do next
+- **Polite**: Use friendly, non-demanding language
+- **Brief**: Keep messages concise and clear
+
+## Advanced Scenarios
+
+### Conditional Scheduling
+```json
+// Schedule confirmation reminder only if payment pending
+if (order.status === "awaiting_payment") {
+  {
+    "message": "Your order is waiting for payment confirmation. Please complete payment to proceed.",
+    "scheduled_for": "2024-01-15T19:45:00+01:00",
+    "type": "until_next_message"
+  }
+}
+```
+
+### Multiple Reminders
+```json
+// First reminder at 10 minutes
+{
+  "message": "Reminder: Please confirm your order above ⬆️",
+  "scheduled_for": "2024-01-15T19:40:00+01:00",
+  "type": "until_next_message"
+}
+
+// Final reminder at 20 minutes (if first was cancelled by customer interaction)
+{
+  "message": "Last chance to confirm your order! Kitchen closes in 10 minutes.",
+  "scheduled_for": "2024-01-15T19:50:00+01:00", 
+  "type": "until_next_message"
+}
+```
+
+### Message Cancellation Scenarios
+```json
+// Cancel existing reminder when customer takes action
+{
+  "scheduled_message_id": "msg_12345"  // From previous schedule_message response
+}
+
+// Then schedule new appropriate message
+{
+  "message": "Thank you for confirming! Your order is being prepared.",
+  "scheduled_for": "2024-01-15T19:35:00+01:00",
+  "type": "permanent"
+}
+```
+
+## Error Handling
+
+### Validation Errors
+Handle time format and constraint errors:
+```json
+{
+  "success": false,
+  "error": "Scheduled time must be in the future"
+}
+```
+
+### Scheduling Failures
+```json
+{
+  "success": false, 
+  "error": "Failed to schedule message: Message content too long"
+}
+```
+
+### Cancellation Failures
+```json
+{
+  "success": false,
+  "error": "Message not found or already sent"
+}
+```
+
+## Performance Notes
+
+- Message scheduling is near-instantaneous
+- Validation happens immediately
+- Actual delivery depends on WhatsApp infrastructure
+- No limit on number of scheduled messages per conversation
+- Messages are stored until sent or cancelled
+
+## Integration Points
+
+- **WhatsApp Business API**: Message delivery platform  
+- **get_current_time tool**: Essential for accurate scheduling
+- **Order management**: Trigger messages based on order status
+- **Customer preferences**: Respect communication preferences
+
+The scheduled messaging system enables proactive customer service while avoiding over-communication through intelligent cancellation and timing controls.

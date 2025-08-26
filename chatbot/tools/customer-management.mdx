@@ -1,0 +1,340 @@
+---
+title: "Customer Management Tools"
+description: "Tools for managing customer information, preferences, and feedback"
+---
+
+# Customer Management Tools
+
+The customer management system includes tools for personalization, language preferences, memory management, and feedback collection. These tools enable persistent customer relationships and service optimization.
+
+## Tools Overview
+
+### Core Customer Tools
+- **manage_customer_memory** - Persistent preference storage
+- **change_customer_language** - UI language preferences
+- **register_feedback** - Structured feedback collection
+- **get_customer_previous_orders** - Order history and favorites
+
+## manage_customer_memory
+
+### Overview
+Stores and retrieves persistent customer preferences that enhance future interactions. Memory can be scoped to a specific location or across an entire organization.
+
+### Operations
+
+#### get Operation
+Retrieves stored customer information:
+
+```json
+{
+  "operation": "get",
+  "memory_type": "location"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "memory": "Vegetarian, no mushrooms, prefers thin crust pizza",
+  "memory_type": "location"
+}
+```
+
+#### set Operation
+Stores new customer information:
+
+```json
+{
+  "operation": "set", 
+  "memory": "Allergic to nuts, prefers morning deliveries, celebrating anniversary this week",
+  "memory_type": "location"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Memory updated successfully for location",
+  "memory": "Allergic to nuts, prefers morning deliveries, celebrating anniversary this week"
+}
+```
+
+#### delete Operation
+Removes stored memory:
+
+```json
+{
+  "operation": "delete",
+  "memory_type": "location" 
+}
+```
+
+### Memory Scopes
+
+#### location (Default)
+Information specific to the current restaurant:
+- Dietary restrictions for this location's menu
+- Delivery preferences specific to this address
+- Service preferences for this location
+
+#### businessOrganization  
+Information shared across all locations in a chain:
+- Universal dietary restrictions (nut allergies, vegetarian)
+- Payment preferences
+- Communication preferences
+
+### What to Store
+
+#### ✅ Good Memory Content
+- **Dietary restrictions**: "Vegetarian", "Nut allergy", "Gluten-free"
+- **Preferences**: "Likes extra spicy", "Prefers morning deliveries" 
+- **Important context**: "Works night shifts", "Has mobility issues"
+- **Special instructions**: "Leave at door", "Call upon arrival"
+- **Personal details**: "Celebrating anniversary", "Regular customer"
+
+#### ❌ Avoid Storing
+- Order-specific information (use order draft instead)
+- Temporary information
+- Sensitive personal data beyond service needs
+- Financial information
+- Exact addresses (handled separately)
+
+### Security Features
+
+#### Content Sanitization
+- Automatically limits content to 1000 characters
+- Warns about excessively long content
+- Strips unnecessary whitespace
+
+#### Sensitive Data Detection
+Automatically rejects content containing:
+- Credit card patterns: `\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b`
+- Social security patterns: `\b\d{3}-\d{2}-\d{4}\b`
+
+```json
+{
+  "success": false,
+  "error": "Memory content may contain sensitive data. Please remove personal identifiers."
+}
+```
+
+## change_customer_language
+
+### Overview
+Updates the customer's preferred language for UI elements, WhatsApp flows, and order summaries.
+
+### Supported Languages
+- `fr` - French
+- `en` - English  
+- `de` - German
+- `it` - Italian
+- `es` - Spanish
+
+### Usage
+```json
+{
+  "language": "fr"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Customer language updated to French",
+  "language": "fr"
+}
+```
+
+### What Changes
+Language affects:
+- WhatsApp flow interfaces
+- Button text and labels
+- Order confirmation messages
+- Payment setup instructions
+- System notifications
+
+## register_feedback
+
+### Overview
+Structured feedback collection with numerical scoring for service optimization and customer satisfaction tracking.
+
+### Score Types
+
+#### general_score (Required)
+Overall satisfaction rating (0-100):
+- 90+ = Excellent experience
+- 70-89 = Good experience  
+- 50-69 = Average experience
+- Below 50 = Poor experience
+
+#### Optional Scores
+- `food_score` - Food quality rating
+- `delivery_score` - Delivery service rating
+- `ordering_experience_score` - Ordering process rating
+
+### Usage
+```json
+{
+  "feedback": "The pizza was amazing and delivered hot! Very happy with the service.",
+  "general_score": 95,
+  "food_score": 98,
+  "delivery_score": 92,
+  "ordering_experience_score": 90
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Thank you for your feedback! We really appreciate it.",
+  "feedback_id": "feedback_12345",
+  "scores": {
+    "general_score": 95,
+    "food_score": 98,
+    "delivery_score": 92,
+    "ordering_experience_score": 90
+  }
+}
+```
+
+### Feedback Collection Triggers
+- After order completion
+- When customer expresses satisfaction/dissatisfaction
+- Proactive feedback requests
+- Follow-up surveys via scheduled messages
+
+## get_customer_previous_orders
+
+### Overview
+Retrieves customer order history for personalization and quick reordering. This information is automatically included in conversation context.
+
+### Features
+- Previous orders with detailed items
+- Frequently ordered products (favorites)
+- Order statistics and patterns
+- Payment method history
+- Delivery preferences from past orders
+
+### Integration
+Memory is automatically loaded at conversation start, so direct tool usage is typically unnecessary unless checking for updates during the conversation.
+
+## Integration Patterns
+
+### Personalization Flow
+```json
+// 1. Check existing memory
+{
+  "operation": "get",
+  "memory_type": "location"
+}
+
+// 2. Use memory to personalize recommendations
+"Based on your preferences (vegetarian, thin crust), I recommend..."
+
+// 3. Update memory with new preferences
+{
+  "operation": "set", 
+  "memory": "Vegetarian, thin crust, discovered likes arugula pizza",
+  "memory_type": "location"
+}
+```
+
+### Language Switching
+```json
+// Customer writes in different language
+{
+  "language": "fr"
+}
+
+// Future interactions now in French
+// WhatsApp flows appear in French
+// Order confirmations in French
+```
+
+### Feedback Collection
+```json
+// After positive interaction
+{
+  "feedback": "Service was excellent, very fast delivery!",
+  "general_score": 92,
+  "delivery_score": 95
+}
+
+// After identifying issues  
+{
+  "feedback": "Food was cold when delivered, pizza quality not great",
+  "general_score": 45,
+  "food_score": 40,
+  "delivery_score": 30
+}
+```
+
+## Memory Management Best Practices
+
+### Content Guidelines
+- **Be specific**: "No mushrooms on pizza" vs "Doesn't like some toppings"
+- **Include context**: "Works night shifts - prefers late delivery"
+- **Update regularly**: Add new preferences, remove outdated ones
+- **Use clear language**: Avoid ambiguous descriptions
+
+### Scope Selection
+```json
+// Location-specific dietary needs
+{
+  "memory": "No seafood (this location serves fish pizza)",
+  "memory_type": "location"
+}
+
+// Organization-wide restrictions  
+{
+  "memory": "Severe nut allergy - check all ingredients",
+  "memory_type": "businessOrganization" 
+}
+```
+
+### Privacy Considerations
+- Store only service-relevant information
+- Avoid personal details unrelated to orders
+- Regularly clean outdated preferences
+- Respect customer requests to delete information
+
+## Error Handling
+
+### Memory Operations
+```json
+{
+  "success": false,
+  "error": "No location context available"
+}
+```
+
+### Language Changes
+```json
+{
+  "success": false,
+  "error": "Language 'xx' not supported. Available: fr, en, de, it, es"
+}
+```
+
+### Feedback Validation
+```json
+{
+  "success": false,
+  "error": "general_score is required and must be between 0 and 100"
+}
+```
+
+## Analytics and Insights
+
+Memory and feedback data enables:
+- **Personalization improvement** based on stored preferences
+- **Service quality monitoring** through feedback scores
+- **Language preference trends** across customer base  
+- **Common dietary restrictions** for menu optimization
+- **Customer satisfaction patterns** for service enhancement
+
+Customer management tools create lasting relationships by remembering individual preferences and continuously improving service based on feedback, while respecting privacy and security requirements.

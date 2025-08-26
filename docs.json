@@ -16,15 +16,21 @@
         "groups": [
           {
             "group": "Introduction",
-            "pages": ["introduction"]
+            "pages": [
+              "introduction"
+            ]
           },
           {
             "group": "How to",
-            "pages": ["how-to/store-onboarding"]
+            "pages": [
+              "how-to/store-onboarding"
+            ]
           },
           {
             "group": "Integrations",
-            "pages": ["integrations/general"]
+            "pages": [
+              "integrations/general"
+            ]
           },
           {
             "group": "Working with the server",
@@ -116,87 +122,110 @@
         "groups": [
           {
             "group": "Whatsapp",
-            "pages": ["server/whatsapp/whatsapp-flow-state-machine"]
+            "pages": [
+              "server/whatsapp/whatsapp-flow-state-machine"
+            ]
           }
         ]
       },
       {
-        "dropdown": "Chatbot",
+        "dropdown": "Leclerk Chatbot",
         "icon": "robot",
         "groups": [
           {
-            "group": "Chatbot",
+            "group": "Framework Overview",
             "pages": [
               "chatbot/getting-started",
-              "chatbot/message-webhook",
-              "chatbot/event-webhook",
-              "chatbot/leclerk-architecture",
-              "chatbot/order-draft",
-              "chatbot/message-processing",
-              "chatbot/check-address",
-              "chatbot/update-order-draft",
-              "chatbot/multi-location-management",
-              "chatbot/all-tools-reference",
-              "chatbot/commands",
+              "chatbot/clerk-framework-structure",
+              "chatbot/context-manager",
+              "chatbot/tools-reference",
+              "chatbot/fastapi-overview",
+              "chatbot/nexus"
+            ]
+          },
+          {
+            "group": "Bot behavior",
+            "icon": "",
+            "pages": [
+              "chatbot/introduction",
+              "chatbot/prompts",
               {
-                "group": "Features",
+                "group": "Tools Reference",
+                "icon": "gear-complex",
                 "pages": [
-                  "chatbot/features/translation",
-                  "chatbot/features/queue-system"
+                  "chatbot/tools/all-tools",
+                  "chatbot/tools/update-order-draft",
+                  "chatbot/tools/check-address",
+                  "chatbot/tools/menu-lookup",
+                  "chatbot/tools/scheduled-messages",
+                  "chatbot/tools/customer-management"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Other stuff",
+            "pages": [
+              {
+                "group": "Incoming Message/Event Processing",
+                "pages": [
+                  "chatbot/webhooks/message-webhook",
+                  "chatbot/webhooks/event-webhook"
                 ]
               },
               {
-                "group": "Types",
+                "group": "Food delivery specific",
                 "pages": [
-                  "chatbot/types/last-message",
-                  "chatbot/types/customer",
-                  {
-                    "group": "Order",
-                    "pages": [
-                      "chatbot/types/order/introduction",
-                      "chatbot/types/order/order-items",
-                      "chatbot/types/order/order-deals",
-                      "chatbot/types/order/delivery",
-                      "chatbot/types/order/payment"
-                    ]
-                  },
-                  {
-                    "group": "Location",
-                    "pages": [
-                      "chatbot/types/location/introduction",
-                      "chatbot/types/location/catalog"
-                    ]
-                  },
-                  {
-                    "group": "Business Organization",
-                    "pages": ["chatbot/types/business-organization"]
-                  },
-                  {
-                    "group": "Order draft",
-                    "pages": [
-                      "chatbot/types/order-draft/introduction",
-                      "chatbot/types/order-draft/applied-discount",
-                      "chatbot/types/order-draft/order-draft-item",
-                      "chatbot/types/order-draft/order-draft-deal"
-                    ]
-                  },
-                  {
-                    "group": "Conversation",
-                    "pages": [
-                      "chatbot/types/conversation/introduction",
-                      "chatbot/types/conversation/assistant-message"
-                    ]
-                  },
-                  "chatbot/types/payment-method",
-                  {
-                    "group": "Common",
-                    "pages": [
-                      "chatbot/types/common/address",
-                      "chatbot/types/common/price"
-                    ]
-                  }
+                  "chatbot/multi-location-management",
+                  "chatbot/order-draft"
+                ]
+              },
+              {
+                "group": "Features",
+                "icon": "puzzle-piece",
+                "pages": [
+                  "chatbot/features/translation",
+                  "chatbot/features/queue-system",
+                  "chatbot/features/menu-search"
+                ]
+              },
+              {
+                "group": "Models",
+                "icon": "database",
+                "pages": [
+                  "chatbot/types/address",
+                  "chatbot/types/catalog",
+                  "chatbot/types/chatbot",
+                  "chatbot/types/customers",
+                  "chatbot/types/delivery",
+                  "chatbot/types/events",
+                  "chatbot/types/flows",
+                  "chatbot/types/legacy",
+                  "chatbot/types/logging",
+                  "chatbot/types/orders",
+                  "chatbot/types/organization",
+                  "chatbot/types/payments",
+                  "chatbot/types/pricing",
+                  "chatbot/types/time",
+                  "chatbot/types/validation"
+                ]
+              },
+              {
+                "group": "Services",
+                "icon": "cog",
+                "pages": [
+                  "chatbot/services/langfuse",
+                  "chatbot/services/linear",
+                  "chatbot/services/notifications"
                 ]
               }
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "chatbot/commands",
+              "chatbot/development-routes"
             ]
           }
         ]
@@ -222,7 +251,9 @@
               },
               {
                 "group": "Chatbot",
-                "pages": ["api-reference/chatbot/check-address"]
+                "pages": [
+                  "api-reference/chatbot/check-address"
+                ]
               },
               {
                 "group": "Orders draft",
@@ -275,12 +306,82 @@
         ]
       },
       {
+        "dropdown": "Old",
+        "icon": "archive",
+        "groups": [
+          {
+            "group": "Chatbot - Deprecated",
+            "pages": [
+              "chatbot/old/memory",
+              "chatbot/old/product-restrictions",
+              "chatbot/old/message-processing"
+            ]
+          },
+          {
+            "group": "Types",
+            "pages": [
+              "chatbot/types/last-message",
+              "chatbot/types/customer",
+              {
+                "group": "Order",
+                "pages": [
+                  "chatbot/types/order/introduction",
+                  "chatbot/types/order/order-items",
+                  "chatbot/types/order/order-deals",
+                  "chatbot/types/order/delivery",
+                  "chatbot/types/order/payment"
+                ]
+              },
+              {
+                "group": "Location",
+                "pages": [
+                  "chatbot/types/location/introduction",
+                  "chatbot/types/location/catalog"
+                ]
+              },
+              {
+                "group": "Business Organization",
+                "pages": [
+                  "chatbot/types/business-organization"
+                ]
+              },
+              {
+                "group": "Order draft",
+                "pages": [
+                  "chatbot/types/order-draft/introduction",
+                  "chatbot/types/order-draft/applied-discount",
+                  "chatbot/types/order-draft/order-draft-item",
+                  "chatbot/types/order-draft/order-draft-deal"
+                ]
+              },
+              {
+                "group": "Conversation",
+                "pages": [
+                  "chatbot/types/conversation/introduction",
+                  "chatbot/types/conversation/assistant-message"
+                ]
+              },
+              "chatbot/types/payment-method",
+              {
+                "group": "Common",
+                "pages": [
+                  "chatbot/types/common/address",
+                  "chatbot/types/common/price"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
         "dropdown": "Changelog",
         "icon": "clock",
         "groups": [
           {
             "group": "Changelog",
-            "pages": ["changelog/changelog"]
+            "pages": [
+              "changelog/changelog"
+            ]
           }
         ]
       }
@@ -305,7 +406,12 @@
     }
   },
   "contextual": {
-    "options": ["copy", "view", "chatgpt", "claude"]
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude"
+    ]
   },
   "footer": {
     "socials": {

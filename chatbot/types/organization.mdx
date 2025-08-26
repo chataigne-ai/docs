@@ -1,0 +1,215 @@
+---
+title: Organization Models
+description: Organization and location-related data models for managing business entities, locations, and integrations
+---
+
+This module contains all organization and location-related models used for managing business entities and their operational settings.
+
+## Payment Settings Models
+
+### PaymentSettingsDTO
+
+Model for location payment configuration.
+
+| Field          | Type     | Required | Description                                |
+| -------------- | -------- | -------- | ------------------------------------------ |
+| paymentMethods | string[] | No       | Available payment methods for this location |
+
+## Integration Models
+
+### WhatsAppIntegrationDTO
+
+Model for WhatsApp integration configuration.
+
+| Field           | Type    | Required | Description                     |
+| --------------- | ------- | -------- | ------------------------------- |
+| isEnabled       | boolean | Yes      | Whether WhatsApp is enabled     |
+| channelId       | string  | No       | WhatsApp channel identifier     |
+| whatsappNumber  | string  | No       | WhatsApp business number        |
+| clientId        | string  | No       | WhatsApp client identifier      |
+| apiKey          | string  | No       | WhatsApp API key                |
+
+### StripeIntegrationDTO
+
+Model for Stripe payment integration configuration.
+
+| Field     | Type    | Required | Description                    |
+| --------- | ------- | -------- | ------------------------------ |
+| isEnabled | boolean | Yes      | Whether Stripe is enabled      |
+| accountId | string  | No       | Stripe account identifier      |
+
+### HubriseIntegrationDTO
+
+Model for Hubrise POS integration configuration.
+
+| Field          | Type    | Required | Description                      |
+| -------------- | ------- | -------- | -------------------------------- |
+| isEnabled      | boolean | Yes      | Whether Hubrise is enabled       |
+| accessToken    | string  | No       | Hubrise API access token         |
+| customerListId | string  | No       | Hubrise customer list identifier |
+
+### IntegrationsDTO
+
+Complete integrations configuration model.
+
+| Field     | Type                     | Required | Description                   |
+| --------- | ------------------------ | -------- | ----------------------------- |
+| whatsapp  | WhatsAppIntegrationDTO   | Yes      | WhatsApp integration settings |
+| stripe    | StripeIntegrationDTO     | Yes      | Stripe integration settings   |
+| hubrise   | HubriseIntegrationDTO    | Yes      | Hubrise integration settings  |
+
+<Note>
+This model is currently unused but defines the complete integration structure for locations.
+</Note>
+
+### AccountDTO
+
+Model for account information.
+
+| Field    | Type   | Required | Description                            |
+| -------- | ------ | -------- | -------------------------------------- |
+| id       | string | Yes      | Account identifier                     |
+| name     | string | Yes      | Account name                           |
+| currency | string | Yes      | Account currency: "CHF", "EUR", "USD" |
+
+<Note>
+This model is currently unused but defines account-level information.
+</Note>
+
+## Media Models
+
+### ImageDTO
+
+Model for image data with multiple formats and sizes.
+
+| Field                | Type   | Required | Description                        |
+| -------------------- | ------ | -------- | ---------------------------------- |
+| id                   | string | Yes      | Image identifier                   |
+| url                  | string | Yes      | Full resolution image URL          |
+| mediumBase64         | string | No       | Medium size base64 encoded image   |
+| base64               | string | No       | Full size base64 encoded image     |
+| mediumCompressedUrl  | string | No       | Medium size compressed image URL   |
+| smallCompressedUrl   | string | No       | Small size compressed image URL    |
+
+## Location Models
+
+### LocationDTO
+
+Complete location model with operational settings and catalog.
+
+| Field                   | Type                      | Required | Description                                      |
+| ----------------------- | ------------------------- | -------- | ------------------------------------------------ |
+| id                      | string                    | Yes      | Unique location identifier                       |
+| name                    | string                    | Yes      | Location display name                            |
+| accountName             | string                    | Yes      | Associated account name                          |
+| currency                | string                    | Yes      | Location currency                                |
+| address                 | AddressDTO                | Yes      | Location address                                 |
+| timezone                | string                    | Yes      | Location timezone                                |
+| openingHours            | OpeningHoursDTO           | Yes      | Opening hours for pickup and delivery            |
+| whatsappNumber          | string                    | Yes      | WhatsApp business number                         |
+| locationInformations    | string                    | No       | Location-specific information                    |
+| contactInformation      | string                    | No       | Contact information                              |
+| averagePreparationTime  | AveragePreparationTimeDTO | No       | Average order preparation time                   |
+| minOrderAmount          | number                    | No       | Global minimum order amount                      |
+| deliverySettings        | DeliverySettingsDTO       | No       | Delivery configuration                           |
+| paymentSettings         | PaymentSettingsDTO        | No       | Payment configuration                            |
+| catalog                 | ChatbotCatalogDTO         | No       | Location's product catalog                       |
+| useFlow                 | boolean                   | No       | Whether to use WhatsApp flows (default: true)   |
+| defaultLanguage         | string                    | No       | Default language: "fr", "en", "de", "it", "es" (default: "fr") |
+| isCurrentLocation       | boolean                   | No       | Current interaction location in org mode (default: false) |
+
+### Location Features
+
+#### Multi-Currency Support
+Locations can operate in different currencies:
+- **CHF**: Swiss Franc
+- **EUR**: Euro  
+- **USD**: US Dollar
+
+#### Operating Hours
+Each location has separate schedules for:
+- **Pickup**: In-store collection hours
+- **Delivery**: Delivery service hours
+
+#### Delivery Configuration
+Locations can have different delivery modes:
+- **None**: No delivery service
+- **Postal Code**: Zone-based delivery
+- **UberDirect**: Uber delivery integration
+- **Chaskis**: Chaskis delivery integration
+- **Free**: Free delivery for all orders
+
+#### WhatsApp Integration
+- Native WhatsApp Business API integration
+- Support for flows and interactive messages
+- Customizable business number per location
+
+## Organization Models
+
+### OrganizationDTO
+
+Model for multi-location business organizations.
+
+| Field                | Type         | Required | Description                                   |
+| -------------------- | ------------ | -------- | --------------------------------------------- |
+| id                   | string       | Yes      | Unique organization identifier                |
+| name                 | string       | Yes      | Organization display name                     |
+| image                | ImageDTO     | No       | Organization logo/image                       |
+| organizationId       | string       | No       | External organization identifier              |
+| locationIds          | string[]     | No       | Associated location identifiers               |
+| timezone             | string       | No       | Default organization timezone                 |
+| locations            | LocationDTO[]| No       | Full location data                            |
+| defaultLanguage      | string       | No       | Default language: "fr", "en", "de", "it", "es" (default: "fr") |
+| locationInformations | string       | No       | Organization-level special instructions       |
+| whatsappNumber       | string       | No       | Organization WhatsApp number                  |
+| specialInstructions  | string       | No       | Location-level special instructions           |
+
+### Organization Methods
+
+#### get_location_by_id(location_id)
+Retrieves a specific location by its identifier.
+
+**Parameters:**
+- `location_id` (string): The location identifier to search for
+
+**Returns:**
+- `LocationDTO | None`: The matching location or None if not found
+
+### Multi-Location Management
+
+Organizations support:
+
+1. **Centralized Management**: Single organization managing multiple locations
+2. **Location Selection**: Dynamic location selection based on customer needs
+3. **Shared Resources**: Common branding, policies, and customer data
+4. **Localized Operations**: Each location maintains its own:
+   - Operating hours
+   - Menu/catalog
+   - Delivery settings
+   - Payment methods
+   - Language preferences
+
+### Organization vs Location Mode
+
+#### Location Mode
+- Single location operation
+- Direct location context in all interactions
+- Simplified customer experience
+
+#### Organization Mode  
+- Multi-location operation
+- Dynamic location selection
+- Location-aware catalog and pricing
+- Centralized customer management
+
+<Note>
+In organization mode, the chatbot can determine the appropriate location based on delivery address, customer preferences, or explicit selection.
+</Note>
+
+## Related Models
+
+- [AddressDTO](/chatbot/types/address#addressdto) - Used for location addresses
+- [DeliverySettingsDTO](/chatbot/types/address#deliverysettingsdto) - Used for delivery configuration  
+- [OpeningHoursDTO](/chatbot/types/time#openinghoursdto) - Used for operating hours
+- [AveragePreparationTimeDTO](/chatbot/types/time#averagepreparationtimedto) - Used for preparation times
+- [ChatbotCatalogDTO](/chatbot/types/chatbot#chatbotcatalogdto) - Used for location catalogs

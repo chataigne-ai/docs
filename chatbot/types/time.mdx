@@ -1,0 +1,232 @@
+---
+title: Time Models
+description: Time and schedule-related data models for managing opening hours, schedules, and time-based operations
+---
+
+This module contains all time and schedule-related models used for managing opening hours, time-based restrictions, and scheduling operations.
+
+## Basic Time Models
+
+### TimeDTO
+
+Model for representing time of day.
+
+| Field  | Type   | Required | Description              |
+| ------ | ------ | -------- | ------------------------ |
+| hour   | number | Yes      | Hour in 24-hour format (0-23) |
+| minute | number | Yes      | Minutes (0-59)           |
+
+**Examples:**
+- `{ hour: 9, minute: 30 }` represents 9:30 AM
+- `{ hour: 14, minute: 15 }` represents 2:15 PM
+- `{ hour: 23, minute: 59 }` represents 11:59 PM
+
+### DaysOfWeekDTO
+
+Model for specifying which days of the week something applies to.
+
+| Field     | Type    | Required | Description                    |
+| --------- | ------- | -------- | ------------------------------ |
+| monday    | boolean | Yes      | Whether Monday is included     |
+| tuesday   | boolean | Yes      | Whether Tuesday is included    |
+| wednesday | boolean | Yes      | Whether Wednesday is included  |
+| thursday  | boolean | Yes      | Whether Thursday is included   |
+| friday    | boolean | Yes      | Whether Friday is included     |
+| saturday  | boolean | Yes      | Whether Saturday is included   |
+| sunday    | boolean | Yes      | Whether Sunday is included     |
+
+**Example:**
+```json
+{
+  "monday": true,
+  "tuesday": true,
+  "wednesday": true,
+  "thursday": true,
+  "friday": true,
+  "saturday": false,
+  "sunday": false
+}
+```
+This represents weekdays only (Monday through Friday).
+
+## Schedule Models
+
+### TimeRangeDTO
+
+Model for defining a time range within a day.
+
+| Field | Type   | Required | Description                    |
+| ----- | ------ | -------- | ------------------------------ |
+| from  | string | Yes      | Start time in "HH:mm" format   |
+| to    | string | Yes      | End time in "HH:mm" format     |
+
+**Examples:**
+- `{ from: "09:00", to: "17:00" }` represents 9:00 AM to 5:00 PM
+- `{ from: "12:00", to: "14:00" }` represents noon to 2:00 PM
+- `{ from: "18:30", to: "22:00" }` represents 6:30 PM to 10:00 PM
+
+<Note>
+Time ranges use 24-hour format strings for consistency and to avoid AM/PM confusion.
+</Note>
+
+### DayScheduleDTO
+
+Model for defining operating hours for each day of the week.
+
+| Field     | Type              | Required | Description                          |
+| --------- | ----------------- | -------- | ------------------------------------ |
+| monday    | TimeRangeDTO[]    | No       | Monday operating time ranges         |
+| tuesday   | TimeRangeDTO[]    | No       | Tuesday operating time ranges        |
+| wednesday | TimeRangeDTO[]    | No       | Wednesday operating time ranges      |
+| thursday  | TimeRangeDTO[]    | No       | Thursday operating time ranges       |
+| friday    | TimeRangeDTO[]    | No       | Friday operating time ranges         |
+| saturday  | TimeRangeDTO[]    | No       | Saturday operating time ranges       |
+| sunday    | TimeRangeDTO[]    | No       | Sunday operating time ranges         |
+
+**Features:**
+- **Multiple Ranges**: Each day can have multiple time ranges (e.g., lunch and dinner service)
+- **Closed Days**: Days with no time ranges are considered closed
+- **Flexible Hours**: Different days can have completely different schedules
+
+**Example:**
+```json
+{
+  "monday": [
+    { "from": "11:00", "to": "14:00" },
+    { "from": "17:00", "to": "22:00" }
+  ],
+  "tuesday": [
+    { "from": "11:00", "to": "14:00" },
+    { "from": "17:00", "to": "22:00" }
+  ],
+  "wednesday": null,
+  "thursday": [
+    { "from": "11:00", "to": "22:00" }
+  ]
+}
+```
+
+This schedule shows:
+- Monday & Tuesday: Open for lunch (11:00-14:00) and dinner (17:00-22:00)
+- Wednesday: Closed
+- Thursday: Open continuously (11:00-22:00)
+
+## Operating Hours Models
+
+### OpeningHoursDTO
+
+Model for comprehensive operating hours with separate pickup and delivery schedules.
+
+| Field    | Type            | Required | Description                          |
+| -------- | --------------- | -------- | ------------------------------------ |
+| pickup   | DayScheduleDTO  | No       | Pickup/collection operating hours    |
+| delivery | DayScheduleDTO  | No       | Delivery service operating hours     |
+
+**Use Cases:**
+
+#### Separate Service Hours
+Locations can have different hours for pickup and delivery:
+- **Pickup**: When customers can collect orders in-store
+- **Delivery**: When delivery service is available
+
+#### Extended Delivery Hours  
+Some locations offer delivery beyond their pickup hours:
+```json
+{
+  "pickup": {
+    "monday": [{ "from": "10:00", "to": "22:00" }]
+  },
+  "delivery": {
+    "monday": [{ "from": "11:00", "to": "23:00" }]
+  }
+}
+```
+
+#### Limited Delivery Areas
+Delivery might be available fewer days than pickup:
+```json
+{
+  "pickup": {
+    "monday": [{ "from": "09:00", "to": "20:00" }],
+    "sunday": [{ "from": "12:00", "to": "18:00" }]
+  },
+  "delivery": {
+    "monday": [{ "from": "11:00", "to": "19:00" }],
+    "sunday": null
+  }
+}
+```
+
+## Preparation Time Models
+
+### AveragePreparationTimeDTO
+
+Model for average order preparation time.
+
+| Field  | Type   | Required | Description                     |
+| ------ | ------ | -------- | ------------------------------- |
+| hour   | number | Yes      | Hours component (0-23)          |
+| minute | number | Yes      | Minutes component (0-59)        |
+
+**Examples:**
+- `{ hour: 0, minute: 15 }` represents 15 minutes
+- `{ hour: 0, minute: 30 }` represents 30 minutes  
+- `{ hour: 1, minute: 0 }` represents 1 hour
+
+**Usage:**
+- **Order Timing**: Calculate when orders will be ready
+- **Customer Expectations**: Inform customers of wait times
+- **Capacity Planning**: Manage order scheduling
+- **Delivery Estimates**: Factor into delivery time calculations
+
+## Time-Based Operations
+
+### Schedule Validation
+
+The time models support various scheduling operations:
+
+1. **Current Status**: Is the location currently open for pickup/delivery?
+2. **Next Opening**: When will the location next be open?
+3. **Service Availability**: Which services are currently available?
+4. **Schedule Conflicts**: Are there any scheduling issues?
+
+### Time Zone Considerations
+
+All time schedules are interpreted in the location's local timezone:
+- Locations specify their timezone in `LocationDTO`
+- All time calculations use the location's timezone
+- Customer communications show local times
+
+### Holiday Handling
+
+The schedule models can be extended for holiday operations:
+- Special holiday hours can override regular schedules
+- Closed days can be specified for holidays
+- Limited service during holiday periods
+
+### Business Rules
+
+#### Minimum Operating Windows
+- Each time range should have a reasonable duration
+- Consider minimum preparation times
+- Account for setup and cleanup time
+
+#### Service Coordination
+- Delivery hours should align with preparation capacity  
+- Pickup hours should consider staff availability
+- Multiple locations should coordinate for consistency
+
+#### Customer Communication
+- Clear indication when services are unavailable
+- Advance notice of schedule changes
+- Real-time status updates
+
+<Note>
+Time schedules are critical for customer experience and operational efficiency. They should be regularly reviewed and updated based on actual business operations.
+</Note>
+
+## Related Models
+
+- [LocationDTO](/chatbot/types/organization#locationdto) - Uses opening hours for operations
+- [RestrictionDTO](/chatbot/types/pricing#restrictiondto) - Uses time models for availability restrictions
+- [PriceOverrideDTO](/chatbot/types/pricing#priceoverridedto) - Uses time models for time-based pricing

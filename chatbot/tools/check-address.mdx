@@ -1,0 +1,255 @@
+---
+title: "Check Address Tool"
+description: "Address validation and location selection for delivery orders"
+---
+
+# Check Address Tool
+
+The `check_address` tool validates delivery addresses and determines which location should serve the customer. It's critical for ensuring successful delivery orders and proper location selection in multi-location organizations.
+
+## Overview
+
+Address validation serves multiple purposes:
+- **Service Area Validation**: Ensures address is within delivery zone
+- **Location Selection**: Finds best location in organization mode
+- **Delivery Feasibility**: Calculates fees and estimated delivery times
+- **Address Parsing**: Handles various address formats and coordinates
+
+## Tool Parameters
+
+### Required (One Of)
+- `address_string`: Full delivery address as text
+- `latitude` + `longitude`: Coordinate-based location
+
+### Optional
+- Service type is inferred from order draft (defaults to delivery)
+
+## Behavior by Mode
+
+### Location Mode (Single Restaurant)
+Simple validation against the restaurant's delivery zone:
+
+```json
+{
+  "address_string": "123 Rue de Rivoli, 75001 Paris"
+}
+```
+
+**Process:**
+1. Geocode the address
+2. Check if coordinates fall within delivery polygon
+3. Calculate distance and delivery fee
+4. Return validation result with fee and timing
+
+### Organization Mode (Multi-Location Chain)
+Finds the best location to serve the customer:
+
+```json
+{
+  "address_string": "456 Avenue des Champs-Élysées, 75008 Paris"
+}
+```
+
+**Process:**
+1. Geocode the address
+2. Check all organization locations
+3. Return best location (lowest fee/shortest distance)
+4. Automatically trigger location switch
+5. Provide location-specific pricing and timing
+
+## Response Handling
+
+### Successful Validation
+
+#### Location Mode Response
+```json
+{
+  "success": true,
+  "foundAddress": "123 Rue de Rivoli, 75001 Paris",
+  "deliveryFee": 3.50,
+  "deliveryTime": "45 minutes",
+  "nexus_instructions_for_clerk": "This address is VALID for delivery..."
+}
+```
+
+#### Organization Mode Response
+```json
+{
+  "success": true,
+  "foundAddress": "456 Avenue des Champs-Élysées, 75008 Paris",
+  "locationId": "loc_champs_elysees",
+  "deliveryFee": 2.50,
+  "deliveryTime": "35 minutes",
+  "nexus_instructions_for_clerk": "This address is VALID for delivery from Champs-Élysées location...",
+  "location_switched": true
+}
+```
+
+### Validation Failures
+
+#### Address Outside Delivery Zone
+```json
+{
+  "success": false,
+  "code": "POSTAL_CODE_NOT_SERVED",
+  "message": "This postal code is not served",
+  "nexus_instructions_for_clerk": "This address is OUTSIDE our delivery zone..."
+}
+```
+
+#### Invalid Address Format
+```json
+{
+  "success": false,
+  "code": "INVALID_ADDRESS", 
+  "message": "Address could not be parsed",
+  "nexus_instructions_for_clerk": "The address could not be identified..."
+}
+```
+
+## Common Error Codes
+
+- `POSTAL_CODE_NOT_SERVED`: Address outside delivery area
+- `OUT_OF_DELIVERY_RADIUS`: Address too far from location
+- `INVALID_ADDRESS`: Address format couldn't be parsed
+- `NEXUS_CALL_FAILED`: Server error during validation
+
+## Integration with Other Tools
+
+### Automatic Location Switching
+In organization mode, successful address validation automatically:
+1. Sets the best location on conversation context
+2. Calls `switch_location` tool internally
+3. Updates order draft with new location
+4. Prepares for menu operations with correct catalog
+
+### Menu Integration
+After address validation:
+```json
+// menu_lookup now uses the selected location
+{
+  "query_type": "browse_categories",
+  "location_id": "loc_champs_elysees"  // From address validation
+}
+```
+
+### Order Draft Updates
+Address validation flows directly into order updates:
+```json
+{
+  "service_type": "delivery",
+  "delivery_address_string": "123 Rue de Rivoli, 75001 Paris",
+  "location_id": "loc_selected_by_address_check"
+}
+```
+
+## Coordinate-Based Validation
+
+For location pins and map links:
+
+```json
+{
+  "latitude": 48.8566,
+  "longitude": 2.3522
+}
+```
+
+The tool handles:
+- Google Maps shared links
+- WhatsApp location pins
+- Other coordinate-based inputs
+
+## High Delivery Fees
+
+When delivery fees exceed €9.50, the tool provides special instructions:
+
+```json
+{
+  "success": true,
+  "deliveryFee": 12.00,
+  "nexus_instructions_for_clerk": "This address is VALID but delivery fee is quite high. Recommend pickup as alternative. DO NOT SHOW THE DELIVERY FEE TO THE CUSTOMER, just say it's quite high."
+}
+```
+
+## Best Practices
+
+### When to Call check_address
+1. **Early in delivery conversations** - As soon as customer indicates delivery
+2. **Before building large orders** - Validate serviceability first
+3. **When customer provides new address** - Even if they've ordered before
+4. **For coordinate-based locations** - When customer shares location pins
+
+### Error Handling
+1. **Ask for clarification** on INVALID_ADDRESS errors
+2. **Suggest pickup alternative** for out-of-zone addresses  
+3. **Request location pins** when address parsing fails
+4. **Use report tool** for NEXUS_CALL_FAILED errors
+
+### Organization Mode Considerations
+- Always check if location was automatically switched
+- Use returned locationId for subsequent menu operations
+- Handle location switching errors gracefully
+- Confirm location switch with customer when relevant
+
+## Address Formats Supported
+
+### Complete Addresses
+- "123 Rue de la Paix, 75001 Paris, France"
+- "45 Baker Street, London W1U 6TW"
+- "Via Roma 15, 20121 Milano, Italy"
+
+### Partial Addresses (May Need Clarification)
+- "Rue de Rivoli, Paris" (missing number)
+- "75001" (postal code only)
+- "Near the Louvre" (landmark reference)
+
+### Coordinate Formats
+- Decimal degrees: 48.8566, 2.3522
+- Google Maps links containing coordinates
+- WhatsApp location pins
+
+## Flow Examples
+
+### Successful Delivery Setup
+```
+Customer: "I want delivery to 123 Rue Saint-Honoré"
+→ check_address called
+→ Address validated, fee €3.00, 40 minutes
+→ Location set (if organization mode)
+→ Ready to show menu and take order
+```
+
+### Address Outside Zone
+```  
+Customer: "Can you deliver to Versailles?"
+→ check_address called  
+→ OUT_OF_DELIVERY_RADIUS error
+→ Suggest pickup at nearest location
+→ Offer to find closest restaurant
+```
+
+### Organization Mode Location Selection
+```
+Customer: "Delivery to 456 Champs-Élysées"
+→ check_address called
+→ Best location: Champs-Élysées store
+→ switch_location automatically triggered
+→ Menu now shows Champs-Élysées catalog
+→ Continue with order
+```
+
+## Performance Notes
+
+- Address validation typically takes 1-3 seconds
+- Coordinate-based validation is faster than text parsing
+- Organization mode requires checking multiple locations
+- Results are not cached (addresses may change serviceability)
+
+## Security Considerations
+
+- No customer address data is stored permanently by the tool
+- Addresses are passed to Nexus API for geocoding
+- Failed addresses are logged for debugging but contain no PII
+- Location switching updates are tracked for audit purposes
+
+The `check_address` tool is the foundation of reliable delivery service, ensuring customers receive accurate information about serviceability, pricing, and timing before they invest time in placing an order.

@@ -1,0 +1,166 @@
+---
+title: Catalog Models
+description: Product catalog and menu-related data models for managing products, SKUs, categories, options, and deals
+---
+
+This module contains all catalog-related models used to represent restaurant menus and product information.
+
+## VariantDTO
+
+Model for product variants (e.g., size variations).
+
+| Field | Type   | Required | Description              |
+| ----- | ------ | -------- | ------------------------ |
+| id    | string | Yes      | Unique identifier        |
+| ref   | string | Yes      | Reference code           |
+| name  | string | Yes      | Display name of variant  |
+
+## CategoryDTO
+
+Model for product categories to organize menu items.
+
+| Field       | Type     | Required | Description                      |
+| ----------- | -------- | -------- | -------------------------------- |
+| internalId  | string   | No       | Internal system identifier       |
+| ref         | string   | Yes      | Category reference code          |
+| name        | string   | Yes      | Category display name            |
+| description | string   | No       | Category description             |
+| tags        | string[] | No       | Category tags for filtering      |
+| imageIds    | string[] | No       | Associated image identifiers     |
+| parentId    | string   | No       | Parent category ID for hierarchy |
+
+## DealLineSkuDTO
+
+Model for SKU within a deal line.
+
+| Field       | Type     | Required | Description                     |
+| ----------- | -------- | -------- | ------------------------------- |
+| id          | string   | No       | SKU identifier                  |
+| skuRef      | string   | No       | SKU reference code              |
+| extraCharge | PriceDTO | Yes      | Additional charge for this SKU  |
+
+## DealPricingEffect
+
+Enum defining how deals affect pricing.
+
+| Value          | Description                    |
+| -------------- | ------------------------------ |
+| unchanged      | Price remains unchanged        |
+| fixed_price    | Sets a fixed price             |
+| price_off      | Reduces price by fixed amount  |
+| percentage_off | Reduces price by percentage    |
+
+## DealLineDTO
+
+Model for a line within a deal (e.g., "Main", "Side", "Drink").
+
+| Field        | Type                  | Required | Description                              |
+| ------------ | --------------------- | -------- | ---------------------------------------- |
+| name         | string                | No       | Name of the deal line                    |
+| skus         | DealLineSkuDTO[]      | Yes      | Available SKUs for this line             |
+| pricingEffect| DealPricingEffect     | Yes      | How this line affects pricing            |
+| pricingValue | PriceDTO \| number    | No       | Value for pricing effect (when applicable) |
+
+## DealDTO
+
+Model for combo deals and menu packages.
+
+| Field       | Type           | Required | Description                    |
+| ----------- | -------------- | -------- | ------------------------------ |
+| id          | string         | Yes      | Unique deal identifier         |
+| name        | string         | Yes      | Deal display name              |
+| lines       | DealLineDTO[]  | Yes      | Deal lines (components)        |
+| ref         | string         | No       | Deal reference code            |
+| categoryRef | string         | No       | Category reference             |
+| description | string         | No       | Deal description               |
+| restriction | RestrictionDTO | No       | Deal availability restrictions |
+| couponCodes | string[]       | No       | Required coupon codes          |
+| tags        | string[]       | No       | Deal tags                      |
+| imageIds    | string[]       | No       | Associated image identifiers   |
+
+## ProductDTO
+
+Model for menu products.
+
+| Field       | Type     | Required | Description                      |
+| ----------- | -------- | -------- | -------------------------------- |
+| internalId  | string   | No       | Internal system identifier       |
+| ref         | string   | No       | Product reference code           |
+| name        | string   | Yes      | Product display name             |
+| categoryId  | string   | No       | Category identifier              |
+| description | string   | No       | Product description              |
+| tags        | string[] | No       | Product tags                     |
+| imageIds    | string[] | No       | Associated image identifiers     |
+| isAvailable | boolean  | No       | Product availability (default: true) |
+
+## SkuDTO
+
+Model for Stock Keeping Units (specific product variants with pricing).
+
+| Field          | Type                | Required | Description                     |
+| -------------- | ------------------- | -------- | ------------------------------- |
+| internalId     | string              | No       | Internal system identifier      |
+| ref            | string              | No       | SKU reference code              |
+| name           | string              | No       | SKU display name                |
+| productId      | string              | Yes      | Parent product identifier       |
+| restriction    | RestrictionDTO      | No       | SKU availability restrictions   |
+| price          | PriceDTO            | Yes      | Base price                      |
+| priceOverrides | PriceOverrideDTO[]  | No       | Conditional pricing overrides   |
+| optionListIds  | string[]            | No       | Available option lists          |
+| tags           | string[]            | No       | SKU tags                        |
+| barcodes       | string[]            | No       | Product barcodes                |
+
+## OptionListDTO
+
+Model for grouped product options (e.g., "Toppings", "Size").
+
+| Field         | Type     | Required | Description                            |
+| ------------- | -------- | -------- | -------------------------------------- |
+| internalId    | string   | No       | Internal system identifier             |
+| ref           | string   | Yes      | Option list reference code             |
+| name          | string   | Yes      | Option list display name               |
+| minSelections | number   | No       | Minimum required selections            |
+| maxSelections | number   | No       | Maximum allowed selections             |
+| tags          | string[] | No       | Option list tags                       |
+
+## OptionDTO
+
+Model for individual product options.
+
+| Field          | Type                | Required | Description                     |
+| -------------- | ------------------- | -------- | ------------------------------- |
+| internalId     | string              | No       | Internal system identifier      |
+| ref            | string              | No       | Option reference code           |
+| name           | string              | Yes      | Option display name             |
+| optionListId   | string              | Yes      | Parent option list identifier   |
+| restriction    | RestrictionDTO      | No       | Option availability restrictions|
+| price          | PriceDTO            | Yes      | Option price                    |
+| priceOverrides | PriceOverrideDTO[]  | No       | Conditional pricing overrides   |
+| default        | boolean             | No       | Whether option is selected by default |
+| tags           | string[]            | No       | Option tags                     |
+
+## CatalogDTO
+
+Complete catalog model containing all menu data.
+
+| Field      | Type            | Required | Description                    |
+| ---------- | --------------- | -------- | ------------------------------ |
+| id         | string          | No       | Catalog identifier             |
+| name       | string          | Yes      | Catalog name                   |
+| variants   | VariantDTO[]    | No       | Available variants             |
+| categories | CategoryDTO[]   | No       | Product categories             |
+| deals      | DealDTO[]       | No       | Available deals                |
+| discounts  | DiscountDTO[]   | No       | Available discounts            |
+| charges    | ChargeDTO[]     | No       | Additional charges             |
+| products   | ProductDTO[]    | Yes      | All products                   |
+| skus       | SkuDTO[]        | Yes      | All SKUs                       |
+| optionLists| OptionListDTO[] | Yes      | All option lists               |
+| options    | OptionDTO[]     | Yes      | All options                    |
+
+## Related Models
+
+- [PriceDTO](/chatbot/types/pricing#pricedto) - Used for pricing information
+- [RestrictionDTO](/chatbot/types/pricing#restrictiondto) - Used for availability restrictions
+- [PriceOverrideDTO](/chatbot/types/pricing#priceoverridedto) - Used for conditional pricing
+- [DiscountDTO](/chatbot/types/pricing#discountdto) - Used for catalog discounts
+- [ChargeDTO](/chatbot/types/pricing#chargedto) - Used for additional charges

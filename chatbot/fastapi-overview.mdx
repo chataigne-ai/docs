@@ -1,0 +1,236 @@
+---
+title: "FastAPI"
+description: "FastAPI integration and web API endpoints for the Clerk chatbot system"
+---
+
+# Overview
+
+The Clerk system uses FastAPI to expose a simple, focused web API with two main endpoints that handle all chatbot interactions.
+
+## API Architecture
+
+The FastAPI application follows a unified architecture where all requests are processed through a central `MainHandler`:
+
+1. **Unified Processing** - Both endpoints route to the same `MainHandler` class
+2. **Session Builder** - Uses `SessionBuilder` to create tools and context for each request
+3. **Dependency Injection** - FastAPI's dependency system provides all required services
+4. **Consistent Response Format** - Both endpoints return similar response structures
+
+## Core Endpoints
+
+### Message Processing
+```http
+POST /message
+Content-Type: application/json
+```
+
+Handles incoming messages from customers via WhatsApp through the Nexus backend.
+
+**Request Body**: [ChatbotPayloadDTO](types/chatbot#chatbotpayloaddto)
+
+<CodeGroup>
+```json Example Request
+{
+  "mode": "location",
+  "lastMessage": {
+    "type": "text",
+    "content": "Hello, I'd like to order a pizza"
+  },
+  "conversation": {
+    "id": "conv_123456",
+    "createdAt": "2024-01-01T12:00:00Z",
+    "updatedAt": "2024-01-01T12:00:00Z",
+    "channel": "whatsapp",
+    "assistantMessages": [],
+    "orderDraft": null
+  },
+  "location": {
+    "id": "loc_789",
+    "name": "Downtown Pizza"
+  },
+  "customer": {
+    "id": "cust_456",
+    "name": "John Doe",
+    "phoneNumber": "+1234567890"
+  },
+  "orders": [],
+  "businessOrganization": null
+}
+```
+
+```typescript Schema
+{
+  mode: "location" | "businessOrganization"
+  lastMessage: LastMessageDTO
+  conversation: ChatbotConversationDTO  
+  location?: LocationDTO
+  customer: CustomerDTO
+  orders: OrderDTO[]
+  businessOrganization?: OrganizationDTO
+}
+```
+</CodeGroup>
+
+**Response**: [MessageResponse](fastapi-overview#messageresponse)
+
+<CodeGroup>
+```json Example Response
+{
+  "success": true,
+  "response": "<nexus_response>OK</nexus_response>",
+  "customer_response": "Hi! I'd be happy to help you order a pizza. What size and toppings would you like?",
+  "thinking": "Customer wants to order pizza. I should guide them through the ordering process.",
+  "scratchpad": "Conversation: conv_123456, Location: Downtown Pizza"
+}
+```
+
+```typescript Schema
+{
+  success: boolean
+  response: string
+  customer_response: string
+  thinking: string
+  scratchpad: string
+}
+```
+</CodeGroup>
+
+### Event Processing  
+```http
+POST /nexus/event
+Content-Type: application/json
+```
+
+Processes system events and notifications from the Nexus backend.
+
+**Request Body**: [ChatbotEventDTO](types/chatbot#chatboteventdto)
+
+<CodeGroup>
+```json Example Request
+{
+  "type": "order_status_changed",
+  "mode": "location",
+  "conversation": {
+    "id": "conv_123456",
+    "createdAt": "2024-01-01T12:00:00Z",
+    "updatedAt": "2024-01-01T12:00:00Z",
+    "channel": "whatsapp",
+    "assistantMessages": [],
+    "orderDraft": null
+  },
+  "location": {
+    "id": "loc_789",
+    "name": "Downtown Pizza"
+  },
+  "customer": {
+    "id": "cust_456",
+    "name": "John Doe",
+    "phoneNumber": "+1234567890"
+  },
+  "order": {
+    "id": "ord_999",
+    "status": "confirmed",
+    "total": {
+      "amount": 1850,
+      "currency": "USD"
+    }
+  },
+  "paymentMethod": null,
+  "failureReason": null,
+  "message": null,
+  "businessOrganization": null
+}
+```
+
+```typescript Schema
+{
+  type: ChatbotEventType
+  mode: "location" | "businessOrganization"
+  conversation: ChatbotConversationDTO
+  location?: LocationDTO
+  customer: CustomerDTO
+  paymentMethod?: PaymentMethodDTO
+  failureReason?: string
+  order?: OrderDTO
+  message?: string
+  businessOrganization?: OrganizationDTO
+}
+```
+</CodeGroup>
+
+**Response**: [EventResponse](fastapi-overview#eventresponse)
+
+<CodeGroup>
+```json Example Response
+{
+  "status": "processed",
+  "event_type": "order_status_changed",
+  "response": "<nexus_response>OK</nexus_response>",
+  "customer_response": "Great news! Your pizza order has been confirmed and will be ready in 15-20 minutes.",
+  "thinking": "Order status changed to confirmed. Customer should be notified of the timeline.",
+  "scratchpad": "Event: order_status_changed, Order: ord_999, Status: confirmed"
+}
+```
+
+```typescript Schema
+{
+  status: "processed" | "failed"
+  event_type: string
+  response: string
+  customer_response: string
+  thinking: string
+  scratchpad: string
+}
+```
+</CodeGroup>
+
+## Processing Flow
+
+Both endpoints follow the same processing pattern:
+
+1. **Initialize MainHandler** with required dependencies (Nexus client, session builder, settings, etc.)
+2. **Process through MainHandler** - Calls `handler.process_event()` with the input payload
+3. **Return unified response** - Success status, response content, customer message, and debug information
+
+## Key Features
+
+### Error Handling
+- Standardized HTTP exceptions with appropriate status codes
+- Comprehensive error logging with conversation context
+- Graceful degradation for processing failures
+
+### Observability
+- Structured logging with conversation IDs
+- Request tracing through the processing pipeline
+- Debug information in response payloads
+
+### Development Support
+- Auto-generated OpenAPI documentation
+- Interactive Swagger UI at `/docs`
+- Type-safe request/response models using Pydantic
+- [Development routes](development-routes) for health monitoring and maintenance
+
+The simplified architecture ensures consistent behavior across all chatbot interactions while maintaining flexibility for future enhancements.
+
+## Response Models
+
+### MessageResponse
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | `boolean` | Whether message processing succeeded |
+| `response` | `string` | Internal response for Nexus (usually `<nexus_response>OK</nexus_response>`) |
+| `customer_response` | `string` | Message to send to the customer via WhatsApp |
+| `thinking` | `string` | Internal reasoning and context for debugging |
+| `scratchpad` | `string` | Additional processing notes and conversation context |
+
+### EventResponse
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | `"processed" \| "failed"` | Processing status of the event |
+| `event_type` | `string` | The type of event that was processed |
+| `response` | `string` | Internal response for Nexus (usually `<nexus_response>OK</nexus_response>`) |
+| `customer_response` | `string` | Message to send to the customer via WhatsApp |
+| `thinking` | `string` | Internal reasoning about the event |
+| `scratchpad` | `string` | Event processing details and context |

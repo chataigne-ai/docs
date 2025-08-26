@@ -1,0 +1,139 @@
+---
+title: "Nexus Client"
+description: "HTTP client for sending messages and data to the server"
+---
+
+The Nexus client is the main interface for communicating with the server from the chatbot. It provides methods for sending messages, updating orders, managing customers, and other server operations.
+
+## Overview
+
+The `NexusClient` is a facade that composes specialized clients for different domains:
+- **ConversationClient** - Get conversation data
+- **MessageClient** - Send messages and register tool calls/results
+- **OrderClient** - Manage order drafts and registrations
+- **AddressClient** - Check delivery addresses and fees
+- **CustomerClient** - Update customer data and memory
+- **PaymentClient** - Generate payment method URLs
+- **FeedbackClient** - Create customer feedback
+- **ScheduledMessageClient** - Schedule and manage delayed messages
+
+## Message Methods
+
+### register_text_message
+- `conversation_id: str` - Conversation identifier
+- `content: str` - Message text content  
+- `sender: "user" | "assistant" | "tool"` - Message sender type
+- Used for registering assistant responses in the conversation thread
+
+### register_tool_call
+- `conversation_id: str` - Conversation identifier
+- `tool_calls: list[ToolCall]` - List of tool calls to register
+- Used for logging tool invocations in the conversation thread
+
+### register_tool_result
+- `conversation_id: str` - Conversation identifier
+- `tool_call_id: str` - ID of the tool call being responded to
+- `tool_result_data: str` - Result data from the tool execution
+- Used for logging tool results in the conversation thread
+
+### send_platform_message
+- `conversation_id: str` - Conversation identifier
+- `content: str` - Message content (auto-converts ** to * for WhatsApp)
+- `sender: "customer" | "location"` - Message sender
+- `message_type: "text" | "button" | "flow" | "url" | "audio"` - Message type
+- `location_id: str` - Required for button messages
+- `customer_id: str` - Required for button messages
+- `buttons: list[dict]` - Button objects with id and title for button messages
+- `url: str` - URL for url type messages
+- `cta: str` - Call to action text for url/flow messages
+- Used for sending messages to customers via WhatsApp
+
+### send_reaction
+- `conversation_id: str` - Conversation identifier
+- `emoji: str` - Emoji to react with (e.g., '👍', '❤️', '😊')
+- `message_to_react: str` - Content of message to react to (can be partial)
+- Used for reacting to customer messages
+
+## Order Methods
+
+### update_order_draft
+- `order_draft_id: str` - Order draft identifier
+- `updates: OrderDraftUpdateDTO` - Order updates (service type, items, requested time, etc.)
+- Used for updating order drafts with new items, delivery details, or timing
+
+### register_order_draft
+- `order_draft_id: str` - Order draft identifier
+- Used for converting an order draft to a confirmed order
+- Returns order data or checkout URL for payment
+
+## Address Methods
+
+### check_address
+- `location_id: str` - Location ID for location mode
+- `address: str` - Address string (optional if coordinates provided)
+- `coordinates: CoordinatesDTO` - Lat/lng coordinates (optional if address provided)
+- `organization_id: str` - Organization ID for organization mode
+- `service_type: "delivery" | "collection"` - Service type
+- `location_number: int` - Number of locations to return (organization mode)
+- `order_draft_id: str` - Optional order draft context
+- Used for validating delivery addresses and calculating fees
+
+## Customer Methods
+
+### get_customer
+- `customer_id: str` - Customer identifier
+- Used for retrieving customer details including memory
+
+### update_customer
+- `customer_id: str` - Customer identifier
+- `data: dict` - Customer data to update
+- Used for updating customer information
+
+### update_customer_memory
+- `customer_id: str` - Customer identifier
+- `memory_entries: list[dict]` - Memory entries with entityId, type, and data
+- Used for updating customer memory/preferences
+
+## Payment Methods
+
+### get_payment_method_register_url
+- `customer_id: str` - Customer identifier
+- `entity_id: str` - Location or organization ID
+- `entity_type: "location" | "businessOrganization"` - Entity type
+- Used for generating URLs to register new payment methods
+
+## Feedback Methods
+
+### create_feedback
+- `conversation_id: str` - Conversation identifier
+- `feedback: str` - Feedback text
+- `general_score: int` - Overall rating score
+- `food_score: int` - Food quality score (optional)
+- `delivery_score: int` - Delivery service score (optional) 
+- `ordering_experience_score: int` - Ordering process score (optional)
+- `order_id: str` - Related order ID (optional)
+- Used for collecting customer feedback and ratings
+
+## Scheduled Message Methods
+
+### create_scheduled_message
+- `conversation_id: str` - Conversation identifier
+- `message: str` - Message content to send later
+- `scheduled_for: str` - ISO 8601 datetime for delivery
+- `type: "permanent" | "until_next_message"` - Schedule persistence type
+- Used for scheduling delayed messages (reminders, follow-ups, etc.)
+
+### cancel_scheduled_message
+- `scheduled_message_id: str` - Scheduled message identifier
+- Used for cancelling previously scheduled messages
+
+### list_scheduled_messages
+- `conversation_id: str` - Conversation identifier
+- Used for retrieving pending scheduled messages for a conversation
+
+## Conversation Methods
+
+### get_conversation
+- `store_number: str` - Store's WhatsApp number
+- `customer_number: str` - Customer's WhatsApp number
+- Used for retrieving conversation data and context

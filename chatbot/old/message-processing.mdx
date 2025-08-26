@@ -4,21 +4,35 @@ Understanding how LeClerk processes messages internally is crucial for developer
 
 ### The Internal Processing Pipeline
 
-When the ChatAgent receives a message to process, it goes through several stages:
+When the agent receives a message to process, it goes through several stages:
 
 ```mermaid
 flowchart TD
-    Input[Message Input] --> Prompt[Build System Prompt]
-    Prompt --> Context[Add Customer Context]
-    Context --> History[Include Conversation History]
-    History --> Tools[Attach Available Tools]
-    Tools --> LLM[Send to Language Model]
-    LLM --> Response[Receive Raw Response]
-    Response --> Parse[Parse XML Tags]
-    Parse --> Extract[Extract Customer Message]
-    Extract --> Send[Send to Customer]
-    Parse --> Internal[Process Internal Tags]
-    Internal --> Actions[Execute Required Actions]
+    Start[Input Messages] --> sg1[Create Context from Input]
+        
+    sg1 -->|queue empty| sg2[Run the Clerk]
+    sg1 -->|queue non empty| Stack[Save Message/Event to queue]
+    Stack --> Respond
+    
+    subgraph sg1["Create Context from Input"]
+        SysPrompt[System Prompt]
+        ToolCreation[Tool Creation]
+        CompleteContext[Complete Context Historic]
+    end
+    
+    subgraph sg2["Run the Clerk"]
+        CallLLM[Call LLM with Context]
+        ExecuteTools[Execute LLM Tool Calls]
+        UpdateContext[Update Context]
+        VerifyTermination[Verify Termination Conditions]
+        
+        CallLLM --> ExecuteTools
+        ExecuteTools --> UpdateContext
+        UpdateContext --> VerifyTermination
+        VerifyTermination -->|Not Complete or Queue| CallLLM
+    end
+
+    VerifyTermination -->|Complete| Respond[Respond to User]
 ```
 
 ### XML Tag System

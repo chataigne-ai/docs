@@ -1,0 +1,202 @@
+---
+title: Validation Models
+description: Order validation and revalidation data models for ensuring order accuracy and handling order changes
+---
+
+This module contains all validation-related models used for validating orders, detecting changes, and managing order revalidation workflows.
+
+## Order Validation Models
+
+### OrderValidationResponseDTO
+
+Response model from order validation service.
+
+| Field                    | Type       | Required | Description                                    |
+| ------------------------ | ---------- | -------- | ---------------------------------------------- |
+| type                     | string     | Yes      | Validation result: "readyForPayment", "validationError", "noPaymentMethod" |
+| errors                   | string[]   | No       | Validation error messages (when type is "validationError") |
+| validationData           | object     | No       | Validation-related fields (deliveryFee, deliveryTime, etc.) |
+| readyTime                | datetime   | No       | When order will be ready for pickup            |
+| deliveryTime             | datetime   | No       | Estimated delivery time                        |
+| deliveryAddress          | AddressDTO | No       | Validated delivery address                     |
+| availablePaymentMethods  | string[]   | No       | Payment methods available for this order       |
+
+### Validation Types
+
+#### readyForPayment
+Order is valid and ready for payment processing.
+
+**Required validationData fields:**
+- `paymentType`: Type of payment processing to use
+
+#### validationError  
+Order has validation issues that must be resolved.
+
+**Includes:**
+- `errors`: Array of specific validation error messages
+- Details about what needs to be corrected
+
+#### noPaymentMethod
+Order is valid but no payment method is available.
+
+**Includes:**
+- `availablePaymentMethods`: List of payment options the customer can set up
+
+### Validation Data Fields
+
+The `validationData` object may contain:
+
+| Field          | Type   | Description                         |
+| -------------- | ------ | ----------------------------------- |
+| paymentType    | string | Required payment processing type    |
+| deliveryFee    | number | Calculated delivery fee             |
+| deliveryTime   | string | Estimated delivery duration         |
+| preparationTime| string | Order preparation time              |
+| minimumAmount  | number | Minimum order amount requirement    |
+| serviceFee     | number | Platform service fee                |
+
+## Order Change Detection Models
+
+### OrderValidationSummaryDTO
+
+Summary of changes detected during order revalidation.
+
+| Field                     | Type                         | Required | Description                              |
+| ------------------------- | ---------------------------- | -------- | ---------------------------------------- |
+| has_changes               | boolean                      | Yes      | Whether any changes were detected        |
+| changes                   | string[]                     | Yes      | Human-readable list of changes (default: []) |
+| delivery_fee_changed      | boolean                      | Yes      | Whether delivery fee changed (default: false) |
+| preparation_time_changed  | boolean                      | Yes      | Whether preparation time changed (default: false) |
+| items_changed             | boolean                      | Yes      | Whether items became unavailable (default: false) |
+| price_changed             | boolean                      | Yes      | Whether prices changed (default: false)  |
+| original_draft            | OrderDraftDTO                | Yes      | Original order draft                     |
+| updated_draft             | OrderDraftDTO                | Yes      | Updated order draft with changes         |
+| validation                | OrderValidationResponseDTO   | Yes      | Validation result for updated draft      |
+
+### Change Types
+
+The validation summary tracks different types of changes:
+
+#### Price Changes
+- Product prices increased or decreased
+- Discount availability changed
+- Tax rates updated
+- Currency conversion rates changed
+
+#### Availability Changes  
+- Products became unavailable
+- Options no longer available
+- Deals expired or became unavailable
+- Quantity restrictions changed
+
+#### Delivery Changes
+- Delivery fee changed
+- Delivery time estimates updated
+- Delivery zones modified
+- Service availability changed
+
+#### Preparation Changes
+- Kitchen preparation times updated
+- Menu item preparation complexity changed
+- Staff capacity adjustments
+
+### Change Communication
+
+Changes are presented to customers as human-readable messages:
+
+**Example changes array:**
+```json
+[
+  "Delivery fee increased from CHF 3.50 to CHF 4.00",
+  "Margherita Pizza is no longer available",
+  "Estimated preparation time increased by 10 minutes"
+]
+```
+
+## Combined Validation Models
+
+### OrderDraftWithValidationDTO
+
+Combined model containing both order draft and validation results.
+
+| Field      | Type                       | Required | Description                      |
+| ---------- | -------------------------- | -------- | -------------------------------- |
+| orderDraft | OrderDraftDTO              | Yes      | Order draft being validated      |
+| validation | OrderValidationResponseDTO | Yes      | Validation result for the draft  |
+
+### Model Validation
+
+The model includes validation to ensure proper structure:
+
+- **Missing Validation**: If validation field is missing, creates error validation
+- **Structural Integrity**: Ensures both orderDraft and validation are present
+- **Default Error**: Provides "MISSING_VALIDATION_SECTION" error for malformed data
+
+## Validation Workflow
+
+### Initial Validation
+
+1. **Draft Creation**: Customer builds order draft
+2. **Validation Request**: System validates draft before payment
+3. **Result Processing**: Handle validation response
+4. **Customer Communication**: Present any issues or proceed to payment
+
+### Revalidation Process
+
+1. **Change Detection**: External changes affect existing order
+2. **Revalidation**: Re-validate order with current conditions  
+3. **Change Analysis**: Compare original vs updated order
+4. **Customer Notification**: Inform customer of changes
+5. **Confirmation**: Customer accepts changes or modifies order
+
+### Validation Scenarios
+
+#### Successful Validation
+- Order meets all requirements
+- Payment methods available
+- All items in stock
+- Delivery possible
+
+#### Validation Errors
+- Missing required information
+- Items unavailable
+- Delivery not possible
+- Order below minimum amount
+
+#### Revalidation Changes
+- Price fluctuations
+- Item availability changes
+- Delivery fee updates
+- Preparation time changes
+
+### Error Handling
+
+Validation errors are categorized:
+
+#### Customer Fixable
+- Missing delivery address
+- Order below minimum amount
+- Invalid payment method
+- Missing contact information
+
+#### System Issues
+- Item availability synchronization
+- Pricing system errors
+- Payment gateway issues
+- Delivery service problems
+
+#### Business Rules
+- Operating hours restrictions
+- Delivery area limitations  
+- Item quantity limits
+- Promotional code issues
+
+<Note>
+The validation system ensures order accuracy and handles dynamic changes in pricing, availability, and business conditions while maintaining transparent communication with customers.
+</Note>
+
+## Related Models
+
+- [OrderDraftDTO](/chatbot/types/orders#orderdraftdto) - Used for order validation
+- [AddressDTO](/chatbot/types/address#addressdto) - Used for delivery address validation
+- [OrderValidationResponseDTO](#ordervalidationresponsedto) - Core validation response model

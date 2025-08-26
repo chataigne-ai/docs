@@ -1,0 +1,524 @@
+---
+title: "Menu Lookup Tool"
+description: "Comprehensive menu search and browsing capabilities"
+---
+
+# Menu Lookup Tool
+
+The `menu_lookup` tool provides flexible menu search and browsing capabilities, supporting 7 different query types for efficient menu exploration. It handles both regular menu items and promotional deals with advanced filtering and field selection.
+
+## Overview
+
+Menu lookup enables:
+- **Category browsing** with minimal token usage
+- **Fuzzy search** across items and deals
+- **Detailed item information** including options and pricing
+- **Batch operations** for multiple queries
+- **Deal and combo management**
+- **Organization mode** with location-specific catalogs
+
+## Query Types
+
+### browse_categories
+Minimal token usage for category overview:
+
+```json
+{
+  "query_type": "browse_categories"
+}
+```
+
+**Returns:**
+```json
+{
+  "browse_categories": [
+    {
+      "name": "Pizza", 
+      "items": 12, 
+      "deals": 2,
+      "price_range": {"min": 8.50, "max": 18.00}
+    },
+    {
+      "name": "Pasta",
+      "items": 8,
+      "deals": 0,
+      "price_range": {"min": 9.00, "max": 15.50}
+    }
+  ],
+  "total_categories": 6
+}
+```
+
+### search_skus
+Fuzzy search across items AND deals:
+
+```json
+{
+  "query_type": "search_skus",
+  "query": "pepperoni pizza",
+  "fields": ["name", "price", "description"],
+  "limit": 5
+}
+```
+
+**Batch search:**
+```json
+{
+  "query_type": "search_skus", 
+  "query": ["pizza", "pasta", "salad"],
+  "fields": ["name", "price"]
+}
+```
+
+**Returns:**
+```json
+{
+  "matches": [
+    {
+      "name": "Pizza Pepperoni",
+      "price": {"amount": 14.50, "currency": "EUR"},
+      "score": 0.95,
+      "item_type": "sku"
+    }
+  ],
+  "total": 3,
+  "query_status": "success"
+}
+```
+
+### list_categories
+Full category details with product counts:
+
+```json
+{
+  "query_type": "list_categories"
+}
+```
+
+**Returns:**
+```json
+{
+  "categories": [
+    {
+      "category_id": "cat_pizza",
+      "name": "Pizza",
+      "description": "Authentic Italian pizzas",
+      "product_count": 12,
+      "available_product_count": 11,
+      "display_order": 1
+    }
+  ]
+}
+```
+
+### list_skus
+List items with filtering:
+
+```json
+{
+  "query_type": "list_skus",
+  "filters": {
+    "category": "pizza",
+    "max_price": 20,
+    "available_only": true
+  },
+  "fields": ["name", "price", "has_options"],
+  "limit": 10
+}
+```
+
+**Returns:**
+```json
+{
+  "skus_by_category": {
+    "Pizza": [
+      {
+        "sku_id": "sku_margherita_large",
+        "name": "Pizza Margherita Large",
+        "price": {"amount": 12.50, "currency": "EUR"},
+        "has_options": true
+      }
+    ]
+  },
+  "total_skus": 8
+}
+```
+
+### get_sku_details
+Detailed information for specific SKUs:
+
+```json
+{
+  "query_type": "get_sku_details",
+  "sku_id": "sku_margherita_large",
+  "fields": ["name", "price", "options", "available"]
+}
+```
+
+**Batch lookup:**
+```json
+{
+  "query_type": "get_sku_details",
+  "sku_id": ["sku_margherita_large", "sku_pepperoni_medium"],
+  "fields": ["name", "price", "options_summary"]
+}
+```
+
+**Returns:**
+```json
+{
+  "sku_id": "sku_margherita_large",
+  "name": "Pizza Margherita Large",
+  "price": {"amount": 12.50, "currency": "EUR"},
+  "option_lists": [
+    {
+      "name": "Crust Type",
+      "min_selections": 1,
+      "max_selections": 1,
+      "options": [
+        {
+          "option_id": "opt_thin_crust",
+          "name": "Thin Crust",
+          "price": {"amount": 0, "currency": "EUR"}
+        },
+        {
+          "option_id": "opt_thick_crust", 
+          "name": "Thick Crust",
+          "price": {"amount": 1.50, "currency": "EUR"}
+        }
+      ]
+    }
+  ],
+  "is_available": true
+}
+```
+
+### list_deals
+Available promotional deals:
+
+```json
+{
+  "query_type": "list_deals"
+}
+```
+
+**Returns:**
+```json
+{
+  "deals": [
+    {
+      "deal_id": "deal_pizza_combo",
+      "name": "Pizza Combo Deal",
+      "price": {"amount": 19.90, "currency": "EUR"},
+      "line_count": 3,
+      "lines_preview": ["Choose Pizza", "Choose Drink", "Choose Dessert"]
+    }
+  ],
+  "total_deals": 4
+}
+```
+
+### get_deal_details
+Detailed deal information with available choices:
+
+```json
+{
+  "query_type": "get_deal_details",
+  "deal_id": "deal_pizza_combo"
+}
+```
+
+**Returns:**
+```json
+{
+  "deal_id": "deal_pizza_combo",
+  "name": "Pizza Combo Deal", 
+  "price": {"amount": 19.90, "currency": "EUR"},
+  "lines": [
+    {
+      "line_id": "line_pizza",
+      "name": "Choose Pizza",
+      "choices": [
+        {
+          "sku_id": "sku_margherita_large",
+          "name": "Pizza Margherita Large",
+          "regular_price": {"amount": 12.50, "currency": "EUR"},
+          "has_options": true,
+          "options_summary": ["Crust Type", "Extra Toppings"]
+        }
+      ]
+    }
+  ],
+  "selection_instructions": "Select one item from each of the 3 categories."
+}
+```
+
+## Field Selection
+
+Control response size by selecting only needed fields:
+
+### Available Fields
+- `internal_id` - SKU identifier (needed for ordering)
+- `name` - Item name
+- `description` - Item description
+- `price` - Price information
+- `category` - Category name
+- `has_options` - Boolean indicating customizations available
+- `options_summary` - List of option types (lightweight)
+- `options` - Full option details with prices (heavy)
+- `available` - Availability status
+- `availability` - Detailed availability information
+
+### Performance Tips
+```json
+// Lightweight for browsing
+{
+  "fields": ["name", "price", "has_options"]
+}
+
+// Complete for ordering
+{
+  "fields": ["internal_id", "name", "price", "options"]  
+}
+
+// Detailed for descriptions
+{
+  "fields": ["name", "description", "price", "options_summary"]
+}
+```
+
+## Organization Mode Support
+
+### Location-Specific Queries
+```json
+{
+  "query_type": "search_skus",
+  "query": "pizza",
+  "location_id": "loc_champs_elysees"
+}
+```
+
+### Cross-Location Search
+```json
+{
+  "query_type": "search_skus", 
+  "query": "vegan options",
+  "search_all_locations": true
+}
+```
+
+**Returns items with location availability:**
+```json
+{
+  "matches": [
+    {
+      "name": "Vegan Pizza",
+      "price": {"amount": 13.50, "currency": "EUR"},
+      "available_at_locations": [
+        {
+          "location_id": "loc_bastille",
+          "location_name": "Pizza Palace Bastille"
+        },
+        {
+          "location_id": "loc_marais", 
+          "location_name": "Pizza Palace Marais"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Advanced Features
+
+### Filtering Options
+```json
+{
+  "filters": {
+    "category": "pizza",           // Category filter (partial match)
+    "max_price": 15.00,            // Price ceiling
+    "available_only": true         // Only available items
+  }
+}
+```
+
+### Pagination and Limits
+```json
+{
+  "limit": 20,                     // Max items (1-50)
+  "min_score": 0.7                 // Search relevance threshold
+}
+```
+
+### Batch Operations
+Reduce latency with batch queries:
+```json
+// Multiple searches
+{
+  "query": ["pizza", "pasta", "dessert"],
+  "query_type": "search_skus"
+}
+
+// Multiple SKU details
+{
+  "sku_id": ["sku_1", "sku_2", "sku_3"],
+  "query_type": "get_sku_details"
+}
+```
+
+## Deal Management
+
+### Understanding Deals
+Deals require selecting exactly ONE SKU per deal line:
+
+```json
+// Deal structure
+{
+  "dealInternalId": "deal_combo",
+  "skus": [
+    {
+      "skuInternalId": "sku_pizza_margherita",  // Line 1 choice
+      "quantity": 1,
+      "options": [
+        {
+          "optionInternalId": "opt_thin_crust",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "skuInternalId": "sku_coke_large",        // Line 2 choice  
+      "quantity": 1,
+      "options": []
+    }
+  ]
+}
+```
+
+### Deal Pricing
+- Base deal price is fixed
+- SKUs in deals may have modified prices (often $0)
+- Options still add to the total price
+- Some SKUs may add premium charges
+
+## Common Usage Patterns
+
+### Category Browsing Flow
+```json
+// 1. Start with categories overview
+{"query_type": "browse_categories"}
+
+// 2. Explore specific category
+{"query_type": "list_skus", "filters": {"category": "pizza"}}
+
+// 3. Get details for interesting items
+{"query_type": "get_sku_details", "sku_id": "sku_margherita_large"}
+```
+
+### Search-Based Flow
+```json
+// 1. Search for what customer wants
+{"query_type": "search_skus", "query": "spicy chicken"}
+
+// 2. Get options for selected items
+{"query_type": "get_sku_details", "sku_id": "found_sku_id", "fields": ["options"]}
+```
+
+### Deal Exploration Flow
+```json
+// 1. List available deals
+{"query_type": "list_deals"}
+
+// 2. Get deal details
+{"query_type": "get_deal_details", "deal_id": "selected_deal"}
+
+// 3. Get options for chosen SKUs
+{"query_type": "get_sku_details", "sku_id": ["choice1", "choice2"]}
+```
+
+## Error Handling
+
+### Common Errors
+```json
+// Invalid query type
+{
+  "error": "Invalid query_type 'invalid_query'. Must be one of: browse_categories, list_categories..."
+}
+
+// Missing required parameters
+{
+  "error": "query parameter is required for search_skus"
+}
+
+// SKU not found
+{
+  "error": "SKU with ID sku_123 not found"
+}
+
+// No catalog available
+{
+  "error": "No catalog available. Please select a location first."
+}
+```
+
+### Organization Mode Errors
+```json
+// Location not found
+{
+  "error": "Menu not available for location loc_123. Please try switching to this location first."
+}
+
+// Cross-location search failed
+{
+  "error": "Cross-location search failed: insufficient permissions"
+}
+```
+
+## Performance Optimization
+
+### Token Usage
+- Use `browse_categories` for overviews (~100 tokens)
+- Select minimal `fields` for listings
+- Use `options_summary` instead of full `options`
+- Limit results appropriately
+
+### API Efficiency
+- Batch multiple queries together
+- Cache frequent category browses
+- Use specific location_id in organization mode
+- Set reasonable min_score for searches
+
+### Memory Considerations
+- Full menu with all options can be very large
+- Field selection dramatically reduces response size
+- Batch operations are more efficient than multiple calls
+
+## Integration with Ordering
+
+### Getting SKU IDs for Orders
+```json
+{
+  "query_type": "get_sku_details",
+  "sku_id": "sku_margherita_large",
+  "fields": ["internal_id", "name", "price", "options"]
+}
+```
+
+### Option Selection for Orders
+```json
+// From menu lookup response
+"option_lists": [
+  {
+    "name": "Size",
+    "options": [
+      {
+        "option_id": "opt_large",  // Use this in update_order_draft
+        "name": "Large",
+        "price": {"amount": 0, "currency": "EUR"}
+      }
+    ]
+  }
+]
+```
+
+The `menu_lookup` tool is the primary interface for menu exploration, providing flexible search capabilities while maintaining performance through intelligent field selection and batch operations.

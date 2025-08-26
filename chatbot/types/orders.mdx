@@ -1,0 +1,293 @@
+---
+title: Order Models
+description: Order and order draft data models for managing customer orders, order items, and order lifecycle
+---
+
+This module contains all order-related models used for managing customer orders from draft creation to completion.
+
+## Order Draft Models
+
+### OrderDraftItemOptionDTO
+
+Model for option selections within order draft items.
+
+| Field              | Type   | Required | Description                     |
+| ------------------ | ------ | -------- | ------------------------------- |
+| optionInternalId   | string | Yes      | Internal option identifier      |
+| quantity           | number | Yes      | Quantity of this option         |
+
+### OrderDraftItemDTO
+
+Model for items in an order draft.
+
+| Field           | Type                        | Required | Description                    |
+| --------------- | --------------------------- | -------- | ------------------------------ |
+| skuInternalId   | string                      | Yes      | Internal SKU identifier        |
+| quantity        | number                      | Yes      | Item quantity                  |
+| options         | OrderDraftItemOptionDTO[]   | No       | Selected options for this item |
+
+### OrderDraftDealSkuOptionDTO
+
+Model for option selections within deal SKUs.
+
+| Field              | Type     | Required | Description                     |
+| ------------------ | -------- | -------- | ------------------------------- |
+| optionInternalId   | string   | Yes      | Internal option identifier      |
+| quantity           | number   | Yes      | Quantity of this option         |
+| price              | PriceDTO | No       | Option price override           |
+
+### OrderDraftDealSkuDTO
+
+Model for SKU selections within deals.
+
+| Field           | Type                           | Required | Description                      |
+| --------------- | ------------------------------ | -------- | -------------------------------- |
+| skuInternalId   | string                         | Yes      | Internal SKU identifier          |
+| price           | PriceDTO                       | No       | SKU price override               |
+| quantity        | number                         | No       | SKU quantity (default: 1)        |
+| options         | OrderDraftDealSkuOptionDTO[]   | No       | Selected options for this SKU    |
+
+### OrderDraftDealDTO
+
+Model for adding deals to an order draft.
+
+| Field             | Type                    | Required | Description                |
+| ----------------- | ----------------------- | -------- | -------------------------- |
+| dealInternalId    | string                  | Yes      | Internal deal identifier   |
+| price             | PriceDTO                | No       | Deal price override        |
+| skus              | OrderDraftDealSkuDTO[]  | Yes      | Selected SKUs in the deal  |
+
+### OrderDraftDTO
+
+Complete order draft model representing a customer's order in progress.
+
+| Field                | Type                  | Required | Description                                    |
+| -------------------- | --------------------- | -------- | ---------------------------------------------- |
+| id                   | string                | Yes      | Unique order draft identifier                  |
+| createdAt            | datetime              | Yes      | Draft creation timestamp                       |
+| updatedAt            | datetime              | No       | Last update timestamp                          |
+| conversationId       | string                | Yes      | Associated conversation identifier             |
+| locationId           | string                | No       | Location ID (for organization mode)            |
+| deliveryAddress      | AddressDTO            | No       | Delivery address                               |
+| deliveryTime         | datetime              | No       | Requested delivery time                        |
+| startTime            | datetime              | No       | Order preparation start time                   |
+| readyTime            | datetime              | No       | Order ready for pickup time                    |
+| customerFirstName    | string                | No       | Customer first name                            |
+| customerLastName     | string                | No       | Customer last name                             |
+| customerNote         | string                | No       | Customer notes for the order                   |
+| items                | OrderDraftItemDTO[]   | No       | Order items                                    |
+| deals                | OrderDraftDealDTO[]   | No       | Order deals/combos                             |
+| serviceType          | string                | No       | Service type: "delivery", "collection", "eat_in", "unspecified" |
+| discounts            | AppliedDiscountDTO[]  | No       | Applied discounts                              |
+| paymentMethod        | string \| object      | No       | Payment method                                 |
+| deliveryInstructions | string                | No       | Delivery instructions                          |
+| deliveryFee          | number                | No       | Delivery fee charged by platform               |
+| serviceFee           | number                | No       | Service fee charged by platform                |
+| codes                | string[]              | No       | Promo codes to apply                           |
+
+#### Payment Methods
+
+The `paymentMethod` field accepts the following values:
+
+| Method         | Description                    |
+| -------------- | ------------------------------ |
+| PersistentCard | Saved payment card             |
+| TemporaryCard  | One-time payment card          |
+| Twint          | Twint mobile payment           |
+| RevolutPay     | Revolut payment method         |
+| HandledByStore | Payment handled by store       |
+
+### OrderDraftUpdateDTO
+
+Model for updating an existing order draft with new information.
+
+| Field                      | Type                | Required | Description                               |
+| -------------------------- | ------------------- | -------- | ----------------------------------------- |
+| deliveryAddressString      | string              | No       | Full address as single string             |
+| deliveryAddressCoordinates | object              | No       | Address coordinates (lat/long)            |
+| requestedTime              | string              | No       | Requested time: "ASAP" or ISO format      |
+| customerFirstName          | string              | No       | Customer first name                       |
+| customerLastName           | string              | No       | Customer last name                        |
+| customerNote               | string              | No       | Customer notes                            |
+| items                      | OrderDraftItemDTO[] | No       | Updated order items                       |
+| serviceType                | string              | No       | Service type: "delivery" or "collection"  |
+| paymentMethod              | string              | No       | Payment method                            |
+| deliveryInstructions       | string              | No       | Delivery instructions                     |
+| customerLanguage           | string              | No       | Customer language: "fr", "en", "de", "it", "es" |
+| locationId                 | string              | No       | Location ID (for organization mode)       |
+| codes                      | string[]            | No       | Promo codes as provided by customer       |
+| deals                      | OrderDraftDealDTO[] | No       | Deals to add to order                     |
+
+<Note>
+The update model includes validation to convert "unspecified" and "null" string values to null, and handles coordinate validation for delivery addresses.
+</Note>
+
+## Completed Order Models
+
+### OrderOptionDTO
+
+Model for options in completed orders.
+
+| Field          | Type     | Required | Description               |
+| -------------- | -------- | -------- | ------------------------- |
+| id             | string   | No       | Option identifier         |
+| internalId     | string   | No       | Internal option ID        |
+| name           | string   | Yes      | Option name               |
+| optionListName | string   | Yes      | Parent option list name   |
+| quantity       | number   | No       | Option quantity           |
+| ref            | string   | No       | Option reference code     |
+| price          | PriceDTO | No       | Option price              |
+
+### OrderItemDTO
+
+Model for items in completed orders.
+
+| Field         | Type              | Required | Description              |
+| ------------- | ----------------- | -------- | ------------------------ |
+| id            | string            | No       | Item identifier          |
+| internalId    | string            | No       | Internal item ID         |
+| name          | string            | Yes      | Item name                |
+| productName   | string            | No       | Product name             |
+| skuName       | string            | No       | SKU name                 |
+| skuRef        | string            | No       | SKU reference code       |
+| price         | PriceDTO          | Yes      | Item price               |
+| quantity      | number            | Yes      | Item quantity            |
+| customerNotes | string            | No       | Customer notes for item  |
+| options       | OrderOptionDTO[]  | No       | Selected options         |
+
+### OrderDiscountDTO
+
+Model for discounts applied to orders.
+
+| Field    | Type     | Required | Description            |
+| -------- | -------- | -------- | ---------------------- |
+| id       | string   | Yes      | Discount identifier    |
+| name     | string   | Yes      | Discount name          |
+| ref      | string   | No       | Discount reference     |
+| priceOff | PriceDTO | Yes      | Discount amount        |
+
+### OrderChargeDTO
+
+Model for additional charges on orders.
+
+| Field | Type     | Required | Description         |
+| ----- | -------- | -------- | ------------------- |
+| id    | string   | Yes      | Charge identifier   |
+| name  | string   | Yes      | Charge name         |
+| ref   | string   | No       | Charge reference    |
+| price | PriceDTO | Yes      | Charge amount       |
+
+### OrderPaymentDTO
+
+Model for payment information on orders.
+
+| Field                   | Type     | Required | Description                    |
+| ----------------------- | -------- | -------- | ------------------------------ |
+| id                      | string   | Yes      | Payment identifier             |
+| name                    | string   | No       | Payment name                   |
+| ref                     | string   | No       | Payment reference              |
+| stripePaymentIntentId   | string   | No       | Stripe payment intent ID       |
+| amount                  | PriceDTO | Yes      | Payment amount                 |
+
+### OrderStatusDTO
+
+Enum defining order lifecycle states.
+
+| Value              | Description                           |
+| ------------------ | ------------------------------------- |
+| new                | Order has been created                |
+| awaiting_payment   | Order is waiting for payment          |
+| received           | Order has been received by restaurant |
+| accepted           | Order has been accepted               |
+| in_preparation     | Order is being prepared               |
+| awaiting_shipment  | Order is ready for delivery           |
+| awaiting_collection| Order is ready for pickup             |
+| in_delivery        | Order is out for delivery             |
+| completed          | Order has been completed              |
+| rejected           | Order has been rejected               |
+| cancelled          | Order has been cancelled              |
+| delivery_failed    | Delivery attempt failed               |
+
+### ServiceTypeDTO
+
+Enum defining service types for orders.
+
+| Value      | Description                    |
+| ---------- | ------------------------------ |
+| delivery   | Order will be delivered        |
+| collection | Order will be picked up        |
+| eat_in     | Order for dine-in service      |
+
+### OrderDTO
+
+Complete order model for finalized orders.
+
+| Field         | Type                | Required | Description                         |
+| ------------- | ------------------- | -------- | ----------------------------------- |
+| id            | string              | Yes      | Unique order identifier             |
+| shortId       | string              | Yes      | Short human-readable ID (e.g. A1B2) |
+| createdAt     | datetime            | Yes      | Order creation timestamp            |
+| updatedAt     | datetime            | No       | Last update timestamp               |
+| status        | OrderStatusDTO      | Yes      | Current order status                |
+| serviceType   | ServiceTypeDTO      | No       | Service type                        |
+| channel       | string              | No       | Order channel                       |
+| ref           | string              | No       | Order reference                     |
+| privateRef    | string              | No       | Private order reference             |
+| expectedTime  | datetime            | No       | Expected completion time            |
+| confirmedTime | datetime            | No       | Confirmed completion time           |
+| customerNotes | string              | No       | Customer notes                      |
+| sellerNotes   | string              | No       | Seller notes                        |
+| collectionCode| string              | No       | Pickup collection code              |
+| total         | PriceDTO            | No       | Order total amount                  |
+| items         | OrderItemDTO[]      | No       | Order items                         |
+| discounts     | OrderDiscountDTO[]  | No       | Applied discounts                   |
+| charges       | OrderChargeDTO[]    | No       | Additional charges                  |
+| payments      | OrderPaymentDTO[]   | No       | Payment information                 |
+| customer      | CustomerDTO         | No       | Customer information                |
+| delivery      | DeliveryDTO         | No       | Delivery information (third-party)  |
+| payment       | PaymentDTO          | No       | Payment information                 |
+
+### OrderRegistrationResponseDTO
+
+Response model for order registration attempts.
+
+| Field         | Type    | Required | Description                                    |
+| ------------- | ------- | -------- | ---------------------------------------------- |
+| type          | string  | Yes      | Response type: "orderPaid", "orderRegistered", "checkoutUrl", "failed" |
+| order         | OrderDTO| No       | Order data (for orderPaid/orderRegistered)     |
+| checkoutUrl   | string  | No       | Checkout URL (for checkoutUrl type)            |
+| failureReason | string  | No       | Failure reason (for failed type)               |
+
+## Order Lifecycle
+
+### Draft Phase
+1. **Creation**: Order draft is created when customer starts ordering
+2. **Item Addition**: Items and deals are added to the draft
+3. **Updates**: Customer information and preferences are updated
+4. **Validation**: Draft is validated before payment
+
+### Order Phase  
+1. **Registration**: Draft is converted to order after payment
+2. **Processing**: Restaurant receives and processes the order
+3. **Preparation**: Order moves through preparation stages
+4. **Completion**: Order is delivered or picked up
+
+### Status Transitions
+
+Common status flow:
+- `new` → `awaiting_payment` → `received` → `accepted` → `in_preparation`
+- **Delivery**: `awaiting_shipment` → `in_delivery` → `completed`
+- **Collection**: `awaiting_collection` → `completed`
+
+<Note>
+Order drafts allow customers to build their order gradually through conversation, while completed orders represent finalized transactions with full payment and preparation tracking.
+</Note>
+
+## Related Models
+
+- [AddressDTO](/chatbot/types/address#addressdto) - Used for delivery addresses
+- [PriceDTO](/chatbot/types/pricing#pricedto) - Used for pricing information
+- [AppliedDiscountDTO](/chatbot/types/pricing#applieddiscountdto) - Used for discounts
+- [CustomerDTO](/chatbot/types/customers#customerdto) - Used for customer information
+- [DeliveryDTO](/chatbot/types/delivery#deliverydto) - Used for delivery information
+- [PaymentDTO](/chatbot/types/payments#paymentdto) - Used for payment information

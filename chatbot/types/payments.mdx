@@ -1,0 +1,160 @@
+---
+title: Payment Models
+description: Payment-related data models for managing payment processing, payment methods, and payment status tracking
+---
+
+This module contains all payment-related models used for managing payment processing and payment method information.
+
+## Payment Status Models
+
+### PaymentStatusDTO
+
+Enum defining the various states of a payment.
+
+| Value      | Description                           |
+| ---------- | ------------------------------------- |
+| processing | Payment is being processed            |
+| completed  | Payment has been successfully processed |
+| failed     | Payment processing failed             |
+| refunded   | Payment has been refunded             |
+
+### PaymentTypeDTO
+
+Enum defining the type of payment processing used.
+
+| Value    | Description                          |
+| -------- | ------------------------------------ |
+| external | Payment processed by external system |
+| stripe   | Payment processed through Stripe     |
+| store    | Payment handled directly by store    |
+
+### PaymentMethodTypeDTO
+
+Enum defining the available payment method types.
+
+| Value           | Description                              |
+| --------------- | ---------------------------------------- |
+| HandledByStore  | Payment will be handled by the store     |
+| PersistentCard  | Saved payment card for future use       |
+| TemporaryCard   | One-time use payment card                |
+| Twint           | Twint mobile payment method              |
+| RevolutPay      | Revolut payment method                   |
+
+## Payment Processing Models
+
+### PaymentDTO
+
+Complete payment information for an order.
+
+| Field           | Type                  | Required | Description                        |
+| --------------- | --------------------- | -------- | ---------------------------------- |
+| id              | string                | Yes      | Unique payment identifier          |
+| amount          | PriceDTO              | Yes      | Payment amount                     |
+| status          | PaymentStatusDTO      | Yes      | Current payment status             |
+| type            | PaymentTypeDTO        | Yes      | Payment processing type            |
+| method          | PaymentMethodTypeDTO  | No       | Payment method used                |
+| externalId      | string                | Yes      | External payment system identifier |
+| paymentMethodId | string                | No       | Associated payment method ID       |
+
+### Payment Processing Flow
+
+1. **Initiation**: Payment is created with `processing` status
+2. **Processing**: Payment system processes the transaction
+3. **Completion**: Payment status updates to `completed` or `failed`
+4. **Reconciliation**: Payment is linked to order and customer
+
+### Payment Types
+
+#### External Payments
+- Processed by third-party payment systems
+- Requires external ID for tracking
+- Status updates via webhooks
+
+#### Stripe Payments
+- Processed through Stripe payment platform
+- Integrated payment method management
+- Real-time status updates
+
+#### Store Payments
+- Handled directly by the store
+- Cash, card reader, or manual processing
+- Manual status management
+
+## Payment Method Models
+
+### PaymentMethodDTO
+
+Payment method information stored for customers.
+
+| Field       | Type    | Required | Description                            |
+| ----------- | ------- | -------- | -------------------------------------- |
+| stripeId    | string  | Yes      | Stripe payment method identifier       |
+| isActive    | boolean | Yes      | Whether payment method is active       |
+| customerId  | string  | Yes      | Associated customer identifier         |
+| id          | string  | No       | Internal payment method identifier     |
+| type        | string  | No       | Payment method type (e.g., "card")    |
+| last4       | string  | No       | Last 4 digits of card                  |
+| brand       | string  | No       | Card brand (e.g., "visa", "mastercard") |
+| exp_month   | number  | No       | Card expiration month                  |
+| exp_year    | number  | No       | Card expiration year                   |
+| funding     | string  | No       | Card funding type (e.g., "credit", "debit") |
+| wallet      | object  | No       | Digital wallet information             |
+| country     | string  | No       | Card issuing country                   |
+| fingerprint | string  | No       | Card fingerprint for duplicate detection |
+
+### Payment Method Management
+
+#### Card Information
+Stored payment methods include detailed card information:
+- **Brand**: Visa, Mastercard, American Express, etc.
+- **Type**: Credit or debit card classification
+- **Expiration**: Month and year for validation
+- **Country**: Issuing country for compliance
+
+#### Security Features
+- **Tokenization**: Card numbers are tokenized through Stripe
+- **Fingerprinting**: Duplicate card detection
+- **PCI Compliance**: Secure card data handling
+
+#### Digital Wallets
+Support for digital wallet payment methods:
+- Apple Pay
+- Google Pay
+- Samsung Pay
+- Other wallet providers
+
+### Payment Method Lifecycle
+
+1. **Registration**: Customer adds payment method
+2. **Verification**: Payment method is verified with issuer
+3. **Storage**: Tokenized payment method is stored
+4. **Usage**: Payment method is used for transactions
+5. **Updates**: Expiration dates and status are maintained
+6. **Removal**: Inactive methods are cleaned up
+
+### Payment Security
+
+#### Tokenization
+- Card numbers are never stored directly
+- Stripe tokens represent payment methods
+- Tokens can be safely transmitted and stored
+
+#### Compliance
+- PCI DSS compliance for card data handling
+- Strong customer authentication (SCA) support
+- Fraud detection and prevention
+
+#### Customer Control
+- Customers can manage their payment methods
+- Easy addition and removal of payment methods
+- Control over default payment method
+
+<Note>
+Payment methods are securely managed through Stripe's tokenization system, ensuring PCI compliance and customer data protection.
+</Note>
+
+## Related Models
+
+- [PriceDTO](/chatbot/types/pricing#pricedto) - Used for payment amounts
+- [CustomerDTO](/chatbot/types/customers#customerdto) - Used for payment method ownership
+- [OrderDTO](/chatbot/types/orders#orderdto) - Used for order payment associations

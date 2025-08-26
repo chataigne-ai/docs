@@ -1,0 +1,85 @@
+---
+title: "Langfuse Service"
+description: "Conversation tracing and observability service using Langfuse SDK"
+---
+
+The Langfuse service provides conversation tracing and observability for the chatbot using the Langfuse Python SDK v3 with `@observe` decorator pattern.
+
+## Overview
+
+LangfuseService is a wrapper around the Langfuse SDK that provides:
+- Standardized metadata templates and tags for traces
+- Conversation context management
+- Integration with the `@observe` decorator pattern used throughout the codebase
+- Environment-aware tracing configuration
+
+## Core Methods
+
+### initialize_trace_context
+- `conversation_id: str` - Conversation identifier
+- `user_id: str` - User/customer identifier  
+- `location_name: str` - Store/location name (optional)
+- `location_id: str` - Store/location ID (optional)
+- Used to set up tracing context for a conversation session
+
+### build_metadata
+- `**kwargs` - Additional metadata fields
+- Returns standardized metadata dictionary with environment, conversation, user, and location info
+- Used throughout tools and clients to add consistent metadata to traces
+
+### build_tags
+- `status: str` - Status tag like "success", "warning", "error" (optional)
+- Returns list of standardized tags based on location and status
+- Used to categorize and filter traces in Langfuse dashboard
+
+### format_user_id
+- `user_id: str` - Raw user ID
+- `customer_name: str` - Customer name (optional)
+- Returns formatted user ID for display in traces
+
+## Usage in Codebase
+
+### Clerk Integration
+The main Clerk class uses LangfuseService for:
+- **leclerk/clerk/clerk.py:45** - Initialization and trace context setup
+- **leclerk/clerk/clerk.py:128** - Updating current trace with conversation metadata
+- **leclerk/clerk/clerk.py:186** - Creating spans for tool execution
+- **leclerk/clerk/clerk.py:244** - Marking successful completion with success tags
+
+### API Layer Integration
+- **leclerk/main.py:89** - Service initialization at application startup
+- **leclerk/api/dependencies.py:24** - FastAPI dependency injection
+- **leclerk/api/handlers/main_handler.py:42** - Handler initialization with service
+- **leclerk/api/routes/message.py:31** - Message endpoint dependency
+- **leclerk/api/routes/event.py:25** - Event endpoint dependency
+
+### Tools Integration
+All chatbot tools use the `@observe` decorator which integrates with LangfuseService:
+- **20+ tool files** use `@observe` decorators for automatic tracing
+- Tools inherit metadata and tags from the parent trace context
+- Examples: `update_order_draft_tool.py`, `check_address_tool.py`, `menu_lookup_tool.py`
+
+### Nexus Client Integration
+All Nexus client methods use `@observe` decorators:
+- **leclerk/nexus/nexus_client.py** - Main client methods
+- **leclerk/nexus/message_client.py** - Message operations
+- **leclerk/nexus/order_client.py** - Order operations
+- **leclerk/nexus/conversation_client.py** - Conversation retrieval
+- **leclerk/nexus/address_client.py** - Address validation
+
+## Environment Configuration
+
+The service supports environment-aware configuration:
+- **Production mode** - Full tracing enabled
+- **Development mode** - Debug-level tracing
+- Environment is set during initialization and included in all metadata
+
+## Trace Context Flow
+
+1. **Initialization**: Service initialized at app startup
+2. **Request Start**: MainHandler initializes trace context with conversation details
+3. **Tool Execution**: Each tool call creates a span with inherited metadata
+4. **Nexus Operations**: HTTP calls to server are traced with context
+5. **Completion**: Success/error status tags are applied to traces
+
+This creates a complete trace tree showing the flow from user message → tool execution → server calls → response.

@@ -1,0 +1,372 @@
+---
+title: Chatbot Models
+description: Chatbot-specific data models for conversations, messages, flows, and AI assistant interactions
+---
+
+This module contains all chatbot-specific models used for managing conversations, messages, tool calls, and WhatsApp flow interactions.
+
+## Chatbot Catalog Models
+
+### ChatbotCategoryDTO
+
+Simplified category model for chatbot use.
+
+| Field       | Type   | Required | Description                   |
+| ----------- | ------ | -------- | ----------------------------- |
+| internalId  | string | Yes      | Internal category identifier  |
+| name        | string | Yes      | Category display name         |
+| description | string | No       | Category description          |
+
+### ChatbotProductDTO
+
+Simplified product model for chatbot use.
+
+| Field        | Type   | Required | Description                   |
+| ------------ | ------ | -------- | ----------------------------- |
+| internalId   | string | Yes      | Internal product identifier   |
+| name         | string | Yes      | Product display name          |
+| categoryName | string | Yes      | Parent category name          |
+| description  | string | No       | Product description           |
+
+### ChatbotSkuDTO
+
+Simplified SKU model for chatbot use.
+
+| Field                | Type     | Required | Description                        |
+| -------------------- | -------- | -------- | ---------------------------------- |
+| internalId           | string   | Yes      | Internal SKU identifier            |
+| productInternalId    | string   | Yes      | Parent product identifier          |
+| price                | PriceDTO | Yes      | SKU price                          |
+| optionListInternalIds| string[] | Yes      | Available option list identifiers  |
+| name                 | string   | No       | SKU display name                   |
+
+### ChatbotOptionListDTO
+
+Simplified option list model for chatbot use.
+
+| Field         | Type   | Required | Description                       |
+| ------------- | ------ | -------- | --------------------------------- |
+| internalId    | string | Yes      | Internal option list identifier   |
+| name          | string | Yes      | Option list display name          |
+| minSelections | number | No       | Minimum required selections       |
+| maxSelections | number | No       | Maximum allowed selections        |
+
+### ChatbotOptionDTO
+
+Simplified option model for chatbot use.
+
+| Field                 | Type     | Required | Description                         |
+| --------------------- | -------- | -------- | ----------------------------------- |
+| internalId            | string   | Yes      | Internal option identifier          |
+| name                  | string   | Yes      | Option display name                 |
+| optionListInternalId  | string   | Yes      | Parent option list identifier       |
+| optionListName        | string   | Yes      | Parent option list name             |
+| price                 | PriceDTO | Yes      | Option price                        |
+
+### ChatbotDealLineSkuDTO
+
+Simplified deal line SKU model for chatbot use.
+
+| Field           | Type     | Required | Description              |
+| --------------- | -------- | -------- | ------------------------ |
+| skuInternalId   | string   | Yes      | SKU internal identifier  |
+| price           | PriceDTO | No       | Override price           |
+
+### ChatbotDealLineDTO
+
+Simplified deal line model for chatbot use.
+
+| Field | Type                    | Required | Description                    |
+| ----- | ----------------------- | -------- | ------------------------------ |
+| id    | string                  | Yes      | Deal line identifier           |
+| name  | string                  | No       | Deal line name                 |
+| skus  | ChatbotDealLineSkuDTO[] | Yes      | Available SKUs for this line   |
+
+### ChatbotDealDTO
+
+Simplified deal model for chatbot use.
+
+| Field        | Type                 | Required | Description                      |
+| ------------ | -------------------- | -------- | -------------------------------- |
+| internalId   | string               | Yes      | Internal deal identifier         |
+| name         | string               | Yes      | Deal display name                |
+| description  | string               | No       | Deal description                 |
+| price        | PriceDTO             | Yes      | Deal price                       |
+| lines        | ChatbotDealLineDTO[] | Yes      | Deal lines                       |
+| categoryName | string               | No       | Parent category name             |
+| isAvailable  | boolean              | No       | Deal availability (default: true)|
+
+### ChatbotCatalogDTO
+
+Complete simplified catalog for chatbot use.
+
+| Field       | Type                   | Required | Description           |
+| ----------- | ---------------------- | -------- | --------------------- |
+| id          | string                 | Yes      | Catalog identifier    |
+| name        | string                 | Yes      | Catalog name          |
+| categories  | ChatbotCategoryDTO[]   | Yes      | Categories            |
+| products    | ChatbotProductDTO[]    | Yes      | Products              |
+| skus        | ChatbotSkuDTO[]        | Yes      | SKUs                  |
+| optionLists | ChatbotOptionListDTO[] | Yes      | Option lists          |
+| options     | ChatbotOptionDTO[]     | Yes      | Options               |
+| deals       | ChatbotDealDTO[]       | No       | Deals (default: [])   |
+
+## Tool Call Models
+
+### ToolCallFunction
+
+Function details for AI tool calls.
+
+| Field     | Type   | Required | Description                     |
+| --------- | ------ | -------- | ------------------------------- |
+| name      | string | Yes      | Function name                   |
+| arguments | string | Yes      | JSON string of function arguments |
+
+### ToolCall
+
+Structure of a single AI tool call.
+
+| Field      | Type             | Required | Description              |
+| ---------- | ---------------- | -------- | ------------------------ |
+| toolCallId | string           | Yes      | Unique tool call ID      |
+| function   | ToolCallFunction | Yes      | Function details         |
+| type       | "function"       | Yes      | Tool call type (always "function") |
+
+## Message Models
+
+### AssistantMessageDTO
+
+Model for AI conversation messages.
+
+| Field          | Type       | Required | Description                           |
+| -------------- | ---------- | -------- | ------------------------------------- |
+| id             | string     | Yes      | Message identifier                    |
+| createdAt      | datetime   | Yes      | Message creation timestamp            |
+| conversationId | string     | Yes      | Parent conversation identifier        |
+| sender         | string     | Yes      | Message sender: "user", "assistant", "system", "tool" |
+| type           | string     | Yes      | Message type: "text", "toolCall", "toolResult" |
+| content        | string     | No       | Text content (for text messages)      |
+| toolCalls      | ToolCall[] | No       | Tool calls (for toolCall messages)    |
+| toolCallId     | string     | No       | Tool call ID (for toolResult messages)|
+| toolResultData | string     | No       | Tool result data (for toolResult messages) |
+
+### PlatformMessageDTO
+
+Model for messages sent to/from WhatsApp.
+
+| Field          | Type     | Required | Description                     |
+| -------------- | -------- | -------- | ------------------------------- |
+| id             | string   | Yes      | Message identifier              |
+| createdAt      | datetime | Yes      | Message creation timestamp      |
+| conversationId | string   | Yes      | Parent conversation identifier  |
+| sender         | string   | Yes      | Message sender: "customer", "location" |
+| status         | string   | Yes      | Message status: "pending", "sent", "delivered", "read", "failed" |
+| type           | "text"   | Yes      | Message type (currently only text) |
+| content        | string   | Yes      | Message text content            |
+
+### AssistantMessage
+
+Structured assistant message with XML tag parsing for thinking and responses.
+
+| Field          | Type     | Required | Description                     |
+| -------------- | -------- | -------- | ------------------------------- |
+| raw_content    | string   | Yes      | Raw message content with XML tags |
+| conversation_id| string   | Yes      | Parent conversation identifier  |
+| timestamp      | datetime | Yes      | Message timestamp (auto-generated) |
+
+**Properties:**
+- `customer_response`: Extracted customer-facing response (cleaned)
+- `thinking`: Extracted thinking process content
+- `scratchpad`: Extracted scratchpad notes content
+
+**Methods:**
+- `has_customer_response()`: Check if message contains customer response
+- `has_thinking()`: Check if message contains thinking process
+- `has_scratchpad()`: Check if message contains scratchpad notes
+- `create()`: Factory method to create structured messages
+
+<Note>
+This model includes XML parsing for assistant responses with `<thinking>`, `<scratchpad>`, and `<response_for_customer>` tags.
+</Note>
+
+## Conversation Models
+
+### ConversationDTO
+
+Model for conversation data from Nexus API.
+
+| Field              | Type                   | Required | Description                          |
+| ------------------ | ---------------------- | -------- | ------------------------------------ |
+| id                 | string                 | Yes      | Conversation identifier              |
+| createdAt          | datetime               | Yes      | Conversation creation timestamp      |
+| updatedAt          | datetime               | No       | Last update timestamp                |
+| locationId         | string                 | Yes      | Associated location identifier       |
+| customerId         | string                 | Yes      | Associated customer identifier       |
+| channel            | "whatsapp"             | Yes      | Communication channel (always WhatsApp) |
+| platformMessages   | PlatformMessageDTO[]   | Yes      | Platform messages (default: [])      |
+| assistantMessages  | AssistantMessageDTO[]  | Yes      | Assistant messages (default: [])     |
+| orderDraft         | OrderDraftDTO          | No       | Current order draft                  |
+
+### ConversationWithData
+
+Conversation with associated location and customer data.
+
+| Field        | Type            | Required | Description               |
+| ------------ | --------------- | -------- | ------------------------- |
+| conversation | ConversationDTO | Yes      | Conversation data         |
+| location     | LocationDTO     | Yes      | Associated location       |
+| customer     | CustomerDTO     | Yes      | Associated customer       |
+
+### ChatbotConversationDTO
+
+Simplified conversation model for chatbot use.
+
+| Field             | Type                  | Required | Description                     |
+| ----------------- | --------------------- | -------- | ------------------------------- |
+| id                | string                | Yes      | Conversation identifier         |
+| createdAt         | datetime              | Yes      | Creation timestamp              |
+| updatedAt         | datetime              | No       | Last update timestamp           |
+| channel           | "whatsapp"            | Yes      | Communication channel           |
+| assistantMessages | AssistantMessageDTO[] | Yes      | Assistant messages              |
+| orderDraft        | OrderDraftDTO         | No       | Current order draft             |
+
+## WhatsApp Flow Models
+
+### ButtonReplyDTO
+
+Model for WhatsApp button reply interactions.
+
+| Field | Type   | Required | Description        |
+| ----- | ------ | -------- | ------------------ |
+| id    | string | Yes      | Button identifier  |
+| title | string | Yes      | Button display text|
+
+### FlowProductOptionDTO
+
+Model for product options in WhatsApp flows.
+
+| Field      | Type   | Required | Description           |
+| ---------- | ------ | -------- | --------------------- |
+| internalId | string | Yes      | Option identifier     |
+| name       | string | Yes      | Option display name   |
+
+### FlowProductDTO
+
+Model for products in WhatsApp flows.
+
+| Field      | Type                    | Required | Description              |
+| ---------- | ----------------------- | -------- | ------------------------ |
+| internalId | string                  | Yes      | Product identifier       |
+| name       | string                  | Yes      | Product display name     |
+| options    | FlowProductOptionDTO[]  | Yes      | Available options        |
+
+### FlowDealLineProductDTO
+
+Model for deal line products in WhatsApp flows.
+
+| Field      | Type                    | Required | Description              |
+| ---------- | ----------------------- | -------- | ------------------------ |
+| internalId | string                  | Yes      | Product identifier       |
+| name       | string                  | Yes      | Product display name     |
+| options    | FlowProductOptionDTO[]  | Yes      | Available options        |
+
+### FlowDealLineDTO
+
+Model for deal lines in WhatsApp flows.
+
+| Field   | Type                     | Required | Description           |
+| ------- | ------------------------ | -------- | --------------------- |
+| index   | number                   | Yes      | Line index            |
+| product | FlowDealLineProductDTO   | Yes      | Selected product      |
+
+### FlowDealDTO
+
+Model for deals in WhatsApp flows.
+
+| Field      | Type               | Required | Description        |
+| ---------- | ------------------ | -------- | ------------------ |
+| internalId | string             | Yes      | Deal identifier    |
+| name       | string             | Yes      | Deal display name  |
+| lines      | FlowDealLineDTO[]  | Yes      | Deal lines         |
+
+### FlowDataDTO
+
+Model for WhatsApp flow form data.
+
+| Field             | Type   | Required | Description                           |
+| ----------------- | ------ | -------- | ------------------------------------- |
+| deliveryType      | string | No       | Delivery type: "delivery" or "collection" |
+| products          | FlowProductDTO[] | Yes | Selected products              |
+| customerFirstName | string | No       | Customer first name                   |
+| customerLastName  | string | No       | Customer last name                    |
+| street            | string | No       | Delivery street address               |
+| postalCode        | string | No       | Delivery postal code                  |
+| city              | string | No       | Delivery city                         |
+| requestedTime     | string | No       | Requested delivery/pickup time        |
+
+### LastMessageDTO
+
+Model for the last message received in a conversation.
+
+| Field       | Type           | Required | Description                          |
+| ----------- | -------------- | -------- | ------------------------------------ |
+| type        | string         | Yes      | Message type: "text", "form", "button_reply", "location", "audio" |
+| content     | string         | No       | Text content (required if type is "text") |
+| buttonReply | ButtonReplyDTO | No       | Button reply data (required if type is "button_reply") |
+| flowData    | FlowDataDTO    | No       | Flow form data (required if type is "form") |
+| location    | GeoPointDTO    | No       | Location data (required if type is "location") |
+
+<Note>
+The model includes validation to ensure required fields are present based on the message type.
+</Note>
+
+## Chatbot Payload Models
+
+### ChatbotPayloadDTO
+
+Complete chatbot payload model containing all context data.
+
+| Field              | Type                | Required | Description                               |
+| ------------------ | ------------------- | -------- | ----------------------------------------- |
+| mode               | string              | Yes      | Operation mode: "location" or "businessOrganization" |
+| lastMessage        | LastMessageDTO      | Yes      | Last received message                     |
+| conversation       | ChatbotConversationDTO | Yes   | Current conversation                      |
+| location           | LocationDTO         | No       | Location data (optional in org mode)     |
+| customer           | CustomerDTO         | Yes      | Customer information                      |
+| orders             | OrderDTO[]          | Yes      | Customer's order history                  |
+| businessOrganization | OrganizationDTO   | No       | Organization data (present in org mode)   |
+
+**Properties:**
+- `organization`: Alias for `businessOrganization` for consistency
+
+### ChatbotEventDTO
+
+Event payload received from Nexus with comprehensive context.
+
+| Field              | Type                | Required | Description                               |
+| ------------------ | ------------------- | -------- | ----------------------------------------- |
+| type               | ChatbotEventType    | Yes      | Event type                                |
+| mode               | string              | No       | Operation mode (default: "location")     |
+| conversation       | ChatbotConversationDTO | Yes   | Conversation context                      |
+| location           | LocationDTO         | No       | Location data (when available)            |
+| customer           | CustomerDTO         | Yes      | Customer information                      |
+| paymentMethod      | PaymentMethodDTO    | No       | Payment method (for payment events)       |
+| failureReason      | string              | No       | Failure reason (for failed events)        |
+| order              | OrderDTO            | No       | Order data (for order events)             |
+| message            | string              | No       | Message (for instruction events)          |
+| businessOrganization | OrganizationDTO   | No       | Organization data (in org mode)           |
+
+**Properties:**
+- `organization`: Alias for `businessOrganization` for consistency
+
+## Related Models
+
+- [PriceDTO](/chatbot/types/pricing#pricedto) - Used for pricing information
+- [OrderDraftDTO](/chatbot/types/orders#orderdraftdto) - Used for order drafts
+- [LocationDTO](/chatbot/types/organization#locationdto) - Used for location data
+- [CustomerDTO](/chatbot/types/customers#customerdto) - Used for customer data
+- [OrderDTO](/chatbot/types/orders#orderdto) - Used for order data
+- [PaymentMethodDTO](/chatbot/types/payments#paymentmethoddto) - Used for payment methods
+- [OrganizationDTO](/chatbot/types/organization#organizationdto) - Used for organization data
+- [GeoPointDTO](/chatbot/types/address#geopointdto) - Used for location coordinates
+- [ChatbotEventType](/chatbot/types/events#chatboteventtype) - Used for event types

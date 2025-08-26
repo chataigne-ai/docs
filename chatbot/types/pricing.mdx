@@ -1,0 +1,290 @@
+---
+title: Pricing Models
+description: Pricing and discount-related data models for managing prices, discounts, charges, and promotional offers
+---
+
+This module contains all pricing-related models used for managing product prices, discounts, charges, and promotional offers.
+
+## Core Pricing Models
+
+### PriceDTO
+
+Base price model used throughout the system.
+
+| Field    | Type   | Required | Description                                  |
+| -------- | ------ | -------- | -------------------------------------------- |
+| amount   | number | Yes      | Price amount as float (e.g., 12.99)         |
+| currency | string | Yes      | Currency code: "CHF", "EUR", or "USD"       |
+
+<Note>
+Consider using Decimal for monetary amounts to avoid float precision issues in production systems.
+</Note>
+
+### PriceOverrideDTO
+
+Model for conditional pricing that overrides base prices.
+
+| Field      | Type            | Required | Description                         |
+| ---------- | --------------- | -------- | ----------------------------------- |
+| id         | string          | Yes      | Price override identifier           |
+| price      | PriceDTO        | Yes      | Override price                      |
+| variantRefs| string[]        | No       | Applicable variant references       |
+| daysOfWeek | DaysOfWeekDTO   | No       | Days when override is active        |
+| startTime  | TimeDTO         | No       | Daily start time for override       |
+| endTime    | TimeDTO         | No       | Daily end time for override         |
+| startDate  | datetime        | No       | Override start date                 |
+| endDate    | datetime        | No       | Override end date                   |
+
+### Price Override Examples
+
+- **Happy Hour**: Reduced prices during specific hours
+- **Weekend Specials**: Different pricing on weekends
+- **Seasonal Pricing**: Time-limited price changes
+- **Variant Pricing**: Different prices for different product variants
+
+## Restriction Models
+
+### RestrictionDTO
+
+Model for defining availability and usage restrictions.
+
+| Field          | Type            | Required | Description                         |
+| -------------- | --------------- | -------- | ----------------------------------- |
+| id             | string          | Yes      | Restriction identifier              |
+| enabled        | boolean         | No       | Whether restriction is active       |
+| variantRefs    | string[]        | No       | Applicable variant references       |
+| daysOfWeek     | DaysOfWeekDTO   | No       | Days when restriction applies       |
+| startTime      | TimeDTO         | No       | Daily start time for restriction    |
+| endTime        | TimeDTO         | No       | Daily end time for restriction      |
+| startDate      | datetime        | No       | Restriction start date              |
+| endDate        | datetime        | No       | Restriction end date                |
+| minOrderAmount | PriceDTO        | No       | Minimum order amount required       |
+| maxPerOrder    | number          | No       | Maximum quantity per order          |
+| maxPerCustomer | number          | No       | Maximum quantity per customer       |
+
+### Restriction Types
+
+- **Time-Based**: Available only during certain hours or days
+- **Order Value**: Requires minimum order amount
+- **Quantity Limits**: Maximum quantities per order or customer
+- **Seasonal**: Available only during specific date ranges
+
+## Discount Models
+
+### AppliedDiscountBaseDTO
+
+Base model for all applied discount types.
+
+| Field      | Type     | Required | Description                |
+| ---------- | -------- | -------- | -------------------------- |
+| id         | string   | Yes      | Applied discount identifier|
+| name       | string   | Yes      | Discount display name      |
+| discountId | string   | Yes      | Original discount ID       |
+| priceOff   | PriceDTO | Yes      | Amount discounted          |
+
+### AppliedPercentageDiscountDTO
+
+Model for percentage-based discounts.
+
+| Field          | Type     | Required | Description                    |
+| -------------- | -------- | -------- | ------------------------------ |
+| type           | "percentage" | Yes  | Discount type identifier       |
+| percentage     | number   | Yes      | Percentage discount applied    |
+| appliedToTotal | PriceDTO | Yes      | Total amount discount applied to |
+
+**Extends**: [AppliedDiscountBaseDTO](#applieddiscountbasedto)
+
+### AppliedFixedDiscountDTO
+
+Model for fixed amount discounts.
+
+| Field | Type     | Required | Description              |
+| ----- | -------- | -------- | ------------------------ |
+| type  | "fixed"  | Yes      | Discount type identifier |
+
+**Extends**: [AppliedDiscountBaseDTO](#applieddiscountbasedto)
+
+### FreeItemDTO
+
+Model for free items in promotional discounts.
+
+| Field         | Type     | Required | Description                    |
+| ------------- | -------- | -------- | ------------------------------ |
+| skuInternalId | string   | Yes      | Free item SKU identifier       |
+| quantity      | number   | Yes      | Quantity of free items         |
+| originalPrice | PriceDTO | Yes      | Original price of free items   |
+
+### AppliedBOGODiscountDTO
+
+Model for buy-one-get-one discounts.
+
+| Field     | Type            | Required | Description                  |
+| --------- | --------------- | -------- | ---------------------------- |
+| type      | "bogo"          | Yes      | Discount type identifier     |
+| freeItems | FreeItemDTO[]   | Yes      | Items received for free      |
+
+**Extends**: [AppliedDiscountBaseDTO](#applieddiscountbasedto)
+
+### AppliedFreeProductDiscountDTO
+
+Model for free product promotions.
+
+| Field    | Type         | Required | Description              |
+| -------- | ------------ | -------- | ------------------------ |
+| type     | "free_product" | Yes    | Discount type identifier |
+| freeItem | FreeItemDTO  | Yes      | Free product details     |
+
+**Extends**: [AppliedDiscountBaseDTO](#applieddiscountbasedto)
+
+### AppliedFreeShippingDiscountDTO
+
+Model for free shipping promotions.
+
+| Field               | Type     | Required | Description                     |
+| ------------------- | -------- | -------- | ------------------------------- |
+| type                | "free_shipping" | Yes | Discount type identifier      |
+| originalDeliveryFee | PriceDTO | Yes      | Original delivery fee amount    |
+
+**Extends**: [AppliedDiscountBaseDTO](#applieddiscountbasedto)
+
+### AppliedDiscountDTO
+
+Union type for all applied discount variants.
+
+```typescript
+type AppliedDiscountDTO = 
+  | AppliedPercentageDiscountDTO
+  | AppliedFixedDiscountDTO  
+  | AppliedBOGODiscountDTO
+  | AppliedFreeProductDiscountDTO
+  | AppliedFreeShippingDiscountDTO
+```
+
+## Discount Configuration Models
+
+### PricingEffectDTO
+
+Enum defining how discounts affect pricing.
+
+| Value          | Description                    |
+| -------------- | ------------------------------ |
+| price_off      | Reduces price by fixed amount  |
+| percentage_off | Reduces price by percentage    |
+
+### DiscountDTO
+
+Model for configuring discount promotions.
+
+| Field        | Type              | Required | Description                        |
+| ------------ | ----------------- | -------- | ---------------------------------- |
+| id           | string            | Yes      | Discount identifier                |
+| name         | string            | Yes      | Discount display name              |
+| pricingEffect| PricingEffectDTO  | Yes      | How discount affects pricing       |
+| ref          | string            | No       | Discount reference code            |
+| description  | string            | No       | Discount description               |
+| restriction  | RestrictionDTO    | No       | Usage restrictions                 |
+| couponCodes  | string[]          | No       | Required coupon codes              |
+| pricingValue | number \| PriceDTO| No       | Discount amount or percentage      |
+| imageIds     | string[]          | No       | Promotional image identifiers      |
+| tags         | string[]          | No       | Discount tags                      |
+
+### Discount Types
+
+#### Percentage Discounts
+- Apply percentage reduction to order total
+- Can be limited by maximum discount amount
+- Common for general promotions
+
+#### Fixed Amount Discounts  
+- Apply fixed amount reduction
+- Simple to understand for customers
+- Good for specific value promotions
+
+#### BOGO (Buy One Get One)
+- Free items when purchasing qualifying products
+- Flexible quantity ratios (buy 2 get 1, etc.)
+- Popular for food promotions
+
+#### Free Product
+- Specific free items added to order
+- No purchase requirement
+- Used for sampling and gifts
+
+#### Free Shipping
+- Waives delivery fees
+- Can have minimum order requirements
+- Encourages larger orders
+
+## Charge Models
+
+### ChargeType
+
+Enum defining types of additional charges.
+
+| Value       | Description                    |
+| ----------- | ------------------------------ |
+| delivery    | Delivery service charge        |
+| payment_fee | Payment processing fee         |
+| tip         | Gratuity/tip charge            |
+| tax         | Tax charge                     |
+| other       | Other miscellaneous charges    |
+
+### ChargeDTO
+
+Model for additional charges applied to orders.
+
+| Field | Type        | Required | Description              |
+| ----- | ----------- | -------- | ------------------------ |
+| id    | string      | Yes      | Charge identifier        |
+| name  | string      | Yes      | Charge display name      |
+| type  | ChargeType  | Yes      | Type of charge           |
+| ref   | string      | No       | Charge reference code    |
+| price | PriceDTO    | No       | Charge amount            |
+
+### Charge Examples
+
+- **Delivery Fee**: Standard delivery charges
+- **Service Fee**: Platform service charges  
+- **Payment Fee**: Credit card processing fees
+- **Tips**: Gratuity for delivery drivers
+- **Taxes**: Government taxes and duties
+
+## Pricing Logic
+
+### Price Calculation Order
+
+1. **Base Price**: Start with product/SKU base price
+2. **Price Overrides**: Apply any active price overrides
+3. **Options**: Add selected option prices
+4. **Quantity**: Multiply by item quantity
+5. **Discounts**: Apply applicable discounts
+6. **Charges**: Add additional charges
+7. **Final Total**: Calculate order total
+
+### Discount Priority
+
+When multiple discounts could apply:
+
+1. **Customer-Specific**: Loyalty discounts first
+2. **Coupon Codes**: Explicit customer codes
+3. **Automatic**: Best available automatic discount
+4. **Stacking Rules**: Some discounts can stack, others are exclusive
+
+### Time-Based Pricing
+
+All pricing models support time-based conditions:
+
+- **Daily Hours**: Different prices during business hours
+- **Days of Week**: Weekend vs weekday pricing
+- **Date Ranges**: Seasonal or promotional periods
+- **Variants**: Location or menu variant specific pricing
+
+<Note>
+The pricing system is designed to be flexible and support complex promotional strategies while maintaining transparency for customers.
+</Note>
+
+## Related Models
+
+- [TimeDTO](/chatbot/types/time#timedto) - Used for time-based restrictions
+- [DaysOfWeekDTO](/chatbot/types/time#daysofweekdto) - Used for day-based restrictions
+- [OrderDTO](/chatbot/types/orders#orderdto) - Uses pricing models for order totals

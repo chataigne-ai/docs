@@ -1,0 +1,246 @@
+---
+title: "Tools Reference"
+description: "Complete reference guide for all 21 tools available in the Leclerk system"
+---
+
+# Tools Reference
+
+The Leclerk chatbot system uses 21 specialized tools to handle customer interactions, manage orders, and provide restaurant services.
+
+## Tool Categories
+
+### Order Management Tools
+
+#### update_order_draft
+Updates the order draft with items, customer information, delivery details, and payment method. This is the central tool for managing order state.
+
+**Key Parameters:**
+- `service_type`: delivery or collection
+- `items`: Array of menu items with SKU IDs and options
+- `delivery_address_string`: Complete delivery address
+- `payment_method`: Payment method selection
+- `requested_time`: ASAP or specific time
+- `deals`: Array of combo deals
+
+#### menu_lookup
+Search and browse menu items with flexible query capabilities.
+
+**Query Types:**
+- `browse_categories`: Minimal token browsing
+- `search_skus`: Fuzzy search for items and deals
+- `list_categories`: List all categories with details
+- `list_skus`: List items with filters
+- `get_sku_details`: Get detailed SKU information
+- `list_deals`: List available deals
+- `get_deal_details`: Get deal information
+
+#### check_address
+Validates delivery addresses and finds serviceable locations. In organization mode, returns the best location for delivery.
+
+**Parameters:**
+- `address_string`: Full delivery address
+- `latitude`/`longitude`: Coordinates for location-based check
+
+#### send_order_form
+Sends WhatsApp flow for interactive menu browsing. Must be called after location is set in organization mode.
+
+#### query_live_order_status
+Checks status of active orders including delivery info, payment status, and tracking.
+
+**Query Types:**
+- `status`: Basic status info
+- `payment`: Payment status
+- `delivery`: Full delivery information
+- `tracking`: Tracking URL and status
+- `driver`: Courier information
+- `collection`: Pickup status
+- `timing`: Time estimates
+- `all`: Complete information
+
+### Customer Information Tools
+
+#### get_customer_previous_orders
+Retrieves customer order history, favorite products, and statistics for personalization.
+
+#### get_current_time
+Gets current time in specified timezone. Essential for scheduling orders and messages.
+
+**Parameters:**
+- `timezone`: Target timezone (default: Europe/Zurich)
+
+#### get_store_information
+Fetches restaurant details including opening hours, address, and payment methods.
+
+**Info Types:**
+- `basic`: ID and name
+- `location`: Address details
+- `opening_hours`: Operating hours
+- `catalog`: Full menu
+- `currency`: Store currency
+- `contact_info`: Contact details
+- `payment_methods`: Available payment options
+- `delivery_settings`: Delivery configuration
+
+### Messaging & Engagement Tools
+
+#### schedule_message
+Schedules WhatsApp messages up to 24 hours in advance.
+
+**Parameters:**
+- `message`: Message content
+- `scheduled_for`: ISO 8601 datetime
+- `type`: permanent or until_next_message
+
+#### cancel_scheduled_message
+Cancels a previously scheduled message.
+
+**Parameters:**
+- `scheduled_message_id`: ID from schedule_message
+
+#### list_scheduled_messages
+Lists all pending scheduled messages for the conversation.
+
+#### react_to_message
+Reacts to customer messages with emojis.
+
+**Parameters:**
+- `emoji`: Emoji to react with
+- `message_to_react`: Part of message to react to
+
+#### generate_fortune_wheel_link
+Generates promotional game links for customer engagement.
+
+### Customer Management Tools
+
+#### change_customer_language
+Updates customer's preferred language for UI elements.
+
+**Supported Languages:**
+- `fr`: French
+- `en`: English
+- `de`: German
+- `it`: Italian
+- `es`: Spanish
+
+#### manage_customer_memory
+Stores and retrieves persistent customer preferences.
+
+**Operations:**
+- `get`: Retrieve stored information
+- `set`: Store new information
+- `delete`: Remove stored memory
+
+**Memory Types:**
+- `location`: Restaurant-specific
+- `businessOrganization`: Chain-wide
+
+#### register_feedback
+Collects customer feedback with scoring.
+
+**Score Types:**
+- `general_score`: Overall satisfaction (required)
+- `food_score`: Food quality
+- `delivery_score`: Delivery service
+- `ordering_experience_score`: Ordering process
+
+### Multi-location Support Tools
+
+#### switch_location
+Switches active location in organization mode. Resets order draft when changing locations.
+
+**Parameters:**
+- `location_id`: Target location ID
+
+#### organization_location_query
+Queries information about other locations in the organization.
+
+**Query Types:**
+- `list_all`: Show all locations
+- `get_location_details`: Specific location info
+- `check_availability`: Check if location is open
+
+### Internal Tools
+
+#### think
+Internal reasoning tool for complex logic. Adds latency - use strategically.
+
+**Use Cases:**
+- Validation errors
+- Complex order parsing (5+ items)
+- Ambiguous requests
+- Menu lookups with specific criteria
+
+#### report
+Reports issues to support team via Linear and Discord.
+
+**Priority Levels:**
+- `P0`: Critical - System down
+- `P1`: High - Major feature broken
+- `P2`: Medium - Non-critical bug
+- `P3`: Low - Minor issues
+- `P4`: Trivial - Cosmetic issues
+
+## Organization vs Location Mode
+
+The system operates in two modes:
+
+### Location Mode
+- Single restaurant location
+- Direct menu access
+- Simple address validation
+
+### Organization Mode
+- Multiple locations in a chain
+- Requires location selection before ordering
+- `check_address` returns best location
+- `menu_lookup` needs explicit location_id
+- `switch_location` available for changing locations
+
+## Payment Flow
+
+The system handles three payment scenarios through `update_order_draft`:
+
+1. **RegisterWithoutPayment**: Store handles payment directly
+2. **InstantPayment**: Saved card, immediate charge
+3. **CheckoutPayment**: One-time payment, link sent
+4. **noPaymentMethod**: Card setup required first
+
+## Common Error Codes
+
+- `INVALID_ADDRESS`: Address couldn't be parsed
+- `OUT_OF_DELIVERY_RADIUS`: Address outside delivery zone
+- `NO_PAYMENT_METHOD`: Payment method required
+- `LOCATION_ID_NOT_FOUND`: Invalid location ID
+- `POSTAL_CODE_NOT_SERVED`: Postal code not in service area
+
+## Best Practices
+
+1. **Validate addresses early** using `check_address` before building orders
+2. **Use `get_current_time`** before scheduling messages or orders
+3. **Batch menu queries** when possible to reduce latency
+4. **Check organization mode** before using location-specific features
+5. **Handle payment setup** proactively when NO_PAYMENT_METHOD errors occur
+6. **Use `think` tool sparingly** as it adds latency
+7. **Report issues promptly** using the report tool
+8. **Preserve exact promo codes** - don't modify case or formatting
+
+## Tool Response Structure
+
+All tools return consistent response structures:
+
+```json
+{
+  "success": true/false,
+  "message": "Human-readable message",
+  "error": "Error message if failed",
+  // Tool-specific data fields
+}
+```
+
+## Integration Points
+
+- **Nexus API**: Backend service for all operations
+- **WhatsApp**: Message delivery and interactive flows
+- **Payment Systems**: Card processing and alternative payments
+- **Langfuse**: Observability and tracing
+- **Linear/Discord**: Issue tracking and notifications

@@ -1,0 +1,76 @@
+---
+title: Customer Models
+description: Customer-related data models for managing customer information, profiles, and memory
+---
+
+This module contains all customer-related models used for managing customer data and personalization.
+
+## CustomerMemoryDTO
+
+Model for customer memory entries that store personalized information.
+
+| Field    | Type   | Required | Description                                           |
+| -------- | ------ | -------- | ----------------------------------------------------- |
+| entityId | string | Yes      | Entity identifier (location or organization ID)       |
+| type     | string | Yes      | Entity type: "location" or "businessOrganization"    |
+| data     | string | Yes      | Stored memory data as text                            |
+
+<Note>
+Customer memory allows storing personalized information like preferences, dietary restrictions, or special notes that persist across conversations.
+</Note>
+
+## CustomerDTO
+
+Complete customer model with profile information and order history.
+
+| Field            | Type                | Required | Description                                    |
+| ---------------- | ------------------- | -------- | ---------------------------------------------- |
+| id               | string              | Yes      | Unique customer identifier                     |
+| createdAt        | datetime            | No       | Customer account creation timestamp            |
+| updatedAt        | datetime            | No       | Last profile update timestamp                  |
+| locationIds      | string[]            | No       | Associated location identifiers (default: []) |
+| email            | string              | No       | Customer email address                         |
+| firstName        | string              | No       | Customer first name                            |
+| lastName         | string              | No       | Customer last name                             |
+| gender           | string              | No       | Customer gender: "male" or "female"           |
+| birthDate        | datetime            | No       | Customer birth date                            |
+| companyName      | string              | No       | Company name for business customers            |
+| phone            | string              | No       | Phone number                                   |
+| phoneAccessCode  | string              | No       | Phone access code/country code                 |
+| address          | AddressDTO          | No       | Customer's default address                     |
+| deliveryNotes    | string              | No       | Default delivery instructions                  |
+| whatsappNumber   | string              | No       | WhatsApp number for communication              |
+| language         | string              | No       | Preferred language: "fr", "en", "de", "it", "es" |
+| orders           | OrderDTO[]          | No       | Customer's order history (default: [])        |
+| memory           | CustomerMemoryDTO[] | No       | Stored customer memory entries (default: [])  |
+
+### Customer Languages
+
+The system supports the following customer languages:
+
+| Code | Language |
+| ---- | -------- |
+| fr   | French   |
+| en   | English  |
+| de   | German   |
+| it   | Italian  |
+| es   | Spanish  |
+
+### Customer Profile Usage
+
+The customer model serves multiple purposes:
+
+1. **Identity Management**: Basic customer identification and contact information
+2. **Personalization**: Language preferences and delivery notes for customized service  
+3. **Order History**: Access to previous orders for reordering and recommendations
+4. **Memory Storage**: Persistent storage of customer preferences and special requirements
+5. **Multi-location Support**: Tracking customer relationships across different restaurant locations
+
+<Note>
+Most customer fields are optional to accommodate different levels of customer information availability. The system can function with minimal customer data and progressively enhance the profile over time.
+</Note>
+
+## Related Models
+
+- [AddressDTO](/chatbot/types/address#addressdto) - Used for customer addresses
+- [OrderDTO](/chatbot/types/orders#orderdto) - Used for order history
