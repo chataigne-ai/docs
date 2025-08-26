@@ -139,21 +139,6 @@
             "group": "Framework Overview",
             "pages": [
               "chatbot/getting-started",
-              {
-                "group": "General",
-                "pages": [
-                  "chatbot/message-webhook",
-                  "chatbot/event-webhook",
-                  "chatbot/leclerk-architecture",
-                  "chatbot/order-draft",
-                  "chatbot/message-processing",
-                  "chatbot/check-address",
-                  "chatbot/update-order-draft",
-                  "chatbot/multi-location-management",
-                  "chatbot/all-tools-reference",
-                  "chatbot/commands"
-                ]
-              },
               "chatbot/clerk-framework-structure",
               "chatbot/context-manager",
               "chatbot/tools-reference",
@@ -235,6 +220,21 @@
                   "chatbot/services/langfuse",
                   "chatbot/services/linear",
                   "chatbot/services/notifications"
+                ]
+              },
+              {
+                "group": "General",
+                "pages": [
+                  "chatbot/message-webhook",
+                  "chatbot/event-webhook",
+                  "chatbot/leclerk-architecture",
+                  "chatbot/order-draft",
+                  "chatbot/message-processing",
+                  "chatbot/check-address",
+                  "chatbot/update-order-draft",
+                  "chatbot/multi-location-management",
+                  "chatbot/all-tools-reference",
+                  "chatbot/commands"
                 ]
               }
             ]
